@@ -12,12 +12,6 @@ RUN npm ci
 # Copiar código fuente
 COPY . .
 
-# Variables de entorno para el build de Vite
-ARG VITE_BACKEND_URL=""
-ARG VITE_GOOGLE_CLIENT_ID=""
-ENV VITE_BACKEND_URL=${VITE_BACKEND_URL}
-ENV VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
-
 # Compilar TypeScript + Build de Vite
 RUN npm run build
 

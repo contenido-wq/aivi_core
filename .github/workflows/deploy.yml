@@ -42,10 +42,10 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: |
-            VITE_BACKEND_URL=${{ secrets.VITE_BACKEND_URL }}
-            VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
 
       - name: Notificar a Easypanel
+        env:
+          WEBHOOK_URL: ${{ secrets.EASYPANEL_WEBHOOK_CORE }}
+        if: env.WEBHOOK_URL != ''
         run: |
-          curl -f -X POST "${{ secrets.EASYPANEL_WEBHOOK_CORE }}"
+          curl -f -X POST "$WEBHOOK_URL"
