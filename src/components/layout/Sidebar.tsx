@@ -1,0 +1,142 @@
+import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight } from "lucide-react";
+import { C } from "../../tokens";
+import type { ProductFilter } from "../../services/dashboard";
+
+interface SidebarProps {
+  filter:     ProductFilter;
+  onFilter:   (f: ProductFilter) => void;
+  onSettings: () => void;
+  mrr:        number;
+  arr:        number;
+}
+
+const NAV = [
+  { icon: LayoutDashboard, label: "Dashboard",     active: true  },
+  { icon: BarChart2,       label: "Analytics",     active: false },
+  { icon: Users,           label: "Usuarios",      active: false },
+  { icon: CreditCard,      label: "Transacciones", active: false },
+  { icon: RefreshCw,       label: "Suscripciones", active: false },
+];
+
+const FILTERS: { value: ProductFilter; label: string }[] = [
+  { value: "todos", label: "Todos" },
+  { value: "AIVI",  label: "AIVI"  },
+  { value: "MV3",   label: "MV3"   },
+];
+
+export function Sidebar({ filter, onFilter, onSettings, mrr, arr }: SidebarProps) {
+  const fmtK = (n: number) => {
+    const parts = n.toFixed(2).split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return `$${parts.join(".")}`;
+  };
+
+  return (
+    <aside style={{
+      width: 220,
+      flexShrink: 0,
+      background: C.sidebar,
+      borderRight: `1px solid ${C.border}`,
+      display: "flex",
+      flexDirection: "column",
+      height: "100vh",
+      position: "fixed",
+      left: 0,
+      top: 0,
+      zIndex: 100,
+    }}>
+      {/* Logo */}
+      <div style={{ padding: "20px 18px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
+        <img
+          src="/logo.png"
+          alt="AIVI"
+          style={{ width: 36, height: 36, borderRadius: 10, objectFit: "contain", flexShrink: 0 }}
+        />
+        <div style={{ lineHeight: 1 }}>
+          <div style={{
+            fontSize: 17, fontWeight: 900, letterSpacing: "-0.04em",
+            background: C.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+          }}>AIVI</div>
+          <div style={{ fontSize: 9, fontWeight: 800, color: C.orange, letterSpacing: "0.14em", marginTop: 1 }}>CORE</div>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav style={{ padding: "12px 8px", flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+        {NAV.map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.label} style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "10px 12px", borderRadius: 10,
+              background: item.active ? "rgba(254,128,63,0.12)" : "transparent",
+              backdropFilter: item.active ? "blur(10px)" : "none",
+              border: `1px solid ${item.active ? "rgba(254,128,63,0.28)" : "transparent"}`,
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}>
+              <Icon size={16} style={{ color: item.active ? C.orange : C.white }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: item.active ? C.orange : C.white, flex: 1 }}>
+                {item.label}
+              </span>
+              {item.active && <ChevronRight size={12} style={{ color: C.orange }} />}
+            </div>
+          );
+        })}
+
+        {/* Filtro */}
+        <div style={{ marginTop: 16, paddingLeft: 2 }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, paddingLeft: 10 }}>
+            Producto
+          </div>
+          {FILTERS.map(f => (
+            <button key={f.value} onClick={() => onFilter(f.value)} style={{
+              display: "block", width: "100%",
+              background: filter === f.value ? "rgba(254,128,63,0.12)" : "transparent",
+              backdropFilter: filter === f.value ? "blur(10px)" : "none",
+              border: `1px solid ${filter === f.value ? "rgba(254,128,63,0.28)" : "transparent"}`,
+              borderRadius: 8, padding: "8px 12px",
+              color: filter === f.value ? C.orange : C.white,
+              fontSize: 11, fontWeight: 700, textAlign: "left",
+              marginBottom: 2, transition: "all 0.15s",
+            }}>
+              {filter === f.value ? "● " : "○ "}{f.label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      {/* Footer */}
+      <div style={{ padding: "14px 16px", borderTop: `1px solid ${C.border}` }}>
+        <div style={{
+          background: "rgba(255,255,255,0.05)",
+          backdropFilter: "blur(10px)",
+          borderRadius: 12,
+          border: `1px solid ${C.border}`,
+          padding: "12px 14px",
+          marginBottom: 8,
+        }}>
+          <div style={{ fontSize: 9, color: C.muted, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+            Métricas Recurrentes
+          </div>
+          {[["MRR", fmtK(mrr), C.green], ["ARR", fmtK(arr), C.green]].map(([k, v, col]) => (
+            <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <span style={{ fontSize: 10, color: C.mutedLight }}>{k}</span>
+              <span style={{ fontSize: 14, fontWeight: 900, color: col, letterSpacing: "-.02em" }}>{v}</span>
+            </div>
+          ))}
+        </div>
+        <button onClick={onSettings} style={{
+          width: "100%", padding: "8px", borderRadius: 8,
+          background: "transparent",
+          border: `1px solid ${C.border}`,
+          color: C.mutedLight, fontSize: 11, fontWeight: 600,
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          transition: "all .15s",
+        }}>
+          <Settings size={13} /> Ajustes
+        </button>
+      </div>
+    </aside>
+  );
+}

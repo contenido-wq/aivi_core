@@ -1,0 +1,172 @@
+import { serve }        from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const SALE_EVENTS       = ["PURCHASE_COMPLETE", "PURCHASE_APPROVED"];
+const REFUND_EVENTS     = ["PURCHASE_REFUNDED"];
+const CANCEL_EVENTS     = ["PURCHASE_CANCELED", "SUBSCRIPTION_CANCELLATION"];
+const DELAYED_EVENTS    = ["PURCHASE_DELAYED"];
+const TRIAL_EVENTS      = ["PURCHASE_PROTEST"];
+const CHARGEBACK_EVENTS = ["CHARGEBACK", "PURCHASE_CHARGEBACK"];
+
+serve(async (req) => {
+  if (req.method !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+
+  let payload: any;
+  try {
+    payload = await req.json();
+  } catch {
+    return new Response("Invalid JSON", { status: 400 });
+  }
+
+  // Hotmart v2 envía el hottok DENTRO del body
+  const hottok =
+    payload.hottok ??
+    req.headers.get("X-Hotmart-Hottok") ??
+    req.headers.get("x-hotmart-hottok") ??
+    "";
+
+  const expectedToken = Deno.env.get("HOTMART_HOTTOK") ?? "";
+
+  console.log("Token recibido:", hottok);
+  console.log("Token esperado:", expectedToken);
+  console.log("Evento:", payload.event);
+
+  if (expectedToken && hottok !== expectedToken) {
+    console.error("Token inválido — acceso denegado");
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  const event           = payload.event as string;
+  const purchase        = payload.data?.purchase;
+  const product         = payload.data?.product;
+  const buyer           = payload.data?.buyer;
+  const sub             = payload.data?.subscription;
+
+  if (!event || !purchase) {
+    console.error("Falta event o purchase:", { event, purchase });
+    return new Response("Missing event or purchase data", { status: 400 });
+  }
+
+  const hotmart_id      = purchase.transaction as string;
+  const plan_name       = product?.name         ?? "Desconocido";
+  const buyer_email     = buyer?.email           ?? "";
+  const buyer_name      = buyer?.name            ?? "";
+  const subscriber_code = sub?.subscriber?.code  ?? hotmart_id;
+  const amount          = Number(purchase.price?.value ?? 0);
+  const currency        = (purchase.price?.currency_value ?? "USD") as string;
+  const today           = new Date().toISOString().split("T")[0];
+
+  // Para eventos de cancelación/chargeback, evitar duplicados del mismo día
+  // (Hotmart a veces reintenta con distinto hotmart_id para el mismo evento)
+  if ([...CANCEL_EVENTS, ...CHARGEBACK_EVENTS].includes(event)) {
+    const dayStart = `${today}T00:00:00.000Z`;
+    const dayEnd   = `${today}T23:59:59.999Z`;
+    const { data: existing } = await supabase
+      .from("transactions")
+      .select("id")
+      .eq("buyer_email", buyer_email)
+      .eq("event_type", event)
+      .gte("created_at", dayStart)
+      .lte("created_at", dayEnd)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      console.log(`⚠️ Duplicado ignorado: ${event} — ${buyer_email}`);
+      return new Response(JSON.stringify({ ok: true, skipped: true }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
+  await supabase.from("transactions").upsert({
+    hotmart_id,
+    event_type:  event,
+    buyer_name,
+    buyer_email,
+    plan_name,
+    amount,
+    currency,
+    status:      deriveStatus(event),
+    raw_payload: payload,
+    created_at:  new Date().toISOString(),
+  }, { onConflict: "hotmart_id" });
+
+  await supabase.from("subscriptions").upsert({
+    subscriber_code,
+    buyer_email,
+    buyer_name,
+    plan_name,
+    status:     deriveStatus(event),
+    amount,
+    currency,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "subscriber_code" });
+
+  await recalcDailyMetrics(supabase, today);
+
+  console.log(`✅ Procesado ${event} — ${buyer_email} — plan: ${plan_name}`);
+  return new Response(JSON.stringify({ ok: true }), {
+    headers: { "Content-Type": "application/json" },
+  });
+});
+
+function deriveStatus(event: string): string {
+  if (SALE_EVENTS.includes(event))       return "active";
+  if (REFUND_EVENTS.includes(event))     return "refunded";
+  if (CANCEL_EVENTS.includes(event))     return "cancelled";
+  if (DELAYED_EVENTS.includes(event))    return "delayed";
+  if (TRIAL_EVENTS.includes(event))      return "trial";
+  if (CHARGEBACK_EVENTS.includes(event)) return "chargeback";
+  return "unknown";
+}
+
+async function recalcDailyMetrics(supabase: any, date: string) {
+  const { count: active_total } = await supabase
+    .from("subscriptions")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "active");
+
+  const start = `${date}T00:00:00.000Z`;
+  const end   = `${date}T23:59:59.999Z`;
+
+  const { data: todayTx } = await supabase
+    .from("transactions")
+    .select("event_type, amount")
+    .gte("created_at", start)
+    .lte("created_at", end);
+
+  const metrics = { new_users: 0, recurring: 0, trials: 0, refunds: 0, cancellations: 0, revenue: 0 };
+
+  for (const tx of (todayTx ?? [])) {
+    if (SALE_EVENTS.includes(tx.event_type))   { metrics.new_users++; metrics.revenue += Number(tx.amount); }
+    if (REFUND_EVENTS.includes(tx.event_type)) { metrics.refunds++;   metrics.revenue -= Number(tx.amount); }
+    if (CANCEL_EVENTS.includes(tx.event_type))   metrics.cancellations++;
+    if (TRIAL_EVENTS.includes(tx.event_type))    metrics.trials++;
+  }
+
+  const { data: invRow } = await supabase
+    .from("investment_data")
+    .select("investment")
+    .eq("date", date);
+
+  const investment = (invRow ?? []).reduce((s: number, r: any) => s + Number(r.investment), 0);
+
+  await supabase.from("daily_metrics").upsert({
+    date,
+    revenue:       Math.max(0, metrics.revenue),
+    investment,
+    new_users:     metrics.new_users,
+    recurring:     metrics.recurring,
+    trials:        metrics.trials,
+    refunds:       metrics.refunds,
+    cancellations: metrics.cancellations,
+    active_total:  active_total ?? 0,
+    updated_at:    new Date().toISOString(),
+  }, { onConflict: "date" });
+}
