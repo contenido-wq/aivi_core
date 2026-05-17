@@ -3,6 +3,7 @@ dist
 .git
 .github
 .DS_Store
+.env*
 screenshots
 *.md
 *.png
