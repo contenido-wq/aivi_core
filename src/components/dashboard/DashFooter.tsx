@@ -1,9 +1,11 @@
 import { C } from "../../tokens";
+import { useResponsive } from "../../hooks/useResponsive";
 import type { KPIData } from "../../services/dashboard";
 
 interface DashFooterProps { kpis: KPIData | null; }
 
 export function DashFooter({ kpis }: DashFooterProps) {
+  const { isMobile } = useResponsive();
   const mrr   = kpis?.mrr ?? 0;
   const arr   = mrr * 12;
   const valLo = arr * 2;
@@ -15,22 +17,23 @@ export function DashFooter({ kpis }: DashFooterProps) {
   };
 
   return (
-    <footer style={{
+    <footer className="dash-footer-safe" style={{
       background: C.sidebar,
       borderTop: `1px solid ${C.border}`,
-      padding: "8px 24px",
+      padding: isMobile ? "8px 12px" : "8px 24px",
       display: "flex", alignItems: "center", justifyContent: "space-between",
       flexShrink: 0,
+      flexWrap: "wrap",
+      gap: isMobile ? 8 : 0,
     }}>
-      <div style={{ display: "flex", gap: 28, alignItems: "center" }}>
-        {[
-          ["MRR",       fmt(mrr),               C.green],
-          ["ARR",       fmt(arr),               C.green],
-          ["Valuación", `${fmt(valLo)} – ${fmt(valHi)}`, C.yellow],
-        ].map(([lbl, val, col]) => (
+      <div style={{ display: "flex", gap: isMobile ? 16 : 28, alignItems: "center", flexWrap: "wrap" }}>
+        {(isMobile
+          ? [["MRR", fmt(mrr), C.green], ["ARR", fmt(arr), C.green]]
+          : [["MRR", fmt(mrr), C.green], ["ARR", fmt(arr), C.green], ["Valuación", `${fmt(valLo)} – ${fmt(valHi)}`, C.yellow]]
+        ).map(([lbl, val, col]) => (
           <div key={lbl}>
             <div style={{ fontSize: 9, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{lbl}</div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: col, letterSpacing: "-0.02em", marginTop: 1 }}>{val}</div>
+            <div style={{ fontSize: isMobile ? 13 : 16, fontWeight: 900, color: col, letterSpacing: "-0.02em", marginTop: 1 }}>{val}</div>
           </div>
         ))}
       </div>

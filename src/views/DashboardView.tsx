@@ -1,6 +1,7 @@
 import { useState }            from "react";
 import { useClock }            from "../hooks/useClock";
 import { useDashboardData }    from "../hooks/useDashboardData";
+import { useResponsive }       from "../hooks/useResponsive";
 import { Sidebar }             from "../components/layout/Sidebar";
 import { TopNav }              from "../components/dashboard/TopNav";
 import { KPIRow }              from "../components/dashboard/KPIRow";
@@ -21,13 +22,16 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
   const [adsOn, setAdsOn]     = useState(false);
   const [date,  setDate]      = useState(() => new Date());
   const [filter, setFilter]   = useState<ProductFilter>("todos");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const { isMobile, isTablet, isDesktop } = useResponsive();
 
   const { kpis, plans, daily, transactions, countries, chartData, atRiskUsers, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
     useDashboardData(date, filter);
 
   if (error) {
     return (
-      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}>
+      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg, padding: 24 }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 14, color: C.red, marginBottom: 12 }}>Error conectando con Supabase</div>
           <div style={{ fontSize: 11, color: C.muted, maxWidth: 340 }}>{error}</div>
@@ -39,6 +43,9 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
     );
   }
 
+  // Padding values based on breakpoint
+  const px = isMobile ? 12 : isTablet ? 16 : 24;
+
   return (
     <div style={{ display: "flex", height: "100vh", background: C.bg, overflow: "hidden" }}>
       <Sidebar
@@ -47,9 +54,20 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
         onSettings={onSettings}
         mrr={kpis?.mrr ?? 0}
         arr={kpis?.arr ?? 0}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        isMobile={isMobile || isTablet}
       />
 
-      <div style={{ marginLeft: 220, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+      <div style={{
+        marginLeft: (isMobile || isTablet) ? 0 : 220,
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        position: "relative",
+        width: "100%",
+      }}>
         {loading && (
           <div style={{
             position: "absolute", top: 0, left: 0, right: 0, height: 2, zIndex: 999,
@@ -57,32 +75,84 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
           }} />
         )}
 
-        <TopNav time={time} adsOn={adsOn} onAdsToggle={() => setAdsOn(!adsOn)} />
+        <TopNav
+          time={time}
+          adsOn={adsOn}
+          onAdsToggle={() => setAdsOn(!adsOn)}
+          isMobile={isMobile || isTablet}
+          onMenuOpen={() => setSidebarOpen(true)}
+        />
 
-        <KPIRow kpis={kpis} />
-
-        {/* Sección principal: Usuarios + Resumen + Seguimiento (expandida) */}
+        {/* Scrollable content area */}
         <div style={{
-          display: "grid", gridTemplateColumns: "1fr 240px 340px",
-          gap: 10, padding: "0 24px", flex: 1, minHeight: 0, overflow: "hidden",
+          flex: 1,
+          overflow: "auto",
+          WebkitOverflowScrolling: "touch",
+          display: "flex",
+          flexDirection: "column",
         }}>
-          <UsersTable plans={plans} kpis={kpis} />
-          <DailyPanel date={date} daily={daily} onDateChange={setDate} />
-          <AtRiskPanel users={atRiskUsers} />
-        </div>
+          <KPIRow kpis={kpis} />
 
-        {/* Sección inferior: Ingresos + Países + Transacciones (compacta) */}
-        <div style={{
-          display: "grid", gridTemplateColumns: "1fr 260px 270px",
-          gap: 10, padding: "10px 24px 0", flexShrink: 0,
-          maxHeight: 280,
-        }}>
-          <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
-          <CountriesPanel countries={countries ?? []} />
-          <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
-        </div>
+          {/* ── Sección principal: Usuarios + Resumen + Seguimiento ── */}
+          {isDesktop ? (
+            /* Desktop: 3-column fixed grid */
+            <div style={{
+              display: "grid", gridTemplateColumns: "1fr 240px 340px",
+              gap: 10, padding: `0 ${px}px`, minHeight: 0,
+            }}>
+              <UsersTable plans={plans} kpis={kpis} />
+              <DailyPanel date={date} daily={daily} onDateChange={setDate} />
+              <AtRiskPanel users={atRiskUsers} />
+            </div>
+          ) : isTablet ? (
+            /* Tablet: 2-column + stack */
+            <div style={{ padding: `0 ${px}px`, display: "flex", flexDirection: "column", gap: 10 }}>
+              <UsersTable plans={plans} kpis={kpis} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <DailyPanel date={date} daily={daily} onDateChange={setDate} />
+                <AtRiskPanel users={atRiskUsers} />
+              </div>
+            </div>
+          ) : (
+            /* Mobile: single-column stack */
+            <div style={{ padding: `0 ${px}px`, display: "flex", flexDirection: "column", gap: 10 }}>
+              <UsersTable plans={plans} kpis={kpis} />
+              <DailyPanel date={date} daily={daily} onDateChange={setDate} />
+              <AtRiskPanel users={atRiskUsers} />
+            </div>
+          )}
 
-        <DashFooter kpis={kpis} />
+          {/* ── Sección inferior: Ingresos + Países + Transacciones ── */}
+          {isDesktop ? (
+            /* Desktop: 3-column fixed grid */
+            <div style={{
+              display: "grid", gridTemplateColumns: "1fr 260px 270px",
+              gap: 10, padding: `10px ${px}px 0`, flexShrink: 0,
+            }}>
+              <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
+              <CountriesPanel countries={countries ?? []} />
+              <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
+            </div>
+          ) : isTablet ? (
+            /* Tablet: chart full-width, then 2 cols */
+            <div style={{ padding: `10px ${px}px 0`, display: "flex", flexDirection: "column", gap: 10 }}>
+              <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <CountriesPanel countries={countries ?? []} />
+                <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
+              </div>
+            </div>
+          ) : (
+            /* Mobile: single-column stack */
+            <div style={{ padding: `10px ${px}px 0`, display: "flex", flexDirection: "column", gap: 10 }}>
+              <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
+              <CountriesPanel countries={countries ?? []} />
+              <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
+            </div>
+          )}
+
+          <DashFooter kpis={kpis} />
+        </div>
       </div>
     </div>
   );

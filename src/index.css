@@ -8,10 +8,18 @@ html, body, #root {
   font-family: 'Hanken Grotesk', sans-serif;
   color: #F0F0FF;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Prevent horizontal scroll on mobile */
+html, body {
+  overflow-x: hidden;
 }
 
 ::-webkit-scrollbar       { width: 4px; height: 4px; }
-::-webkit-scrollbar-track {  background: #000008; }
+::-webkit-scrollbar-track { background: #000008; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 
 @keyframes pulse-dot {
@@ -21,6 +29,14 @@ html, body, #root {
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes fade-overlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .aivi-row:hover { background: rgba(255,255,255,0.03) !important; }
@@ -54,15 +70,60 @@ html, body, #root {
   mask-composite: exclude;
   pointer-events: none;
 }
-.aivi-card:hover {
-  background: #1D1D20 !important;
-  border-color: rgba(254,128,63,0.25) !important;
-  box-shadow:
-    0 2px 0 0 rgba(255,255,255,0.04) inset,
-    0 16px 40px rgba(0,0,0,0.6),
-    0 4px 12px rgba(0,0,0,0.35) !important;
-  transform: translateY(-1px);
+
+/* Disable hover lift on touch devices to avoid sticky states */
+@media (hover: hover) {
+  .aivi-card:hover {
+    background: #1D1D20 !important;
+    border-color: rgba(254,128,63,0.25) !important;
+    box-shadow:
+      0 2px 0 0 rgba(255,255,255,0.04) inset,
+      0 16px 40px rgba(0,0,0,0.6),
+      0 4px 12px rgba(0,0,0,0.35) !important;
+    transform: translateY(-1px);
+  }
 }
 
 .fade-in { animation: fade-in 0.15s ease forwards; }
-button, input, textarea { font-family: 'Hanken Grotesk', sans-serif; cursor: pointer; }
+button, input, textarea {
+  font-family: 'Hanken Grotesk', sans-serif;
+  cursor: pointer;
+  /* Prevent iOS zoom on input focus */
+  font-size: 16px;
+}
+
+/* ── Sidebar drawer overlay ── */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 99;
+  animation: fade-overlay 0.2s ease forwards;
+}
+
+.sidebar-drawer {
+  animation: slide-in-left 0.25s cubic-bezier(.4,0,.2,1) forwards;
+}
+
+/* ── Responsive card border-radius on small screens ── */
+@media (max-width: 767px) {
+  .aivi-card {
+    border-radius: 12px;
+  }
+  .aivi-card::before {
+    border-radius: 12px;
+  }
+  /* Reset input font-size for mobile (prevents iOS zoom) */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe area insets for notched phones (iPhone X+) */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .dash-footer-safe {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
