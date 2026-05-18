@@ -1,22 +1,25 @@
 import { DollarSign, BarChart2, TrendingUp, Users, Clock } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { C } from "../../tokens";
 import type { KPIData } from "../../services/dashboard";
+import { useResponsive } from "../../hooks/useResponsive";
 
 interface KPICardProps {
   icon: ReactNode; label: string; value: ReactNode;
   valueColor: string; sub?: string; hero?: boolean;
+  compact?: boolean;
 }
 
-function KPICard({ icon, label, value, valueColor, sub, hero }: KPICardProps) {
+function KPICard({ icon, label, value, valueColor, sub, hero, compact }: KPICardProps) {
   return (
     <div style={{
       background: hero ? C.gradCard : C.card,
       border: `1px solid ${hero ? "transparent" : C.border}`,
-      borderRadius: 16,
-      padding: "16px 18px",
-      display: "flex", flexDirection: "column", gap: 5,
+      borderRadius: compact ? 12 : 16,
+      padding: compact ? "12px 14px" : "16px 18px",
+      display: "flex", flexDirection: "column", gap: compact ? 3 : 5,
       flex: 1,
+      minWidth: 0,
       boxShadow: hero
         ? "0 8px 32px rgba(254,128,63,0.35), 0 2px 8px rgba(0,0,0,0.3)"
         : "0 2px 0 0 rgba(255,255,255,0.03) inset, 0 8px 24px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)",
@@ -24,20 +27,21 @@ function KPICard({ icon, label, value, valueColor, sub, hero }: KPICardProps) {
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <span style={{
-          fontSize: 9, fontWeight: 800,
+          fontSize: compact ? 8 : 9, fontWeight: 800,
           color: hero ? "rgba(255,255,255,0.65)" : C.mutedLight,
           letterSpacing: "0.1em", textTransform: "uppercase",
         }}>{label}</span>
-        <span style={{ color: hero ? "rgba(255,255,255,0.45)" : valueColor, opacity: hero ? 1 : 0.5, display: "flex" }}>
+        <span style={{ color: hero ? "rgba(255,255,255,0.45)" : valueColor, opacity: hero ? 1 : 0.5, display: "flex", flexShrink: 0 }}>
           {icon}
         </span>
       </div>
       <div style={{
-        fontSize: 30, fontWeight: 900,
+        fontSize: compact ? 20 : 30, fontWeight: 900,
         color: hero ? "#fff" : valueColor,
         lineHeight: 1, letterSpacing: "-0.03em",
+        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
       }}>{value}</div>
-      {sub && <div style={{ fontSize: 10, color: hero ? "rgba(255,255,255,0.55)" : C.muted }}>{sub}</div>}
+      {sub && <div style={{ fontSize: compact ? 9 : 10, color: hero ? "rgba(255,255,255,0.55)" : C.muted }}>{sub}</div>}
     </div>
   );
 }
@@ -45,34 +49,49 @@ function KPICard({ icon, label, value, valueColor, sub, hero }: KPICardProps) {
 interface KPIRowProps { kpis: KPIData | null; }
 
 export function KPIRow({ kpis }: KPIRowProps) {
+  const { isMobile, isTablet } = useResponsive();
+
   const fmt  = (n: number) => {
     const parts = n.toFixed(2).split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return `$${parts.join(".")}`;
   };
   const roas = kpis?.roas ?? 0;
-  const s: CSSProperties = {
-    display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1fr 1fr",
-    gap: 10, padding: "10px 24px", flexShrink: 0,
-  };
+  const compact = isMobile;
+  const iconSize = compact ? 16 : 20;
+
+  // Grid columns: mobile 2-col, tablet 3-col, desktop 5-col
+  const gridCols = isMobile
+    ? "repeat(2, 1fr)"
+    : isTablet
+      ? "repeat(3, 1fr)"
+      : "1.4fr 1fr 1fr 1fr 1fr";
+
   return (
-    <div style={s}>
-      <KPICard icon={<DollarSign size={20}/>} label="Facturación Bruta"
-        value={fmt(kpis?.grossRevenue ?? 0)} valueColor={C.green} hero
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: gridCols,
+      gap: isMobile ? 8 : 10,
+      padding: isMobile ? "8px 12px" : "10px 24px",
+      flexShrink: 0,
+    }}>
+      <KPICard icon={<DollarSign size={iconSize}/>} label="Facturación Bruta"
+        value={fmt(kpis?.grossRevenue ?? 0)} valueColor={C.green} hero compact={compact}
         sub={`${kpis?.monthsActive ?? 0} ${(kpis?.monthsActive ?? 0) === 1 ? "mes" : "meses"} activo`}
       />
-      <KPICard icon={<BarChart2 size={20}/>}  label="Inversión Total"    value={fmt(kpis?.investment ?? 0)}   valueColor={C.yellow} />
-      <KPICard icon={<TrendingUp size={20}/>} label="ROAS"               value={`${roas.toFixed(2)}x`}        valueColor={C.yellow} sub="Ingresos / Inversión" />
+      <KPICard icon={<BarChart2 size={iconSize}/>}  label="Inversión Total"    value={fmt(kpis?.investment ?? 0)}   valueColor={C.yellow} compact={compact} />
+      <KPICard icon={<TrendingUp size={iconSize}/>} label="ROAS"               value={`${roas.toFixed(2)}x`}        valueColor={C.yellow} sub="Ingresos / Inversión" compact={compact} />
       <KPICard
-        icon={<Users size={20}/>} label="Activos / Cancel"
+        icon={<Users size={iconSize}/>} label="Activos / Cancel"
         value={<span>
           <span style={{ color: C.green }}>{kpis?.activeTotal ?? 0}</span>
-          <span style={{ color: C.muted, fontSize: 22, margin: "0 4px" }}>/</span>
+          <span style={{ color: C.muted, fontSize: compact ? 16 : 22, margin: "0 4px" }}>/</span>
           <span style={{ color: C.red }}>{kpis?.cancelled ?? 0}</span>
         </span>}
         valueColor={C.green}
+        compact={compact}
       />
-      <KPICard icon={<Clock size={20}/>} label="Atrasados" value={kpis?.delayed ?? 0} valueColor={C.yellow} sub="Pagos pendientes" />
+      <KPICard icon={<Clock size={iconSize}/>} label="Atrasados" value={kpis?.delayed ?? 0} valueColor={C.yellow} sub="Pagos pendientes" compact={compact} />
     </div>
   );
 }

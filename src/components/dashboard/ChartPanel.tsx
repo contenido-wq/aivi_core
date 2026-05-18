@@ -5,6 +5,7 @@ import {
 import { TrendingUp, Clock, Percent } from "lucide-react";
 import { C, FONT } from "../../tokens";
 import { Card } from "../ui/Card";
+import { useResponsive } from "../../hooks/useResponsive";
 import type { ChartDataResult, ChartTimeRange } from "../../services/dashboard";
 
 function ChartTip({ active, payload, label }: any) {
@@ -41,11 +42,13 @@ function InsightChip({ icon, label, value }: InsightChipProps) {
       background: "rgba(255,255,255,0.03)",
       border: `1px solid ${C.border}`,
       borderRadius: 10, padding: "8px 14px",
+      flex: 1,
+      minWidth: 0,
     }}>
-      <span style={{ color: C.mutedMid }}>{icon}</span>
-      <div>
-        <div style={{ fontSize: 10, color: C.mutedMid, fontWeight: 500 }}>{label}</div>
-        <div style={{ fontSize: 13, color: C.white, fontWeight: 600, fontFamily: FONT }}>{value}</div>
+      <span style={{ color: C.mutedMid, flexShrink: 0 }}>{icon}</span>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 10, color: C.mutedMid, fontWeight: 500, whiteSpace: "nowrap" }}>{label}</div>
+        <div style={{ fontSize: 13, color: C.white, fontWeight: 600, fontFamily: FONT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
       </div>
     </div>
   );
@@ -58,6 +61,7 @@ interface ChartPanelProps {
 }
 
 export function ChartPanel({ chartData, chartRange, onRangeChange }: ChartPanelProps) {
+  const { isMobile } = useResponsive();
   const points = chartData?.points ?? [];
 
   // Verificar si hay datos reales (ingresos > 0 en al menos un punto)
@@ -77,11 +81,11 @@ export function ChartPanel({ chartData, chartRange, onRangeChange }: ChartPanelP
   ];
 
   return (
-    <Card style={{ padding: "20px 24px 16px" }}>
+    <Card style={{ padding: isMobile ? "16px 14px 12px" : "20px 24px 16px" }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
         <div>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: C.white, margin: 0 }}>
+          <h2 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, color: C.white, margin: 0 }}>
             Ingresos vs Inversión
           </h2>
         </div>
@@ -97,8 +101,8 @@ export function ChartPanel({ chartData, chartRange, onRangeChange }: ChartPanelP
                 border: chartRange === t.value ? `1px solid rgba(254,128,63,0.3)` : "1px solid transparent",
                 borderRadius: 8,
                 color: chartRange === t.value ? C.orange : C.mutedMid,
-                padding: "5px 14px",
-                fontSize: 13,
+                padding: isMobile ? "4px 10px" : "5px 14px",
+                fontSize: isMobile ? 11 : 13,
                 fontWeight: chartRange === t.value ? 600 : 400,
                 cursor: "pointer",
                 transition: "all 0.15s",
@@ -111,7 +115,7 @@ export function ChartPanel({ chartData, chartRange, onRangeChange }: ChartPanelP
       </div>
 
       {/* Insight chips */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: isMobile ? 6 : 10, marginBottom: 16, flexWrap: isMobile ? "wrap" : "nowrap" }}>
         <InsightChip
           icon={<TrendingUp size={14} />}
           label="Pico de ingresos"
@@ -139,7 +143,7 @@ export function ChartPanel({ chartData, chartRange, onRangeChange }: ChartPanelP
       {/* Chart */}
       {!hasRealData ? (
         <div style={{
-          height: 220, display: "flex", flexDirection: "column",
+          height: isMobile ? 160 : 220, display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
           color: C.muted, fontSize: 13, gap: 8,
         }}>
@@ -148,18 +152,18 @@ export function ChartPanel({ chartData, chartRange, onRangeChange }: ChartPanelP
           <span style={{ fontSize: 10 }}>Prueba con "Semana" o "Mes"</span>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={220}>
-          <ComposedChart data={points} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+        <ResponsiveContainer width="100%" height={isMobile ? 180 : 220}>
+          <ComposedChart data={points} margin={{ top: 4, right: 8, left: isMobile ? -24 : -16, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
             <XAxis
               dataKey="t"
-              tick={{ fill: C.mutedMid, fontSize: 10, fontFamily: FONT }}
+              tick={{ fill: C.mutedMid, fontSize: isMobile ? 8 : 10, fontFamily: FONT }}
               tickLine={false}
               axisLine={false}
-              interval={chartRange === "hoy" ? 3 : chartRange === "semana" ? 0 : 4}
+              interval={chartRange === "hoy" ? (isMobile ? 5 : 3) : chartRange === "semana" ? 0 : (isMobile ? 6 : 4)}
             />
             <YAxis
-              tick={{ fill: C.mutedMid, fontSize: 10, fontFamily: FONT }}
+              tick={{ fill: C.mutedMid, fontSize: isMobile ? 8 : 10, fontFamily: FONT }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v: number) => `$${v}`}
@@ -205,7 +209,7 @@ export function ChartPanel({ chartData, chartRange, onRangeChange }: ChartPanelP
       )}
 
       {/* Legend */}
-      <div style={{ display: "flex", gap: 20, marginTop: 12, justifyContent: "center" }}>
+      <div style={{ display: "flex", gap: isMobile ? 12 : 20, marginTop: 12, justifyContent: "center", flexWrap: "wrap" }}>
         {[
           { color: C.blue,     label: "Ingresos", type: "bar" },
           { color: C.purple,   label: "Inversión", type: "line" },

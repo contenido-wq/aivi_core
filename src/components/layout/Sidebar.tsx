@@ -1,4 +1,4 @@
-import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight } from "lucide-react";
+import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight, X } from "lucide-react";
 import { C } from "../../tokens";
 import type { ProductFilter } from "../../services/dashboard";
 
@@ -8,6 +8,12 @@ interface SidebarProps {
   onSettings: () => void;
   mrr:        number;
   arr:        number;
+  /** Whether the sidebar is open (mobile drawer mode) */
+  open?: boolean;
+  /** Callback to close the sidebar (mobile) */
+  onClose?: () => void;
+  /** Whether sidebar is in mobile mode (drawer) */
+  isMobile?: boolean;
 }
 
 const NAV = [
@@ -24,16 +30,19 @@ const FILTERS: { value: ProductFilter; label: string }[] = [
   { value: "MV3",   label: "MV3"   },
 ];
 
-export function Sidebar({ filter, onFilter, onSettings, mrr, arr }: SidebarProps) {
+export function Sidebar({ filter, onFilter, onSettings, mrr, arr, open, onClose, isMobile }: SidebarProps) {
   const fmtK = (n: number) => {
     const parts = n.toFixed(2).split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return `$${parts.join(".")}`;
   };
 
-  return (
+  // In mobile mode, don't render unless open
+  if (isMobile && !open) return null;
+
+  const sidebarContent = (
     <aside style={{
-      width: 220,
+      width: isMobile ? 270 : 220,
       flexShrink: 0,
       background: C.sidebar,
       borderRight: `1px solid ${C.border}`,
@@ -44,21 +53,43 @@ export function Sidebar({ filter, onFilter, onSettings, mrr, arr }: SidebarProps
       left: 0,
       top: 0,
       zIndex: 100,
-    }}>
-      {/* Logo */}
-      <div style={{ padding: "20px 18px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-        <img
-          src="/logo.png"
-          alt="AIVI"
-          style={{ width: 36, height: 36, borderRadius: 10, objectFit: "contain", flexShrink: 0 }}
-        />
-        <div style={{ lineHeight: 1 }}>
-          <div style={{
-            fontSize: 17, fontWeight: 900, letterSpacing: "-0.04em",
-            background: C.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-          }}>AIVI</div>
-          <div style={{ fontSize: 9, fontWeight: 800, color: C.orange, letterSpacing: "0.14em", marginTop: 1 }}>CORE</div>
+      overflowY: "auto",
+      WebkitOverflowScrolling: "touch",
+    }} className={isMobile ? "sidebar-drawer" : undefined}>
+      {/* Logo + Close button on mobile */}
+      <div style={{ padding: "20px 18px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <img
+            src="/logo.png"
+            alt="AIVI"
+            style={{ width: 36, height: 36, borderRadius: 10, objectFit: "contain", flexShrink: 0 }}
+          />
+          <div style={{ lineHeight: 1 }}>
+            <div style={{
+              fontSize: 17, fontWeight: 900, letterSpacing: "-0.04em",
+              background: C.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            }}>AIVI</div>
+            <div style={{ fontSize: 9, fontWeight: 800, color: C.orange, letterSpacing: "0.14em", marginTop: 1 }}>CORE</div>
+          </div>
         </div>
+        {isMobile && (
+          <button
+            onClick={onClose}
+            aria-label="Cerrar menú"
+            style={{
+              background: "none",
+              border: "none",
+              color: C.mutedLight,
+              padding: 6,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 8,
+            }}
+          >
+            <X size={20} />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
@@ -66,7 +97,7 @@ export function Sidebar({ filter, onFilter, onSettings, mrr, arr }: SidebarProps
         {NAV.map((item) => {
           const Icon = item.icon;
           return (
-            <div key={item.label} style={{
+            <div key={item.label} onClick={isMobile && item.active ? onClose : undefined} style={{
               display: "flex", alignItems: "center", gap: 10,
               padding: "10px 12px", borderRadius: 10,
               background: item.active ? "rgba(254,128,63,0.12)" : "transparent",
@@ -90,7 +121,7 @@ export function Sidebar({ filter, onFilter, onSettings, mrr, arr }: SidebarProps
             Producto
           </div>
           {FILTERS.map(f => (
-            <button key={f.value} onClick={() => onFilter(f.value)} style={{
+            <button key={f.value} onClick={() => { onFilter(f.value); if (isMobile) onClose?.(); }} style={{
               display: "block", width: "100%",
               background: filter === f.value ? "rgba(254,128,63,0.12)" : "transparent",
               backdropFilter: filter === f.value ? "blur(10px)" : "none",
@@ -126,7 +157,7 @@ export function Sidebar({ filter, onFilter, onSettings, mrr, arr }: SidebarProps
             </div>
           ))}
         </div>
-        <button onClick={onSettings} style={{
+        <button onClick={() => { onSettings(); if (isMobile) onClose?.(); }} style={{
           width: "100%", padding: "8px", borderRadius: 8,
           background: "transparent",
           border: `1px solid ${C.border}`,
@@ -139,4 +170,16 @@ export function Sidebar({ filter, onFilter, onSettings, mrr, arr }: SidebarProps
       </div>
     </aside>
   );
+
+  // Mobile: wrap with overlay
+  if (isMobile) {
+    return (
+      <>
+        <div className="sidebar-overlay" onClick={onClose} />
+        {sidebarContent}
+      </>
+    );
+  }
+
+  return sidebarContent;
 }
