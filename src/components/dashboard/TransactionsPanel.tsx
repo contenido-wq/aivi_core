@@ -87,7 +87,7 @@ export function TransactionsPanel({ transactions, onDateRangeChange }: Transacti
   const reembolsos = transactions.filter(t => isNegative(t.eventType)).length;
 
   return (
-    <Card style={{ padding: "14px 16px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <Card style={{ padding: "14px 16px", display: "flex", flexDirection: "column", overflow: "hidden", height: "100%" }}>
       {/* Header: Título + Modo */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexShrink: 0 }}>
         <div style={{ fontWeight: 800, fontSize: 13, color: C.white, display: "flex", alignItems: "center", gap: 6 }}>

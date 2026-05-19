@@ -83,76 +83,90 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
           onMenuOpen={() => setSidebarOpen(true)}
         />
 
-        {/* Scrollable content area */}
-        <div style={{
-          flex: 1,
-          overflow: "auto",
-          WebkitOverflowScrolling: "touch",
-          display: "flex",
-          flexDirection: "column",
-        }}>
-          <KPIRow kpis={kpis} />
+        {isDesktop ? (
+          /* ═══════════════════════════════════════════════
+             DESKTOP: layout original con flex fijo (no scroll)
+             ═══════════════════════════════════════════════ */
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <KPIRow kpis={kpis} />
 
-          {/* ── Sección principal: Usuarios + Resumen + Seguimiento ── */}
-          {isDesktop ? (
-            /* Desktop: 3-column fixed grid */
+            {/* Sección principal: Usuarios + Resumen + Seguimiento (expandida) */}
             <div style={{
               display: "grid", gridTemplateColumns: "1fr 240px 340px",
-              gap: 10, padding: `0 ${px}px`, minHeight: 0,
+              gap: 10, padding: `0 ${px}px`, flex: 1, minHeight: 0, overflow: "hidden",
             }}>
               <UsersTable plans={plans} kpis={kpis} />
               <DailyPanel date={date} daily={daily} onDateChange={setDate} />
               <AtRiskPanel users={atRiskUsers} />
             </div>
-          ) : isTablet ? (
-            /* Tablet: 2-column + stack */
-            <div style={{ padding: `0 ${px}px`, display: "flex", flexDirection: "column", gap: 10 }}>
-              <UsersTable plans={plans} kpis={kpis} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <DailyPanel date={date} daily={daily} onDateChange={setDate} />
-                <AtRiskPanel users={atRiskUsers} />
-              </div>
-            </div>
-          ) : (
-            /* Mobile: single-column stack */
-            <div style={{ padding: `0 ${px}px`, display: "flex", flexDirection: "column", gap: 10 }}>
-              <UsersTable plans={plans} kpis={kpis} />
-              <DailyPanel date={date} daily={daily} onDateChange={setDate} />
-              <AtRiskPanel users={atRiskUsers} />
-            </div>
-          )}
 
-          {/* ── Sección inferior: Ingresos + Países + Transacciones ── */}
-          {isDesktop ? (
-            /* Desktop: 3-column fixed grid */
+            {/* Sección inferior: Ingresos + Países + Transacciones (compacta, fija) */}
             <div style={{
               display: "grid", gridTemplateColumns: "1fr 260px 270px",
               gap: 10, padding: `10px ${px}px 0`, flexShrink: 0,
+              maxHeight: 280, minHeight: 280,
             }}>
               <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
               <CountriesPanel countries={countries ?? []} />
               <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
             </div>
-          ) : isTablet ? (
-            /* Tablet: chart full-width, then 2 cols */
-            <div style={{ padding: `10px ${px}px 0`, display: "flex", flexDirection: "column", gap: 10 }}>
-              <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+
+            <DashFooter kpis={kpis} />
+          </div>
+        ) : (
+          /* ═══════════════════════════════════════════════
+             MOBILE / TABLET: scrollable single column
+             ═══════════════════════════════════════════════ */
+          <div style={{
+            flex: 1,
+            overflow: "auto",
+            WebkitOverflowScrolling: "touch",
+            display: "flex",
+            flexDirection: "column",
+          }}>
+            <KPIRow kpis={kpis} />
+
+            {/* Sección principal */}
+            {isTablet ? (
+              <div style={{ padding: `0 ${px}px`, display: "flex", flexDirection: "column", gap: 10 }}>
+                <UsersTable plans={plans} kpis={kpis} />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <DailyPanel date={date} daily={daily} onDateChange={setDate} />
+                  <AtRiskPanel users={atRiskUsers} />
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: `0 ${px}px`, display: "flex", flexDirection: "column", gap: 10 }}>
+                <UsersTable plans={plans} kpis={kpis} />
+                <DailyPanel date={date} daily={daily} onDateChange={setDate} />
+                <AtRiskPanel users={atRiskUsers} />
+              </div>
+            )}
+
+            {/* Sección inferior */}
+            {isTablet ? (
+              <div style={{ padding: `10px ${px}px 0`, display: "flex", flexDirection: "column", gap: 10 }}>
+                <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div style={{ maxHeight: 360, overflow: "hidden" }}>
+                    <CountriesPanel countries={countries ?? []} />
+                  </div>
+                  <div style={{ maxHeight: 360, overflow: "hidden" }}>
+                    <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: `10px ${px}px 0`, display: "flex", flexDirection: "column", gap: 10 }}>
+                <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
                 <CountriesPanel countries={countries ?? []} />
                 <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
               </div>
-            </div>
-          ) : (
-            /* Mobile: single-column stack */
-            <div style={{ padding: `10px ${px}px 0`, display: "flex", flexDirection: "column", gap: 10 }}>
-              <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
-              <CountriesPanel countries={countries ?? []} />
-              <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
-            </div>
-          )}
+            )}
 
-          <DashFooter kpis={kpis} />
-        </div>
+            <DashFooter kpis={kpis} />
+          </div>
+        )}
       </div>
     </div>
   );

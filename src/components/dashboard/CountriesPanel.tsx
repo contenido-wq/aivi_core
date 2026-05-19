@@ -8,7 +8,7 @@ export function CountriesPanel({ countries }: CountriesPanelProps) {
   const maxSales = Math.max(...countries.map(c => c.sales), 1);
 
   return (
-    <Card style={{ padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden", minHeight: 0 }}>
+    <Card style={{ padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden", minHeight: 0, height: "100%" }}>
       <div style={{ fontWeight: 800, fontSize: 12, marginBottom: 10, color: C.white, flexShrink: 0 }}>
         🌎 Compradores por País
         <span style={{ color: C.muted, fontWeight: 400, fontSize: 10, marginLeft: 6 }}>

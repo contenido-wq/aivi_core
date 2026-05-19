@@ -81,7 +81,7 @@ export function ChartPanel({ chartData, chartRange, onRangeChange }: ChartPanelP
   ];
 
   return (
-    <Card style={{ padding: isMobile ? "16px 14px 12px" : "20px 24px 16px" }}>
+    <Card style={{ padding: isMobile ? "16px 14px 12px" : "20px 24px 16px", height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
         <div>
