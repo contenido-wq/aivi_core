@@ -100,11 +100,11 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
               <AtRiskPanel users={atRiskUsers} />
             </div>
 
-            {/* Sección inferior: Ingresos + Países + Transacciones (compacta, fija) */}
+            {/* Sección inferior: Ingresos + Países + Transacciones (altura automática) */}
             <div style={{
               display: "grid", gridTemplateColumns: "1fr 260px 270px",
               gap: 10, padding: `10px ${px}px 0`, flexShrink: 0,
-              maxHeight: 280, minHeight: 280,
+              height: 380,
             }}>
               <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
               <CountriesPanel countries={countries ?? []} />
