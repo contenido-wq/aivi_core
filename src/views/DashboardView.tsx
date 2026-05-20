@@ -6,7 +6,6 @@ import { Sidebar }             from "../components/layout/Sidebar";
 import { TopNav }              from "../components/dashboard/TopNav";
 import { KPIRow }              from "../components/dashboard/KPIRow";
 import { UsersTable }          from "../components/dashboard/UsersTable";
-import { DailyPanel }          from "../components/dashboard/DailyPanel";
 import { ChartPanel }          from "../components/dashboard/ChartPanel";
 import { TransactionsPanel }   from "../components/dashboard/TransactionsPanel";
 import { CountriesPanel }      from "../components/dashboard/CountriesPanel";
@@ -54,6 +53,7 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
         onSettings={onSettings}
         mrr={kpis?.mrr ?? 0}
         arr={kpis?.arr ?? 0}
+        daily={daily}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         isMobile={isMobile || isTablet}
@@ -90,13 +90,12 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <KPIRow kpis={kpis} />
 
-            {/* Sección principal: Usuarios + Resumen + Seguimiento (expandida) */}
+            {/* Sección principal: Usuarios + Seguimiento (expandida) */}
             <div style={{
-              display: "grid", gridTemplateColumns: "1fr 240px 340px",
+              display: "grid", gridTemplateColumns: "1fr 340px",
               gap: 10, padding: `0 ${px}px`, flex: 1, minHeight: 0, overflow: "hidden",
             }}>
               <UsersTable plans={plans} kpis={kpis} />
-              <DailyPanel date={date} daily={daily} onDateChange={setDate} />
               <AtRiskPanel users={atRiskUsers} />
             </div>
 
@@ -127,21 +126,10 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
             <KPIRow kpis={kpis} />
 
             {/* Sección principal */}
-            {isTablet ? (
-              <div style={{ padding: `0 ${px}px`, display: "flex", flexDirection: "column", gap: 10 }}>
-                <UsersTable plans={plans} kpis={kpis} />
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  <DailyPanel date={date} daily={daily} onDateChange={setDate} />
-                  <AtRiskPanel users={atRiskUsers} />
-                </div>
-              </div>
-            ) : (
-              <div style={{ padding: `0 ${px}px`, display: "flex", flexDirection: "column", gap: 10 }}>
-                <UsersTable plans={plans} kpis={kpis} />
-                <DailyPanel date={date} daily={daily} onDateChange={setDate} />
-                <AtRiskPanel users={atRiskUsers} />
-              </div>
-            )}
+            <div style={{ padding: `0 ${px}px`, display: "flex", flexDirection: "column", gap: 10 }}>
+              <UsersTable plans={plans} kpis={kpis} />
+              <AtRiskPanel users={atRiskUsers} />
+            </div>
 
             {/* Sección inferior */}
             {isTablet ? (

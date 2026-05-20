@@ -1,6 +1,6 @@
 import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight, X } from "lucide-react";
 import { C } from "../../tokens";
-import type { ProductFilter } from "../../services/dashboard";
+import type { ProductFilter, DailyData } from "../../services/dashboard";
 
 interface SidebarProps {
   filter:     ProductFilter;
@@ -8,6 +8,7 @@ interface SidebarProps {
   onSettings: () => void;
   mrr:        number;
   arr:        number;
+  daily?:     DailyData | null;
   /** Whether the sidebar is open (mobile drawer mode) */
   open?: boolean;
   /** Callback to close the sidebar (mobile) */
@@ -30,7 +31,7 @@ const FILTERS: { value: ProductFilter; label: string }[] = [
   { value: "MV3",   label: "MV3"   },
 ];
 
-export function Sidebar({ filter, onFilter, onSettings, mrr, arr, open, onClose, isMobile }: SidebarProps) {
+export function Sidebar({ filter, onFilter, onSettings, mrr, arr, daily, open, onClose, isMobile }: SidebarProps) {
   const fmtK = (n: number) => {
     const parts = n.toFixed(2).split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -135,6 +136,66 @@ export function Sidebar({ filter, onFilter, onSettings, mrr, arr, open, onClose,
             </button>
           ))}
         </div>
+
+        {/* Resumen del día */}
+        {(() => {
+          const revenue    = daily?.revenue    ?? 0;
+          const investment = daily?.investment ?? 0;
+          const roas       = investment > 0 ? (revenue / investment) : 0;
+          const dailyGoal  = 400;
+          const goalPct    = dailyGoal > 0 ? Math.min((revenue / dailyGoal) * 100, 100) : 0;
+          return (
+            <div style={{ marginTop: 12, paddingLeft: 2 }}>
+              <div style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, paddingLeft: 10 }}>
+                Resumen del día
+              </div>
+              <div style={{
+                background: "rgba(255,255,255,0.04)",
+                borderRadius: 10,
+                border: `1px solid ${C.border}`,
+                padding: "10px 12px",
+                display: "flex", flexDirection: "column", gap: 6,
+              }}>
+                {[
+                  ["Ingresos", `$${revenue.toFixed(2)}`, C.green],
+                  ["Inversión", `$${investment.toFixed(2)}`, C.yellow],
+                  ["ROAS", `${roas.toFixed(2)}x`, C.yellow],
+                ].map(([lbl, val, col]) => (
+                  <div key={lbl} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 10, color: C.mutedLight }}>{lbl}</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: col, letterSpacing: "-.02em" }}>{val}</span>
+                  </div>
+                ))}
+                {/* Meta diaria */}
+                <div style={{ marginTop: 2 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, color: C.mutedLight }}>Meta diaria</span>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, fontVariantNumeric: "tabular-nums",
+                      color: goalPct >= 100 ? C.green : C.orange,
+                    }}>
+                      {goalPct.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div style={{
+                    height: 5, background: "rgba(255,255,255,0.06)",
+                    borderRadius: 3, overflow: "hidden",
+                  }}>
+                    <div style={{
+                      height: "100%",
+                      width: `${goalPct}%`,
+                      background: goalPct >= 100
+                        ? C.green
+                        : `linear-gradient(90deg, ${C.orange}, ${C.yellow})`,
+                      borderRadius: 3,
+                      transition: "width 0.6s ease",
+                    }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </nav>
 
       {/* Footer */}
