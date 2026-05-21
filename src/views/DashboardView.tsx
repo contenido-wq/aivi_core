@@ -10,6 +10,7 @@ import { ChartPanel }          from "../components/dashboard/ChartPanel";
 import { TransactionsPanel }   from "../components/dashboard/TransactionsPanel";
 import { CountriesPanel }      from "../components/dashboard/CountriesPanel";
 import { AtRiskPanel }         from "../components/dashboard/AtRiskPanel";
+import { DailyPanel }          from "../components/dashboard/DailyPanel";
 import { DashFooter }          from "../components/dashboard/DashFooter";
 import { C }                   from "../tokens";
 import type { ProductFilter }  from "../services/dashboard";
@@ -53,7 +54,6 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
         onSettings={onSettings}
         mrr={kpis?.mrr ?? 0}
         arr={kpis?.arr ?? 0}
-        daily={daily}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         isMobile={isMobile || isTablet}
@@ -90,13 +90,16 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <KPIRow kpis={kpis} />
 
-            {/* Sección principal: Usuarios + Seguimiento (expandida) */}
+            {/* Sección principal: Usuarios + Panel derecho (Resumen del día + At Risk) */}
             <div style={{
               display: "grid", gridTemplateColumns: "1fr 340px",
               gap: 10, padding: `0 ${px}px`, flex: 1, minHeight: 0, overflow: "hidden",
             }}>
               <UsersTable plans={plans} kpis={kpis} />
-              <AtRiskPanel users={atRiskUsers} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, minHeight: 0, overflow: "hidden" }}>
+                <DailyPanel date={date} daily={daily} onDateChange={setDate} />
+                <AtRiskPanel users={atRiskUsers} />
+              </div>
             </div>
 
             {/* Sección inferior: Ingresos + Países + Transacciones (altura automática) */}
@@ -128,6 +131,7 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
             {/* Sección principal */}
             <div style={{ padding: `0 ${px}px`, display: "flex", flexDirection: "column", gap: 10 }}>
               <UsersTable plans={plans} kpis={kpis} />
+              <DailyPanel date={date} daily={daily} onDateChange={setDate} />
               <AtRiskPanel users={atRiskUsers} />
             </div>
 
