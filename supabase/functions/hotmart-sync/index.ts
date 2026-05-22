@@ -1,5 +1,12 @@
+// @ts-nocheck
 import { serve }        from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+/** Devuelve la fecha en Colombia (UTC-5) como "YYYY-MM-DD" */
+function toColombiaDate(d: Date): string {
+  const local = new Date(d.getTime() - 5 * 60 * 60 * 1000);
+  return local.toISOString().split("T")[0];
+}
 
 const HOTMART_AUTH_URL = "https://api-sec-vlc.hotmart.com/security/oauth/token";
 const HOTMART_API_URL  = "https://developers.hotmart.com/payments/api/v1";
@@ -96,7 +103,7 @@ serve(async (req) => {
         const order_date      = purchase.order_date
           ? new Date(purchase.order_date).toISOString()
           : new Date().toISOString();
-        const date_key        = order_date.split("T")[0];
+        const date_key        = toColombiaDate(new Date(order_date));
         const status          = deriveStatus(event_type);
 
         // Acumular por día

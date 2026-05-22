@@ -1,7 +1,20 @@
+// @ts-nocheck
 import { serve }        from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+};
+
 const UTMIFY_BASE = "https://api.utmify.com.br";
+
+/** Devuelve la fecha en Colombia (UTC-5) como "YYYY-MM-DD" */
+function toColombiaDate(d: Date): string {
+  const local = new Date(d.getTime() - 5 * 60 * 60 * 1000);
+  return local.toISOString().split("T")[0];
+}
 
 serve(async (_req) => {
   const supabase = createClient(
@@ -10,7 +23,7 @@ serve(async (_req) => {
   );
 
   const apiKey = Deno.env.get("UTMIFY_API_KEY")!;
-  const today  = new Date().toISOString().split("T")[0];
+  const today  = toColombiaDate(new Date());
 
   try {
     const res = await fetch(`${UTMIFY_BASE}/api/v1/campaigns?date=${today}`, {

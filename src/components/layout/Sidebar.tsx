@@ -1,6 +1,6 @@
 import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight, X } from "lucide-react";
 import { C } from "../../tokens";
-import type { ProductFilter } from "../../services/dashboard";
+import type { ProductFilter, DailyData } from "../../services/dashboard";
 
 interface SidebarProps {
   filter:     ProductFilter;
@@ -8,6 +8,7 @@ interface SidebarProps {
   onSettings: () => void;
   mrr:        number;
   arr:        number;
+  daily?:     DailyData | null;
   /** Whether the sidebar is open (mobile drawer mode) */
   open?: boolean;
   /** Callback to close the sidebar (mobile) */
@@ -30,7 +31,7 @@ const FILTERS: { value: ProductFilter; label: string }[] = [
   { value: "MV3",   label: "MV3"   },
 ];
 
-export function Sidebar({ filter, onFilter, onSettings, mrr, arr, open, onClose, isMobile }: SidebarProps) {
+export function Sidebar({ filter, onFilter, onSettings, mrr, arr, daily, open, onClose, isMobile }: SidebarProps) {
   const fmtK = (n: number) => {
     const parts = n.toFixed(2).split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -134,6 +135,41 @@ export function Sidebar({ filter, onFilter, onSettings, mrr, arr, open, onClose,
               {filter === f.value ? "● " : "○ "}{f.label}
             </button>
           ))}
+        </div>
+
+        {/* Resumen del día */}
+        <div style={{ marginTop: 16, paddingLeft: 2 }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, paddingLeft: 10 }}>
+            Resumen del día
+          </div>
+          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, border: `1px solid ${C.border}`, padding: "10px 12px" }}>
+            {[
+              { label: "Ingresos",  value: `$${(daily?.revenue    ?? 0).toFixed(2)}`, color: C.green  },
+              { label: "Inversión", value: `$${(daily?.investment ?? 0).toFixed(2)}`, color: C.yellow },
+              { label: "ROAS",      value: `${daily?.investment ? ((daily.revenue / daily.investment).toFixed(2)) : "0.00"}x`, color: C.yellow },
+            ].map(({ label, value, color }) => (
+              <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: `1px solid rgba(255,255,255,0.05)` }}>
+                <span style={{ fontSize: 10, color: C.mutedLight }}>{label}</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+              </div>
+            ))}
+            {/* Meta diaria */}
+            {(() => {
+              const goal   = 400;
+              const pct    = Math.min(((daily?.revenue ?? 0) / goal) * 100, 100);
+              return (
+                <div style={{ paddingTop: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                    <span style={{ fontSize: 10, color: C.mutedLight }}>Meta diaria</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: pct >= 100 ? C.green : C.orange }}>{pct.toFixed(0)}%</span>
+                  </div>
+                  <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, borderRadius: 2, transition: "width 0.6s ease", background: pct >= 100 ? C.green : `linear-gradient(90deg, ${C.orange}, ${C.yellow})` }} />
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
         </div>
 
       </nav>

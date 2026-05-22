@@ -1,5 +1,25 @@
+// @ts-nocheck
 import { serve }        from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+/** Devuelve la fecha en Colombia (UTC-5) como "YYYY-MM-DD" */
+function toColombiaDate(d: Date): string {
+  const local = new Date(d.getTime() - 5 * 60 * 60 * 1000);
+  return local.toISOString().split("T")[0];
+}
+
+/** Rango UTC que cubre el día completo en Colombia para la fecha dada (YYYY-MM-DD Colombia) */
+function colombiaDayRange(date: string): { start: string; end: string } {
+  // Colombia medianoche = UTC 05:00 del mismo día
+  // Colombia 23:59:59.999 = UTC 04:59:59.999 del día siguiente
+  const [y, m, d] = date.split("-").map(Number);
+  const nextDay = new Date(Date.UTC(y, m - 1, d + 1));
+  const nextDayStr = nextDay.toISOString().split("T")[0];
+  return {
+    start: `${date}T05:00:00.000Z`,
+    end:   `${nextDayStr}T04:59:59.999Z`,
+  };
+}
 
 const SALE_EVENTS       = ["PURCHASE_COMPLETE", "PURCHASE_APPROVED"];
 const REFUND_EVENTS     = ["PURCHASE_REFUNDED"];
@@ -61,7 +81,7 @@ serve(async (req) => {
   const subscriber_code = sub?.subscriber?.code  ?? hotmart_id;
   const amount          = Number(purchase.price?.value ?? 0);
   const currency        = (purchase.price?.currency_value ?? "USD") as string;
-  const today           = new Date().toISOString().split("T")[0];
+  const today           = toColombiaDate(new Date());
 
   // Para eventos de cancelación/chargeback, evitar duplicados del mismo día
   // (Hotmart a veces reintenta con distinto hotmart_id para el mismo evento)
@@ -132,8 +152,7 @@ async function recalcDailyMetrics(supabase: any, date: string) {
     .select("*", { count: "exact", head: true })
     .eq("status", "active");
 
-  const start = `${date}T00:00:00.000Z`;
-  const end   = `${date}T23:59:59.999Z`;
+  const { start, end } = colombiaDayRange(date);
 
   const { data: todayTx } = await supabase
     .from("transactions")
