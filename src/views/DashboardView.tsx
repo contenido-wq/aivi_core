@@ -23,7 +23,7 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
   const [filter, setFilter]   = useState<ProductFilter>("todos");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const { isMobile, isTablet, isDesktop } = useResponsive();
+  const { isMobile, isTablet, isDesktop, isShortScreen } = useResponsive();
 
   const { kpis, plans, daily, transactions, countries, chartData, atRiskUsers, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
     useDashboardData(date, filter);
@@ -84,8 +84,40 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
         />
 
         {isDesktop ? (
+          isShortScreen ? (
+            /* ═══════════════════════════════════════════════
+               LAPTOP (desktop + pantalla corta ≤ 820px alto):
+               layout scrollable para evitar compresión
+               ═══════════════════════════════════════════════ */
+            <div style={{ flex: 1, overflow: "auto", WebkitOverflowScrolling: "touch", display: "flex", flexDirection: "column" }}>
+              <KPIRow kpis={kpis} />
+
+              {/* Sección principal: Usuarios + At Risk lado a lado */}
+              <div style={{
+                display: "grid", gridTemplateColumns: "1fr 300px",
+                gap: 10, padding: `0 ${px}px`,
+                minHeight: 260,
+              }}>
+                <UsersTable plans={plans} kpis={kpis} />
+                <AtRiskPanel users={atRiskUsers} />
+              </div>
+
+              {/* Sección inferior: Ingresos + Países + Transacciones */}
+              <div style={{
+                display: "grid", gridTemplateColumns: "1fr 260px 270px",
+                gap: 10, padding: `10px ${px}px 0`, flexShrink: 0,
+                height: 360,
+              }}>
+                <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
+                <CountriesPanel countries={countries ?? []} />
+                <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
+              </div>
+
+              <DashFooter kpis={kpis} />
+            </div>
+          ) : (
           /* ═══════════════════════════════════════════════
-             DESKTOP: layout original con flex fijo (no scroll)
+             DESKTOP TALL: layout original con flex fijo (no scroll)
              ═══════════════════════════════════════════════ */
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <KPIRow kpis={kpis} />
@@ -112,6 +144,7 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
 
             <DashFooter kpis={kpis} />
           </div>
+          )
         ) : (
           /* ═══════════════════════════════════════════════
              MOBILE / TABLET: scrollable single column
