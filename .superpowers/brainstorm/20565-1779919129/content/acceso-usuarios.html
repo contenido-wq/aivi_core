@@ -1,0 +1,89 @@
+<h2>¿Cómo accedes a la trazabilidad de un usuario?</h2>
+<p class="subtitle">Elige cómo quieres llegar a la ficha completa de un usuario</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Nueva tab en el Admin Panel</h3>
+      <p>El AdminPanel actual gana una pestaña "Usuarios". Ves la tabla con todos los compradores, haces click en uno y abre su ficha completa. Todo dentro del panel admin existente.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">Admin Panel</div>
+        <div class="mockup-body" style="padding:0">
+          <div style="display:flex;border-bottom:1px solid #333;background:#1a1a2e">
+            <div style="padding:8px 16px;font-size:11px;color:#aaa">Solicitudes</div>
+            <div style="padding:8px 16px;font-size:11px;color:#aaa">Filtros</div>
+            <div style="padding:8px 16px;font-size:11px;color:#FF6B35;border-bottom:2px solid #FF6B35;font-weight:700">👥 Usuarios</div>
+            <div style="padding:8px 16px;font-size:11px;color:#aaa">Audios</div>
+          </div>
+          <div style="padding:12px;background:#111">
+            <div style="background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;color:#eee">maria@gmail.com</span>
+              <span style="font-size:10px;color:#4CAF50;background:#1a3a1a;padding:2px 8px;border-radius:4px">Activo</span>
+            </div>
+            <div style="background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;color:#eee">carlos@hotmail.com</span>
+              <span style="font-size:10px;color:#f44336;background:#3a1a1a;padding:2px 8px;border-radius:4px">Cancelado</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Sección independiente en el Sidebar</h3>
+      <p>Un nuevo item "Usuarios" en el menú lateral de la app, separado del Admin Panel. Acceso directo sin tener que entrar al admin. Más visible y rápido.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">App Principal</div>
+        <div class="mockup-body" style="padding:0;display:flex;min-height:100px">
+          <div style="width:120px;background:#0d0d1a;border-right:1px solid #333;padding:8px 0">
+            <div style="padding:6px 12px;font-size:10px;color:#aaa">Dashboard</div>
+            <div style="padding:6px 12px;font-size:10px;color:#aaa">Analyzer</div>
+            <div style="padding:6px 12px;font-size:10px;color:#aaa">Guiones</div>
+            <div style="padding:6px 12px;font-size:10px;color:#FF6B35;background:#1a0a00;font-weight:700">👥 Usuarios</div>
+            <div style="padding:6px 12px;font-size:10px;color:#aaa">⚙️ Admin</div>
+          </div>
+          <div style="flex:1;padding:10px;background:#111">
+            <div style="font-size:11px;color:#eee;font-weight:600;margin-bottom:8px">Trazabilidad de Usuarios</div>
+            <div style="background:#1a1a1a;border:1px solid #333;border-radius:4px;padding:6px 10px;font-size:10px;color:#bbb">🔍 Buscar usuario...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Dentro del Admin Panel pero como página completa</h3>
+      <p>El Admin Panel existente crece: al hacer click en "Usuarios" navega a una pantalla completa dedicada, con más espacio para tabla + filtros avanzados + detalle del usuario.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">Admin → Usuarios (pantalla completa)</div>
+        <div class="mockup-body" style="padding:10px;background:#0d0d1a">
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <div style="background:#FF6B35;color:#fff;font-size:10px;padding:4px 10px;border-radius:4px">← Admin</div>
+            <div style="font-size:11px;color:#eee;font-weight:700;line-height:24px">Usuarios — Trazabilidad</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <div style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:8px">
+              <div style="font-size:9px;color:#aaa;margin-bottom:6px">TABLA DE USUARIOS (filtrable)</div>
+              <div style="font-size:10px;color:#eee;padding:4px 0;border-bottom:1px solid #222">maria@gmail.com — $97 — Activo</div>
+              <div style="font-size:10px;color:#FF6B35;padding:4px 0;border-bottom:1px solid #222">carlos@hotmail.com — $194 — Cancelado</div>
+              <div style="font-size:10px;color:#eee;padding:4px 0">ana@yahoo.com — $291 — Activo</div>
+            </div>
+            <div style="width:140px;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:8px">
+              <div style="font-size:9px;color:#aaa;margin-bottom:4px">FICHA USUARIO</div>
+              <div style="font-size:9px;color:#eee">📧 carlos@hotmail.com</div>
+              <div style="font-size:9px;color:#aaa">📱 +57 300 123 4567</div>
+              <div style="font-size:9px;color:#aaa">💰 LTV: $194</div>
+              <div style="font-size:9px;color:#f44336">❌ Cancelado</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,49 @@
+<h2>3 Enfoques de Arquitectura</h2>
+<p class="subtitle">¿Cómo construimos el sistema de trazabilidad?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Enriquecer tabla existente <span style="font-size:10px;color:#aaa;font-weight:400">(más simple)</span></h3>
+      <p>Agregar columnas nuevas directo a <code>subscriptions</code>: phone, country, city, channel, industry, objective, admin_notes. El webhook de Hotmart las llena automáticamente.</p>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Implementación rápida</li><li>Sin migración compleja</li><li>Una sola tabla a consultar</li></ul></div>
+        <div class="cons"><h4>Contras</h4><ul><li>Mezcla datos de pago con perfil</li><li>Difícil escalar a futuro</li><li>Sin historial de cambios</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Tabla <code>user_profiles</code> dedicada ⭐ <span style="font-size:10px;color:#FF6B35;font-weight:400">(Recomendado)</span></h3>
+      <p>Nueva tabla <code>user_profiles</code> vinculada por email. Separación limpia: <code>transactions</code> = pagos, <code>subscriptions</code> = estado, <code>user_profiles</code> = quién es esta persona. Admin CRM completo con UI dedicada dentro del AdminPanel.</p>
+      <div style="background:#0d1a0d;border:1px solid #2a4a2a;border-radius:6px;padding:10px;margin-top:8px;font-size:11px;color:#aaa">
+        <strong style="color:#4CAF50">user_profiles</strong><br/>
+        email → buyer_phone, country, city, platform_channel<br/>
+        profile_industry, profile_objective, admin_notes<br/>
+        first_purchase_at, months_active, ltv_usd<br/>
+        usage_tools (JSON), support_history (JSON)
+      </div>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Arquitectura limpia y escalable</li><li>LTV calculado automáticamente</li><li>Admin puede editar sin tocar pagos</li><li>Fácil agregar más campos</li></ul></div>
+        <div class="cons"><h4>Contras</h4><ul><li>Una migración más</li><li>Lógica de sync entre tablas</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>CRM completo con timeline de eventos <span style="font-size:10px;color:#aaa;font-weight:400">(más potente)</span></h3>
+      <p>Además del perfil, una línea de tiempo cronológica de todo lo que ha hecho el usuario: primera compra, renovaciones, features usadas, notas del admin. Como un mini-CRM interno.</p>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Visión 360° del cliente</li><li>Ideal para retención</li><li>Detecta usuarios en riesgo</li></ul></div>
+        <div class="cons"><h4>Contras</h4><ul><li>Mayor complejidad</li><li>Más tiempo de desarrollo</li><li>Puede ser overkill ahora</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:16px;font-size:12px;color:#888;text-align:center">💡 Mi recomendación: Opción B — arquitectura sólida sin sobre-ingeniería. La Opción C puede agregarse encima después.</p>

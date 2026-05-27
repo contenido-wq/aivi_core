@@ -20,7 +20,7 @@ export function LiveBadge() {
         background: C.green, display: "inline-block",
         animation: "pulse-dot 1.4s ease-in-out infinite",
       }} />
-      API EN VIVO
+      + API EN VIVO
     </span>
   );
 }

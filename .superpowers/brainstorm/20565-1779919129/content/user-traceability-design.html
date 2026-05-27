@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIVI — Trazabilidad de Usuarios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #07070f;
+    --bg2:       #0d0d1c;
+    --bg3:       #12122a;
+    --border:    rgba(255,107,53,0.12);
+    --border2:   rgba(255,255,255,0.06);
+    --orange:    #FF6B35;
+    --orange2:   #FF8C5A;
+    --cyan:      #00D4FF;
+    --green:     #00FF88;
+    --red:       #FF4560;
+    --yellow:    #FFD23F;
+    --txt:       #E8E8F4;
+    --txt2:      #7A7A9D;
+    --txt3:      #4A4A6A;
+    --mono:      'JetBrains Mono', monospace;
+    --sans:      'DM Sans', sans-serif;
+    --display:   'Syne', sans-serif;
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--txt); font-family: var(--sans); overflow: hidden; }
+
+  /* ─── LAYOUT ─────────────────────────────────────────────── */
+  .shell {
+    display: grid;
+    grid-template-rows: 52px 1fr;
+    grid-template-columns: 300px 1fr 380px;
+    height: 100vh;
+    gap: 0;
+  }
+
+  /* ─── TOPBAR ──────────────────────────────────────────────── */
+  .topbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,107,53,0.04) 0%, transparent 100%);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-brand { font-family: var(--display); font-weight: 800; font-size: 17px; color: var(--orange); letter-spacing: -0.5px; }
+  .topbar-sep { width: 1px; height: 18px; background: var(--border2); }
+  .topbar-title { font-family: var(--display); font-size: 13px; font-weight: 600; color: var(--txt2); letter-spacing: 0.5px; text-transform: uppercase; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .topbar-stat { font-family: var(--mono); font-size: 11px; color: var(--txt2); }
+  .topbar-stat span { color: var(--orange); font-weight: 600; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+  /* ─── LEFT: USER LIST ─────────────────────────────────────── */
+  .sidebar-list {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    background: var(--bg2);
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-list::-webkit-scrollbar { width: 3px; }
+  .sidebar-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .search-box {
+    padding: 12px;
+    border-bottom: 1px solid var(--border2);
+    position: sticky;
+    top: 0;
+    background: var(--bg2);
+    z-index: 2;
+  }
+  .search-input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 8px 12px 8px 32px;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--txt);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: rgba(255,107,53,0.3); }
+  .search-wrap { position: relative; }
+  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--txt3); font-size: 13px; }
+  .search-input::placeholder { color: var(--txt3); }
+
+  .list-header {
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--txt3);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border2);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .user-item {
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .user-item:hover { background: rgba(255,107,53,0.04); }
+  .user-item.active {
+    background: rgba(255,107,53,0.08);
+    border-left: 2px solid var(--orange);
+  }
+  .user-item.active::before {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0; width: 1px;
+    background: var(--orange);
+    opacity: 0.4;
+  }
+  .user-item-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+  .user-name { font-family: var(--sans); font-weight: 500; font-size: 12px; color: var(--txt); }
+  .user-ltv { font-family: var(--mono); font-size: 10px; color: var(--orange); font-weight: 600; }
+  .user-email { font-size: 10px; color: var(--txt2); margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-meta { display: flex; gap: 6px; align-items: center; }
+  .badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .badge-active  { background: rgba(0,255,136,0.1);  color: var(--green); border: 1px solid rgba(0,255,136,0.2); }
+  .badge-cancel  { background: rgba(255,69,96,0.1);  color: var(--red);   border: 1px solid rgba(255,69,96,0.2); }
+  .badge-trial   { background: rgba(255,210,63,0.1); color: var(--yellow);border: 1px solid rgba(255,210,63,0.2); }
+  .badge-refund  { background: rgba(0,212,255,0.1);  color: var(--cyan);  border: 1px solid rgba(0,212,255,0.2); }
+  .channel-tag { font-size: 9px; color: var(--txt3); }
+
+  /* ─── MAIN: PROFILE ───────────────────────────────────────── */
+  .main-panel {
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .main-panel::-webkit-scrollbar { width: 3px; }
+  .main-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Profile Header */
+  .profile-header {
+    background: linear-gradient(135deg, rgba(255,107,53,0.08) 0%, rgba(13,13,28,0) 60%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .profile-header::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(255,107,53,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .profile-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .profile-id { display: flex; align-items: center; gap: 12px; }
+  .avatar {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--orange) 0%, #FF3366 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--display); font-weight: 800; font-size: 18px; color: #fff;
+    flex-shrink: 0;
+  }
+  .profile-name { font-family: var(--display); font-size: 18px; font-weight: 700; color: var(--txt); line-height: 1.2; }
+  .profile-email { font-family: var(--mono); font-size: 11px; color: var(--txt2); margin-top: 2px; }
+  .profile-actions { display: flex; gap: 8px; }
+  .btn {
+    font-family: var(--sans); font-size: 11px; font-weight: 500;
+    padding: 7px 14px; border-radius: 8px; cursor: pointer; border: none;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .btn-primary { background: var(--orange); color: #fff; }
+  .btn-ghost { background: rgba(255,255,255,0.06); color: var(--txt2); border: 1px solid var(--border2); }
+  .btn-ghost:hover { background: rgba(255,255,255,0.09); }
+
+  .profile-contacts { display: flex; gap: 20px; flex-wrap: wrap; }
+  .contact-item { display: flex; align-items: center; gap: 6px; }
+  .contact-icon { font-size: 12px; }
+  .contact-val { font-family: var(--mono); font-size: 11px; color: var(--txt); }
+  .contact-lbl { font-size: 10px; color: var(--txt3); }
+
+  /* Stat cards */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: rgba(255,107,53,0.25); }
+  .stat-card.highlight { border-color: rgba(255,107,53,0.3); background: rgba(255,107,53,0.05); }
+  .stat-label { font-family: var(--mono); font-size: 9px; letter-spacing: 1px; color: var(--txt3); text-transform: uppercase; margin-bottom: 8px; }
+  .stat-value { font-family: var(--display); font-size: 24px; font-weight: 800; color: var(--txt); line-height: 1; }
+  .stat-value.orange { color: var(--orange); }
+  .stat-value.green  { color: var(--green); }
+  .stat-sub { font-size: 10px; color: var(--txt3); margin-top: 5px; }
+  .stat-glow {
+    position: absolute;
+    bottom: -20px; right: -20px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,107,53,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Section cards */
+  .info-card {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--txt2);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .card-title-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--orange); }
+  .card-body { padding: 16px; }
+
+  /* Fields grid */
+  .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .field { }
+  .field-label { font-family: var(--mono); font-size: 9px; letter-spacing: 1px; color: var(--txt3); text-transform: uppercase; margin-bottom: 5px; }
+  .field-value { font-size: 13px; color: var(--txt); font-weight: 400; }
+  .field-value.mono { font-family: var(--mono); font-size: 11px; }
+  .field-value.large { font-family: var(--display); font-size: 16px; font-weight: 700; }
+
+  /* Timeline */
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+  .tl-item { display: flex; gap: 12px; position: relative; padding-bottom: 16px; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-left { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 28px; }
+  .tl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+  .tl-dot.green  { background: var(--green);  box-shadow: 0 0 8px var(--green); }
+  .tl-dot.orange { background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+  .tl-dot.red    { background: var(--red);    box-shadow: 0 0 8px var(--red); }
+  .tl-dot.cyan   { background: var(--cyan);   box-shadow: 0 0 8px var(--cyan); }
+  .tl-line { width: 1px; flex: 1; background: var(--border2); margin-top: 4px; }
+  .tl-item:last-child .tl-line { display: none; }
+  .tl-content { flex: 1; padding-top: 0; }
+  .tl-event { font-size: 12px; color: var(--txt); font-weight: 500; }
+  .tl-meta { display: flex; justify-content: space-between; margin-top: 2px; }
+  .tl-date { font-family: var(--mono); font-size: 10px; color: var(--txt3); }
+  .tl-amount { font-family: var(--mono); font-size: 10px; color: var(--orange); }
+
+  /* Usage bars */
+  .usage-list { display: flex; flex-direction: column; gap: 10px; }
+  .usage-row { }
+  .usage-top { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .usage-tool { font-size: 11px; color: var(--txt); }
+  .usage-count { font-family: var(--mono); font-size: 10px; color: var(--txt2); }
+  .usage-bar-bg { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+  .usage-bar { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--orange), var(--orange2)); }
+
+  /* Notes */
+  .notes-area {
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 12px;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--txt);
+    resize: none;
+    outline: none;
+    line-height: 1.6;
+    min-height: 80px;
+  }
+  .notes-area:focus { border-color: rgba(255,107,53,0.3); }
+  .notes-area::placeholder { color: var(--txt3); }
+
+  /* ─── RIGHT: METRICS PANEL ────────────────────────────────── */
+  .right-panel {
+    border-left: 1px solid var(--border);
+    background: var(--bg2);
+    overflow-y: auto;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .right-panel::-webkit-scrollbar { width: 3px; }
+  .right-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .rp-section-title {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--txt3);
+    margin-bottom: 10px;
+  }
+
+  /* LTV Hero */
+  .ltv-hero {
+    background: linear-gradient(135deg, rgba(255,107,53,0.12) 0%, rgba(255,107,53,0.04) 100%);
+    border: 1px solid rgba(255,107,53,0.25);
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .ltv-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -30px; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 60px;
+    background: radial-gradient(ellipse, rgba(255,107,53,0.2) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .ltv-label { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--orange); text-transform: uppercase; margin-bottom: 8px; }
+  .ltv-amount { font-family: var(--display); font-size: 38px; font-weight: 800; color: var(--orange); line-height: 1; }
+  .ltv-formula { font-family: var(--mono); font-size: 10px; color: var(--txt3); margin-top: 6px; }
+  .ltv-formula span { color: var(--txt2); }
+
+  /* Mini stats */
+  .mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mini-stat { background: rgba(255,255,255,0.03); border: 1px solid var(--border2); border-radius: 10px; padding: 12px; }
+  .mini-stat-label { font-family: var(--mono); font-size: 9px; color: var(--txt3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .mini-stat-val { font-family: var(--display); font-size: 18px; font-weight: 700; }
+  .mini-stat-val.green  { color: var(--green); }
+  .mini-stat-val.cyan   { color: var(--cyan); }
+  .mini-stat-val.yellow { color: var(--yellow); }
+  .mini-stat-val.orange { color: var(--orange); }
+  .mini-stat-sub { font-size: 10px; color: var(--txt3); margin-top: 3px; }
+
+  /* Risk score */
+  .risk-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border2); border-radius: 12px; padding: 14px; }
+  .risk-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .risk-title { font-family: var(--mono); font-size: 9px; letter-spacing: 1px; color: var(--txt3); text-transform: uppercase; }
+  .risk-score { font-family: var(--display); font-size: 22px; font-weight: 800; color: var(--yellow); }
+  .risk-bar-bg { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; margin-bottom: 8px; overflow: hidden; }
+  .risk-bar { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--green), var(--yellow)); width: 62%; }
+  .risk-label { font-size: 10px; color: var(--txt3); }
+  .risk-label span { color: var(--yellow); font-weight: 500; }
+
+  /* Tags */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 10px; padding: 4px 10px; border-radius: 20px; background: rgba(255,255,255,0.05); border: 1px solid var(--border2); color: var(--txt2); }
+  .tag.orange { background: rgba(255,107,53,0.08); border-color: rgba(255,107,53,0.2); color: var(--orange); }
+
+  /* Platform badge */
+  .platform-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 500; }
+  .platform-meta { background: rgba(24,119,242,0.12); border: 1px solid rgba(24,119,242,0.25); color: #5B9EFF; }
+  .platform-google { background: rgba(234,67,53,0.1); border: 1px solid rgba(234,67,53,0.2); color: #FF6B5B; }
+  .platform-tiktok { background: rgba(0,212,180,0.1); border: 1px solid rgba(0,212,180,0.2); color: #00D4B4; }
+  .platform-organic { background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.18); color: var(--green); }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--border2); margin: 0; }
+
+  /* Entry animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .anim-1 { animation: fadeUp 0.3s ease both; }
+  .anim-2 { animation: fadeUp 0.3s 0.05s ease both; }
+  .anim-3 { animation: fadeUp 0.3s 0.1s ease both; }
+  .anim-4 { animation: fadeUp 0.3s 0.15s ease both; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ── TOPBAR ─────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-brand">AIVI</span>
+      <div class="topbar-sep"></div>
+      <span class="topbar-title">Trazabilidad de Usuarios</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-stat">Activos: <span>847</span></span>
+      <span class="topbar-stat">LTV Prom: <span>$194</span></span>
+      <span class="topbar-stat">Churn: <span>4.2%</span></span>
+      <div class="live-dot" title="Sync en vivo"></div>
+    </div>
+  </header>
+
+  <!-- ── USER LIST ──────────────────────────────────────── -->
+  <aside class="sidebar-list">
+    <div class="search-box">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input class="search-input" type="text" placeholder="Buscar por nombre, email...">
+      </div>
+    </div>
+    <div class="list-header">
+      <span>Usuario</span>
+      <span>LTV</span>
+    </div>
+
+    <!-- User 1 — ACTIVE (selected) -->
+    <div class="user-item active">
+      <div class="user-item-top">
+        <span class="user-name">María García</span>
+        <span class="user-ltv">$291</span>
+      </div>
+      <div class="user-email">maria.garcia@gmail.com</div>
+      <div class="user-meta">
+        <span class="badge badge-active">Activo</span>
+        <span class="channel-tag">· Meta Ads</span>
+        <span class="channel-tag">· 🇨🇴</span>
+      </div>
+    </div>
+
+    <!-- User 2 -->
+    <div class="user-item">
+      <div class="user-item-top">
+        <span class="user-name">Carlos Mendoza</span>
+        <span class="user-ltv">$194</span>
+      </div>
+      <div class="user-email">carlos.m@hotmail.com</div>
+      <div class="user-meta">
+        <span class="badge badge-cancel">Cancelado</span>
+        <span class="channel-tag">· Google</span>
+        <span class="channel-tag">· 🇲🇽</span>
+      </div>
+    </div>
+
+    <!-- User 3 -->
+    <div class="user-item">
+      <div class="user-item-top">
+        <span class="user-name">Ana Rodríguez</span>
+        <span class="user-ltv">$97</span>
+      </div>
+      <div class="user-email">ana.rod@yahoo.com</div>
+      <div class="user-meta">
+        <span class="badge badge-trial">Trial</span>
+        <span class="channel-tag">· Orgánico</span>
+        <span class="channel-tag">· 🇦🇷</span>
+      </div>
+    </div>
+
+    <!-- User 4 -->
+    <div class="user-item">
+      <div class="user-item-top">
+        <span class="user-name">Luis Pérez</span>
+        <span class="user-ltv">$388</span>
+      </div>
+      <div class="user-email">lperez.negocios@gmail.com</div>
+      <div class="user-meta">
+        <span class="badge badge-active">Activo</span>
+        <span class="channel-tag">· TikTok</span>
+        <span class="channel-tag">· 🇨🇴</span>
+      </div>
+    </div>
+
+    <!-- User 5 -->
+    <div class="user-item">
+      <div class="user-item-top">
+        <span class="user-name">Valeria Torres</span>
+        <span class="user-ltv">$97</span>
+      </div>
+      <div class="user-email">v.torres.coach@gmail.com</div>
+      <div class="user-meta">
+        <span class="badge badge-active">Activo</span>
+        <span class="channel-tag">· Meta Ads</span>
+        <span class="channel-tag">· 🇵🇪</span>
+      </div>
+    </div>
+
+    <!-- User 6 -->
+    <div class="user-item">
+      <div class="user-item-top">
+        <span class="user-name">Andrés Castaño</span>
+        <span class="user-ltv">$485</span>
+      </div>
+      <div class="user-email">acastano@emprender.co</div>
+      <div class="user-meta">
+        <span class="badge badge-active">Activo</span>
+        <span class="channel-tag">· Meta Ads</span>
+        <span class="channel-tag">· 🇨🇴</span>
+      </div>
+    </div>
+
+    <!-- User 7 -->
+    <div class="user-item">
+      <div class="user-item-top">
+        <span class="user-name">Sofía Herrera</span>
+        <span class="user-ltv">$194</span>
+      </div>
+      <div class="user-email">sofia.herrera22@gmail.com</div>
+      <div class="user-meta">
+        <span class="badge badge-refund">Reembolso</span>
+        <span class="channel-tag">· Google</span>
+        <span class="channel-tag">· 🇻🇪</span>
+      </div>
+    </div>
+
+    <!-- User 8 -->
+    <div class="user-item">
+      <div class="user-item-top">
+        <span class="user-name">Roberto Silva</span>
+        <span class="user-ltv">$97</span>
+      </div>
+      <div class="user-email">roberto.silva@gmail.com</div>
+      <div class="user-meta">
+        <span class="badge badge-active">Activo</span>
+        <span class="channel-tag">· Orgánico</span>
+        <span class="channel-tag">· 🇧🇷</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN PROFILE PANEL ─────────────────────────────── -->
+  <main class="main-panel">
+
+    <!-- Profile Header -->
+    <div class="profile-header anim-1">
+      <div class="profile-top">
+        <div class="profile-id">
+          <div class="avatar">M</div>
+          <div>
+            <div class="profile-name">María García</div>
+            <div class="profile-email">maria.garcia@gmail.com</div>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <button class="btn btn-ghost">✎ Editar</button>
+          <button class="btn btn-primary">💬 WhatsApp</button>
+        </div>
+      </div>
+      <div class="profile-contacts">
+        <div class="contact-item">
+          <span class="contact-icon">📱</span>
+          <div>
+            <div class="contact-val">+57 310 456 7890</div>
+            <div class="contact-lbl">WhatsApp</div>
+          </div>
+        </div>
+        <div class="contact-item">
+          <span class="contact-icon">📍</span>
+          <div>
+            <div class="contact-val">Medellín, Colombia</div>
+            <div class="contact-lbl">Ubicación</div>
+          </div>
+        </div>
+        <div class="contact-item">
+          <span class="contact-icon">📡</span>
+          <div>
+            <span class="platform-badge platform-meta">𝑓 Meta Ads</span>
+          </div>
+        </div>
+        <div class="contact-item">
+          <span class="contact-icon">📅</span>
+          <div>
+            <div class="contact-val">14 Feb 2025</div>
+            <div class="contact-lbl">Primera compra</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-grid anim-2">
+      <div class="stat-card highlight">
+        <div class="stat-label">LTV Total</div>
+        <div class="stat-value orange">$291</div>
+        <div class="stat-sub">3 meses × $97</div>
+        <div class="stat-glow"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Meses activo</div>
+        <div class="stat-value green">3</div>
+        <div class="stat-sub">Feb → May 2025</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Plan actual</div>
+        <div class="stat-value" style="font-size:16px;margin-top:4px">AIVI Pro</div>
+        <div class="stat-sub">$97 / mes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Próx. renovación</div>
+        <div class="stat-value" style="font-size:16px;margin-top:4px">14 Jun</div>
+        <div class="stat-sub" style="color: var(--yellow);">18 días</div>
+      </div>
+    </div>
+
+    <!-- Perfil Emprendedor + Historia de compras -->
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;" class="anim-3">
+
+      <!-- Perfil -->
+      <div class="info-card">
+        <div class="card-header">
+          <div class="card-title"><span class="card-title-dot"></span>Perfil Emprendedor</div>
+        </div>
+        <div class="card-body">
+          <div class="fields-grid">
+            <div class="field">
+              <div class="field-label">A qué se dedica</div>
+              <div class="field-value">Coach de negocios digitales</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Industria</div>
+              <div class="field-value">Educación / Coaching</div>
+            </div>
+            <div class="field" style="grid-column: 1/-1">
+              <div class="field-label">Objetivo principal</div>
+              <div class="field-value">Crear contenido viral para vender su programa de mentoría. Meta: 1,000 seguidores activos en 3 meses.</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Etapa ADN</div>
+              <div class="field-value">🔥 Viralidad</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Seguidores actuales</div>
+              <div class="field-value mono">12,400</div>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <div class="field-label" style="margin-bottom:6px">Tags</div>
+            <div class="tags">
+              <span class="tag orange">Coach</span>
+              <span class="tag">Negocios</span>
+              <span class="tag">Instagram</span>
+              <span class="tag">VIP Potential</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historial de Transacciones -->
+      <div class="info-card">
+        <div class="card-header">
+          <div class="card-title"><span class="card-title-dot"></span>Historial de Pagos</div>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--txt3)">3 transacciones</span>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot green"></div><div class="tl-line"></div></div>
+              <div class="tl-content">
+                <div class="tl-event">Renovación mensual</div>
+                <div class="tl-meta">
+                  <span class="tl-date">14 May 2025</span>
+                  <span class="tl-amount">+$97</span>
+                </div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot green"></div><div class="tl-line"></div></div>
+              <div class="tl-content">
+                <div class="tl-event">Renovación mensual</div>
+                <div class="tl-meta">
+                  <span class="tl-date">14 Abr 2025</span>
+                  <span class="tl-amount">+$97</span>
+                </div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left"><div class="tl-dot orange"></div><div class="tl-line"></div></div>
+              <div class="tl-content">
+                <div class="tl-event">Primera compra — AIVI Pro</div>
+                <div class="tl-meta">
+                  <span class="tl-date">14 Feb 2025</span>
+                  <span class="tl-amount">+$97</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Uso de plataforma + Notas admin -->
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;" class="anim-4">
+
+      <!-- Uso -->
+      <div class="info-card">
+        <div class="card-header">
+          <div class="card-title"><span class="card-title-dot"></span>Uso de Herramientas</div>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--txt3)">Últ. 30 días</span>
+        </div>
+        <div class="card-body">
+          <div class="usage-list">
+            <div class="usage-row">
+              <div class="usage-top"><span class="usage-tool">🎭 Guiones</span><span class="usage-count">34 usos</span></div>
+              <div class="usage-bar-bg"><div class="usage-bar" style="width:88%"></div></div>
+            </div>
+            <div class="usage-row">
+              <div class="usage-top"><span class="usage-tool">🎠 Carruseles</span><span class="usage-count">22 usos</span></div>
+              <div class="usage-bar-bg"><div class="usage-bar" style="width:58%"></div></div>
+            </div>
+            <div class="usage-row">
+              <div class="usage-top"><span class="usage-tool">🔬 Analyzer</span><span class="usage-count">18 usos</span></div>
+              <div class="usage-bar-bg"><div class="usage-bar" style="width:46%"></div></div>
+            </div>
+            <div class="usage-row">
+              <div class="usage-top"><span class="usage-tool">🧬 ADN Creator</span><span class="usage-count">8 usos</span></div>
+              <div class="usage-bar-bg"><div class="usage-bar" style="width:20%"></div></div>
+            </div>
+            <div class="usage-row">
+              <div class="usage-top"><span class="usage-tool">🎭 Simulador</span><span class="usage-count">3 usos</span></div>
+              <div class="usage-bar-bg"><div class="usage-bar" style="width:8%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notas Admin -->
+      <div class="info-card">
+        <div class="card-header">
+          <div class="card-title"><span class="card-title-dot"></span>Notas del Admin</div>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--green)">● Guardado</span>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+          <div style="background:rgba(255,107,53,0.05);border:1px solid rgba(255,107,53,0.12);border-radius:8px;padding:10px">
+            <div style="font-size:10px;color:var(--txt3);margin-bottom:4px;font-family:var(--mono)">27 May 2025 — Admin</div>
+            <div style="font-size:12px;color:var(--txt);line-height:1.5">Usuaria muy activa. Potencial para upgrade a plan anual. Contactar antes de próxima renovación (14 Jun).</div>
+          </div>
+          <textarea class="notes-area" placeholder="Agregar nueva nota..."></textarea>
+          <button class="btn btn-ghost" style="align-self:flex-end;font-size:11px">+ Guardar nota</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── RIGHT METRICS PANEL ────────────────────────────── -->
+  <aside class="right-panel">
+
+    <!-- LTV Hero -->
+    <div>
+      <div class="rp-section-title">Lifetime Value</div>
+      <div class="ltv-hero">
+        <div class="ltv-label">LTV Acumulado</div>
+        <div class="ltv-amount">$291</div>
+        <div class="ltv-formula"><span>$97</span> × <span>3 meses</span></div>
+      </div>
+    </div>
+
+    <!-- Mini stats -->
+    <div>
+      <div class="rp-section-title">Métricas Clave</div>
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="mini-stat-label">Renovaciones</div>
+          <div class="mini-stat-val green">2</div>
+          <div class="mini-stat-sub">de 3 cobros</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">Último pago</div>
+          <div class="mini-stat-val cyan" style="font-size:13px;margin-top:2px">14 May</div>
+          <div class="mini-stat-sub">hace 13 días</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">Días activo</div>
+          <div class="mini-stat-val orange">103</div>
+          <div class="mini-stat-sub">días totales</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">Canal</div>
+          <div class="mini-stat-val" style="font-size:12px;color:#5B9EFF;margin-top:2px">Meta</div>
+          <div class="mini-stat-sub">Facebook Ads</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Retention Risk -->
+    <div>
+      <div class="rp-section-title">Riesgo de Cancelación</div>
+      <div class="risk-card">
+        <div class="risk-header">
+          <span class="risk-title">Score retención</span>
+          <span class="risk-score">62</span>
+        </div>
+        <div class="risk-bar-bg">
+          <div class="risk-bar"></div>
+        </div>
+        <div class="risk-label">Estado: <span>Medio — revisar antes del 14 Jun</span></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Quick actions -->
+    <div>
+      <div class="rp-section-title">Acciones Rápidas</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;font-size:11px">💬 Enviar WhatsApp</button>
+        <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;font-size:11px">📧 Enviar Email</button>
+        <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;font-size:11px">🎁 Ofrecer descuento</button>
+        <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;font-size:11px;color:var(--red);border-color:rgba(255,69,96,0.2)">🚫 Marcar cancelado</button>
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+</body>
+</html>

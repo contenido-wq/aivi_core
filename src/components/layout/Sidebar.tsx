@@ -1,4 +1,4 @@
-import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight, X } from "lucide-react";
+import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight, X, LogOut } from "lucide-react";
 import { C } from "../../tokens";
 import type { ProductFilter, DailyData } from "../../services/dashboard";
 
@@ -6,6 +6,7 @@ interface SidebarProps {
   filter:     ProductFilter;
   onFilter:   (f: ProductFilter) => void;
   onSettings: () => void;
+  onSignOut?: () => void;
   mrr:        number;
   arr:        number;
   daily?:     DailyData | null;
@@ -31,7 +32,7 @@ const FILTERS: { value: ProductFilter; label: string }[] = [
   { value: "MV3",   label: "MV3"   },
 ];
 
-export function Sidebar({ filter, onFilter, onSettings, mrr, arr, daily, open, onClose, isMobile }: SidebarProps) {
+export function Sidebar({ filter, onFilter, onSettings, onSignOut, mrr, arr, daily, open, onClose, isMobile }: SidebarProps) {
   const fmtK = (n: number) => {
     const parts = n.toFixed(2).split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -101,9 +102,11 @@ export function Sidebar({ filter, onFilter, onSettings, mrr, arr, daily, open, o
             <div key={item.label} onClick={isMobile && item.active ? onClose : undefined} style={{
               display: "flex", alignItems: "center", gap: 10,
               padding: "10px 12px", borderRadius: 10,
-              background: item.active ? "rgba(254,128,63,0.12)" : "transparent",
+              background: item.active ? "rgba(254,128,63,0.10)" : "transparent",
               backdropFilter: item.active ? "blur(10px)" : "none",
-              border: `1px solid ${item.active ? "rgba(254,128,63,0.28)" : "transparent"}`,
+              border: `1px solid ${item.active ? "rgba(254,128,63,0.25)" : "transparent"}`,
+              borderLeft: item.active ? "3px solid rgba(254,128,63,0.8)" : "3px solid transparent",
+              paddingLeft: item.active ? 10 : 12,
               cursor: "pointer",
               transition: "all 0.15s",
             }}>
@@ -194,16 +197,33 @@ export function Sidebar({ filter, onFilter, onSettings, mrr, arr, daily, open, o
             </div>
           ))}
         </div>
-        <button onClick={() => { onSettings(); if (isMobile) onClose?.(); }} style={{
-          width: "100%", padding: "8px", borderRadius: 8,
-          background: "transparent",
-          border: `1px solid ${C.border}`,
-          color: C.mutedLight, fontSize: 11, fontWeight: 600,
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-          transition: "all .15s",
-        }}>
-          <Settings size={13} /> Ajustes
-        </button>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={() => { onSettings(); if (isMobile) onClose?.(); }} style={{
+            flex: 1, padding: "8px", borderRadius: 8,
+            background: "transparent",
+            border: `1px solid ${C.border}`,
+            color: C.mutedLight, fontSize: 11, fontWeight: 600,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            transition: "all .15s",
+            cursor: "pointer",
+          }}>
+            <Settings size={13} /> Ajustes
+          </button>
+          {onSignOut && (
+            <button onClick={onSignOut} title="Cerrar sesión" style={{
+              padding: "8px 10px", borderRadius: 8,
+              background: "transparent",
+              border: `1px solid ${C.border}`,
+              color: C.mutedLight, fontSize: 11, fontWeight: 600,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all .15s",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}>
+              <LogOut size={13} />
+            </button>
+          )}
+        </div>
       </div>
     </aside>
   );

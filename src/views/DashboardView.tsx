@@ -14,9 +14,12 @@ import { DashFooter }          from "../components/dashboard/DashFooter";
 import { C }                   from "../tokens";
 import type { ProductFilter }  from "../services/dashboard";
 
-interface DashboardViewProps { onSettings: () => void; }
+interface DashboardViewProps {
+  onSettings: () => void;
+  onSignOut?:  () => void;
+}
 
-export function DashboardView({ onSettings }: DashboardViewProps) {
+export function DashboardView({ onSettings, onSignOut }: DashboardViewProps) {
   const time                  = useClock();
   const [adsOn, setAdsOn]     = useState(false);
   const [date]                = useState(() => new Date());
@@ -51,6 +54,7 @@ export function DashboardView({ onSettings }: DashboardViewProps) {
         filter={filter}
         onFilter={setFilter}
         onSettings={onSettings}
+        onSignOut={onSignOut}
         mrr={kpis?.mrr ?? 0}
         arr={kpis?.arr ?? 0}
         daily={daily}

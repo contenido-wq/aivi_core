@@ -21,7 +21,7 @@ function KPICard({ icon, label, value, valueColor, sub, hero, compact }: KPICard
       flex: 1,
       minWidth: 0,
       boxShadow: hero
-        ? "0 8px 32px rgba(254,128,63,0.35), 0 2px 8px rgba(0,0,0,0.3)"
+        ? "0 0 0 1px rgba(255,255,255,0.12) inset, 0 12px 40px rgba(254,96,32,0.55), 0 4px 12px rgba(0,0,0,0.4)"
         : "0 2px 0 0 rgba(255,255,255,0.03) inset, 0 8px 24px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)",
       transition: "all 0.25s cubic-bezier(.4,0,.2,1)",
     }}>

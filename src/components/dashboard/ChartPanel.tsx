@@ -40,7 +40,7 @@ function InsightChip({ icon, label, value }: InsightChipProps) {
     <div style={{
       display: "flex", alignItems: "center", gap: 8,
       background: "rgba(255,255,255,0.03)",
-      border: `1px solid ${C.border}`,
+      border: `1px solid rgba(255,255,255,0.1)`,
       borderRadius: 10, padding: "8px 14px",
       flex: 1,
       minWidth: 0,

@@ -29,7 +29,7 @@ export const C = {
   // Gradients
   grad:        "linear-gradient(135deg, #FFC252, #FE803F, #FF413B)",
   gradBtn:     "linear-gradient(135deg, #FE803F 0%, #C94A10 100%)",
-  gradCard:    "linear-gradient(135deg, #FE803F 0%, #C94A10 100%)",
+  gradCard:    "linear-gradient(140deg, #FF9A55 0%, #FE6020 45%, #B83800 100%)",
 } as const;
 
 export const FONT = "'Hanken Grotesk', sans-serif";
