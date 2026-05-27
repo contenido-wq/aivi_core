@@ -24,6 +24,6 @@ export interface AudioSetting {
 
 export type ChartMode = "ingresos" | "ventas";
 export type Period    = "Día" | "Semanal" | "Últimos 7 días" | "Mensual" | "Últimos 30 días";
-export type AppView   = "dashboard" | "admin";
+export type AppView   = "dashboard" | "admin" | "usuarios";
 
 export type ProductFilter = "todos" | "AIVI" | "MV3";

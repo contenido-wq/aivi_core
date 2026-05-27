@@ -602,3 +602,147 @@ export async function getAtRiskUsers(filter: ProductFilter = "todos"): Promise<A
     return a.daysActive - b.daysActive;
   });
 }
+
+// ─── Trazabilidad de usuarios ─────────────────────────────────────────────────
+
+export interface UserTx {
+  id:        string;
+  eventType: string;
+  planName:  string;
+  amount:    number;
+  currency:  string;
+  amountUsd: number;
+  createdAt: string;
+  status:    string;
+}
+
+export interface UserProfile {
+  email:             string;
+  name:              string;
+  status:            "active" | "cancelled" | "delayed" | "trial";
+  planName:          string;
+  amountUsd:         number;
+  ltv:               number;
+  firstPurchaseDate: string;
+  lastPurchaseDate:  string;
+  country:           string;
+  channel:           string;
+  transactions:      UserTx[];
+  daysActive:        number;
+  renewalsCount:     number;   // número de renovaciones (transacciones activas - 1)
+}
+
+export async function getUsersTraceability(filter: ProductFilter = "todos"): Promise<UserProfile[]> {
+  // Traer todas las transacciones
+  const { data: allTx } = await supabase
+    .from("transactions")
+    .select("id, event_type, buyer_name, buyer_email, plan_name, amount, currency, created_at, status, raw_payload")
+    .order("created_at", { ascending: false });
+
+  if (!allTx) return [];
+
+  // Traer suscripciones para obtener el estado actual
+  const { data: allSubs } = await supabase
+    .from("subscriptions")
+    .select("buyer_email, buyer_name, plan_name, status, amount, currency");
+
+  // Mapa email → suscripción vigente
+  const subsMap: Record<string, any> = {};
+  for (const sub of (allSubs ?? [])) {
+    if (!matchesPlan(sub.plan_name, filter)) continue;
+    // Dar preferencia al estado activo
+    if (!subsMap[sub.buyer_email] || sub.status === "active") {
+      subsMap[sub.buyer_email] = sub;
+    }
+  }
+
+  // Agrupar transacciones por email
+  const txMap: Record<string, any[]> = {};
+  for (const tx of allTx) {
+    const email = tx.buyer_email;
+    if (!email || email === "—") continue;
+    if (!matchesPlan(tx.plan_name, filter)) continue;
+    if (!txMap[email]) txMap[email] = [];
+    txMap[email].push(tx);
+  }
+
+  // Combinar emails de ambas fuentes
+  const emailSet = new Set([...Object.keys(subsMap), ...Object.keys(txMap)]);
+  const users: UserProfile[] = [];
+
+  for (const email of emailSet) {
+    const sub  = subsMap[email];
+    const txs  = txMap[email] ?? [];
+    if (!email) continue;
+
+    // Cálculo LTV (transacciones activas en USD)
+    const activeTxs = txs.filter((t: any) => t.status === "active" || t.status === "delayed");
+    const ltv = Math.round(
+      activeTxs.reduce((s: number, t: any) => s + toUSD(Number(t.amount), t.currency), 0) * 100
+    ) / 100;
+
+    // Fechas
+    const sorted = [...txs].sort((a: any, b: any) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    const firstPurchaseDate = sorted[0]?.created_at ?? "";
+    const lastPurchaseDate  = sorted[sorted.length - 1]?.created_at ?? "";
+
+    const now = new Date();
+    const firstDate = firstPurchaseDate ? new Date(firstPurchaseDate) : now;
+    const daysActive = Math.floor((now.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    // País y canal desde raw_payload
+    let country = "—";
+    let channel = "Orgánico";
+    for (const tx of sorted) {
+      try {
+        const rp = typeof tx.raw_payload === "string" ? JSON.parse(tx.raw_payload) : tx.raw_payload;
+        if (country === "—") {
+          const c = rp?.pais ?? rp?.data?.buyer?.address?.country;
+          if (c && c !== "null" && c !== "") country = c;
+        }
+        if (channel === "Orgánico") {
+          const utm = rp?.utm_source ?? rp?.tracking?.source_sck;
+          if (utm && utm !== "null" && utm !== "") channel = utm;
+        }
+      } catch { /* ignore */ }
+      if (country !== "—" && channel !== "Orgánico") break;
+    }
+
+    const rawStatus = sub?.status ?? (activeTxs.length > 0 ? "active" : "cancelled");
+    const status: UserProfile["status"] =
+      ["active", "cancelled", "delayed", "trial"].includes(rawStatus)
+        ? (rawStatus as UserProfile["status"])
+        : "cancelled";
+
+    users.push({
+      email,
+      name: sub?.buyer_name ?? sorted[0]?.buyer_name ?? "—",
+      status,
+      planName:          sub?.plan_name ?? sorted[0]?.plan_name ?? "—",
+      amountUsd:         toUSD(Number(sub?.amount ?? 0), sub?.currency ?? "USD"),
+      ltv,
+      firstPurchaseDate,
+      lastPurchaseDate,
+      country,
+      channel,
+      transactions: [...txs]
+        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .map((t: any): UserTx => ({
+          id:        t.id,
+          eventType: t.event_type ?? "purchase",
+          planName:  t.plan_name,
+          amount:    Number(t.amount),
+          currency:  t.currency ?? "USD",
+          amountUsd: toUSD(Number(t.amount), t.currency),
+          createdAt: t.created_at,
+          status:    t.status,
+        })),
+      daysActive,
+      renewalsCount: Math.max(0, activeTxs.length - 1),
+    });
+  }
+
+  return users.sort((a, b) => b.ltv - a.ltv);
+}

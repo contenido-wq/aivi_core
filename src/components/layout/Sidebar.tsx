@@ -7,6 +7,8 @@ interface SidebarProps {
   onFilter:   (f: ProductFilter) => void;
   onSettings: () => void;
   onSignOut?: () => void;
+  onUsers?:   () => void;
+  activeView?: string;
   mrr:        number;
   arr:        number;
   daily?:     DailyData | null;
@@ -18,12 +20,12 @@ interface SidebarProps {
   isMobile?: boolean;
 }
 
-const NAV = [
-  { icon: LayoutDashboard, label: "Dashboard",     active: true  },
-  { icon: BarChart2,       label: "Analytics",     active: false },
-  { icon: Users,           label: "Usuarios",      active: false },
-  { icon: CreditCard,      label: "Transacciones", active: false },
-  { icon: RefreshCw,       label: "Suscripciones", active: false },
+const NAV_ITEMS = [
+  { icon: LayoutDashboard, label: "Dashboard",     view: "dashboard" },
+  { icon: Users,           label: "Usuarios",      view: "usuarios"  },
+  { icon: BarChart2,       label: "Analytics",     view: null        },
+  { icon: CreditCard,      label: "Transacciones", view: null        },
+  { icon: RefreshCw,       label: "Suscripciones", view: null        },
 ];
 
 const FILTERS: { value: ProductFilter; label: string }[] = [
@@ -32,7 +34,7 @@ const FILTERS: { value: ProductFilter; label: string }[] = [
   { value: "MV3",   label: "MV3"   },
 ];
 
-export function Sidebar({ filter, onFilter, onSettings, onSignOut, mrr, arr, daily, open, onClose, isMobile }: SidebarProps) {
+export function Sidebar({ filter, onFilter, onSettings, onSignOut, onUsers, activeView, mrr, arr, daily, open, onClose, isMobile }: SidebarProps) {
   const fmtK = (n: number) => {
     const parts = n.toFixed(2).split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -96,25 +98,33 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, mrr, arr, dai
 
       {/* Nav */}
       <nav style={{ padding: "12px 8px", flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-        {NAV.map((item) => {
-          const Icon = item.icon;
+        {NAV_ITEMS.map((item) => {
+          const Icon     = item.icon;
+          const isActive = activeView === item.view;
+          const clickable = item.view !== null;
+          const handleClick = () => {
+            if (!clickable) return;
+            if (item.view === "usuarios") onUsers?.();
+            if (isMobile) onClose?.();
+          };
           return (
-            <div key={item.label} onClick={isMobile && item.active ? onClose : undefined} style={{
+            <div key={item.label} onClick={handleClick} style={{
               display: "flex", alignItems: "center", gap: 10,
               padding: "10px 12px", borderRadius: 10,
-              background: item.active ? "rgba(254,128,63,0.10)" : "transparent",
-              backdropFilter: item.active ? "blur(10px)" : "none",
-              border: `1px solid ${item.active ? "rgba(254,128,63,0.25)" : "transparent"}`,
-              borderLeft: item.active ? "3px solid rgba(254,128,63,0.8)" : "3px solid transparent",
-              paddingLeft: item.active ? 10 : 12,
-              cursor: "pointer",
+              background: isActive ? "rgba(254,128,63,0.10)" : "transparent",
+              backdropFilter: isActive ? "blur(10px)" : "none",
+              border: `1px solid ${isActive ? "rgba(254,128,63,0.25)" : "transparent"}`,
+              borderLeft: isActive ? "3px solid rgba(254,128,63,0.8)" : "3px solid transparent",
+              paddingLeft: isActive ? 10 : 12,
+              cursor: clickable ? "pointer" : "default",
+              opacity: clickable ? 1 : 0.4,
               transition: "all 0.15s",
             }}>
-              <Icon size={16} style={{ color: item.active ? C.orange : C.white }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: item.active ? C.orange : C.white, flex: 1 }}>
+              <Icon size={16} style={{ color: isActive ? C.orange : C.white }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: isActive ? C.orange : C.white, flex: 1 }}>
                 {item.label}
               </span>
-              {item.active && <ChevronRight size={12} style={{ color: C.orange }} />}
+              {isActive && <ChevronRight size={12} style={{ color: C.orange }} />}
             </div>
           );
         })}

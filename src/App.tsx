@@ -3,6 +3,7 @@ import type { AppView }   from "./types";
 import { DashboardView }  from "./views/DashboardView";
 import { AdminPanel }     from "./components/admin/AdminPanel";
 import { LoginView }      from "./views/LoginView";
+import { UsersView }      from "./views/UsersView";
 import { useAuth }        from "./hooks/useAuth";
 import { C, FONT }        from "./tokens";
 
@@ -23,9 +24,7 @@ export default function App() {
       }}>
         <div style={{ textAlign: "center" }}>
           <div style={{
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
+            width: 36, height: 36, borderRadius: "50%",
             border: `3px solid ${C.border}`,
             borderTopColor: C.orange,
             animation: "spin 0.8s linear infinite",
@@ -39,12 +38,21 @@ export default function App() {
   }
 
   // Sin sesión → pantalla de login / solicitud de acceso
-  if (!user) {
-    return <LoginView />;
-  }
+  if (!user) return <LoginView />;
 
-  // Con sesión → dashboard o panel admin
-  return view === "admin"
-    ? <AdminPanel onBack={() => setView("dashboard")} />
-    : <DashboardView onSettings={() => setView("admin")} onSignOut={signOut} />;
+  // Vista Admin
+  if (view === "admin") return <AdminPanel onBack={() => setView("dashboard")} />;
+
+  // Vista Usuarios (trazabilidad)
+  if (view === "usuarios") return <UsersView onBack={() => setView("dashboard")} />;
+
+  // Dashboard principal — pasamos onUsers para que el sidebar lo active
+  return (
+    <DashboardView
+      onSettings={() => setView("admin")}
+      onSignOut={signOut}
+      onUsers={() => setView("usuarios")}
+      activeView={view}
+    />
+  );
 }

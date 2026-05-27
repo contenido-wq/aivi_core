@@ -17,9 +17,11 @@ import type { ProductFilter }  from "../services/dashboard";
 interface DashboardViewProps {
   onSettings: () => void;
   onSignOut?:  () => void;
+  onUsers?:    () => void;
+  activeView?: string;
 }
 
-export function DashboardView({ onSettings, onSignOut }: DashboardViewProps) {
+export function DashboardView({ onSettings, onSignOut, onUsers, activeView = "dashboard" }: DashboardViewProps) {
   const time                  = useClock();
   const [adsOn, setAdsOn]     = useState(false);
   const [date]                = useState(() => new Date());
@@ -55,6 +57,8 @@ export function DashboardView({ onSettings, onSignOut }: DashboardViewProps) {
         onFilter={setFilter}
         onSettings={onSettings}
         onSignOut={onSignOut}
+        onUsers={onUsers}
+        activeView={activeView}
         mrr={kpis?.mrr ?? 0}
         arr={kpis?.arr ?? 0}
         daily={daily}
