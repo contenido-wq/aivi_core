@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo }  from "react";
 import { ArrowLeft, Search, RefreshCw, Loader2, TrendingUp, Calendar, MapPin, Radio, AlertTriangle, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { C, FONT }                       from "../tokens";
 import { getUsersTraceability }           from "../services/dashboard";
-import type { UserProfile, UserTx }      from "../services/dashboard";
+import type { UserProfile }              from "../services/dashboard";
 
 interface UsersViewProps { onBack: () => void; }
 
