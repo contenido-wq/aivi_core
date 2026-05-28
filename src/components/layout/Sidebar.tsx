@@ -111,10 +111,10 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onUsers, acti
             <div key={item.label} onClick={handleClick} style={{
               display: "flex", alignItems: "center", gap: 10,
               padding: "10px 12px", borderRadius: 10,
-              background: isActive ? "rgba(254,128,63,0.10)" : "transparent",
+              background: isActive ? "rgba(255,107,44,0.10)" : "transparent",
               backdropFilter: isActive ? "blur(10px)" : "none",
-              border: `1px solid ${isActive ? "rgba(254,128,63,0.25)" : "transparent"}`,
-              borderLeft: isActive ? "3px solid rgba(254,128,63,0.8)" : "3px solid transparent",
+              border: `1px solid ${isActive ? "rgba(255,107,44,0.25)" : "transparent"}`,
+              borderLeft: isActive ? "3px solid rgba(255,107,44,0.8)" : "3px solid transparent",
               paddingLeft: isActive ? 10 : 12,
               cursor: clickable ? "pointer" : "default",
               opacity: clickable ? 1 : 0.4,
@@ -137,9 +137,9 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onUsers, acti
           {FILTERS.map(f => (
             <button key={f.value} onClick={() => { onFilter(f.value); if (isMobile) onClose?.(); }} style={{
               display: "block", width: "100%",
-              background: filter === f.value ? "rgba(254,128,63,0.12)" : "transparent",
+              background: filter === f.value ? "rgba(255,107,44,0.12)" : "transparent",
               backdropFilter: filter === f.value ? "blur(10px)" : "none",
-              border: `1px solid ${filter === f.value ? "rgba(254,128,63,0.28)" : "transparent"}`,
+              border: `1px solid ${filter === f.value ? "rgba(255,107,44,0.28)" : "transparent"}`,
               borderRadius: 8, padding: "8px 12px",
               color: filter === f.value ? C.orange : C.white,
               fontSize: 11, fontWeight: 700, textAlign: "left",

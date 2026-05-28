@@ -168,7 +168,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
               {pending.length > 0 && (
                 <span style={{
                   fontSize: 11, fontWeight: 700, color: "#fff",
-                  background: "#FE803F", borderRadius: 20, padding: "2px 10px",
+                  background: "#FF6B2C", borderRadius: 20, padding: "2px 10px",
                 }}>
                   {pending.length} pendiente{pending.length > 1 ? "s" : ""}
                 </span>
@@ -326,7 +326,7 @@ function RequestRow({ req, loading, message, onApprove, onReject, fmtDate }: Req
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
             {isApproved && <CheckCircle size={13} style={{ color: "#22C55E", flexShrink: 0 }} />}
             {isRejected && <XCircle     size={13} style={{ color: "#EF4444", flexShrink: 0 }} />}
-            {isPending  && <Clock       size={13} style={{ color: "#FE803F", flexShrink: 0 }} />}
+            {isPending  && <Clock       size={13} style={{ color: "#FF6B2C", flexShrink: 0 }} />}
             <span style={{ fontSize: 13, fontWeight: 700, color: "#222", wordBreak: "break-all" }}>{req.email}</span>
           </div>
           <div style={{ fontSize: 11, color: "#aaa" }}>

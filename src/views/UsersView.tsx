@@ -190,7 +190,7 @@ export function UsersView({ onBack }: UsersViewProps) {
               borderBottom: `1px solid rgba(255,255,255,0.025)`,
               cursor: "pointer",
               borderLeft: isActive ? `2px solid ${C.orange}` : "2px solid transparent",
-              background: isActive ? "rgba(254,128,63,0.07)" : "transparent",
+              background: isActive ? "rgba(255,107,44,0.07)" : "transparent",
               transition: "background 0.12s",
             }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:3 }}>
@@ -219,7 +219,7 @@ export function UsersView({ onBack }: UsersViewProps) {
 
       {/* Profile Header */}
       <div style={{
-        background: `linear-gradient(135deg, rgba(254,128,63,0.1) 0%, ${C.card} 60%)`,
+        background: `linear-gradient(135deg, rgba(255,107,44,0.1) 0%, ${C.card} 60%)`,
         border: `1px solid ${C.border}`,
         borderRadius: 16, padding: "20px 22px",
         position: "relative", overflow: "hidden",
@@ -334,13 +334,14 @@ export function UsersView({ onBack }: UsersViewProps) {
       <div>
         <div style={{ fontFamily:"monospace", fontSize:9, letterSpacing:"1.5px", color:C.muted, textTransform:"uppercase", marginBottom:8 }}>Lifetime Value</div>
         <div style={{
-          background: `linear-gradient(135deg, rgba(254,128,63,0.14) 0%, rgba(254,128,63,0.04) 100%)`,
-          border: `1px solid rgba(254,128,63,0.28)`,
+          background: C.gradFinance,
+          border: `1px solid rgba(255,107,44,0.45)`,
           borderRadius:14, padding:16, textAlign:"center", position:"relative", overflow:"hidden",
+          boxShadow: "0 0 25px rgba(255,107,44,0.12), 0 8px 24px rgba(0,0,0,0.3)",
         }}>
-          <div style={{ fontFamily:"monospace", fontSize:9, letterSpacing:"2px", color:C.orange, textTransform:"uppercase", marginBottom:6 }}>LTV Acumulado</div>
-          <div style={{ fontSize:36, fontWeight:900, color:C.orange, lineHeight:1 }}>{fmtUSD(selected.ltv)}</div>
-          <div style={{ fontFamily:"monospace", fontSize:10, color:C.muted, marginTop:6 }}>
+          <div style={{ fontSize:9, fontWeight:600, letterSpacing:"0.12em", color:C.orange, textTransform:"uppercase", marginBottom:8 }}>LTV Acumulado</div>
+          <div style={{ fontSize:38, fontWeight:900, color:C.orange, lineHeight:1, letterSpacing:"-0.03em" }}>{fmtUSD(selected.ltv)}</div>
+          <div style={{ fontSize:11, color:C.mutedMid, marginTop:8 }}>
             {fmtUSD(selected.amountUsd)} × {selected.transactions.filter(t=>t.status==="active").length} pagos
           </div>
         </div>
@@ -374,7 +375,7 @@ export function UsersView({ onBack }: UsersViewProps) {
             <span style={{ fontSize:20, fontWeight:800, color:risk.color }}>{score}</span>
           </div>
           <div style={{ height:6, background:"rgba(255,255,255,0.06)", borderRadius:3, marginBottom:8, overflow:"hidden" }}>
-            <div style={{ height:"100%", width:`${score}%`, borderRadius:3, background:`linear-gradient(90deg, ${C.green}, ${C.yellow})`, transition:"width 0.6s" }} />
+            <div style={{ height:"100%", width:`${score}%`, borderRadius:3, background:C.gradRetention, transition:"width 0.6s" }} />
           </div>
           <div style={{ fontSize:10, color:C.muted }}>Estado: <span style={{ color:risk.color, fontWeight:500 }}>{risk.txt}</span></div>
         </div>

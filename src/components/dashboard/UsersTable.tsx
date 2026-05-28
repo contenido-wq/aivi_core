@@ -78,7 +78,7 @@ export function UsersTable({ plans, kpis }: UsersTableProps) {
               </tr>
             ))}
             {plans.length > 0 && (
-              <tr style={{ background: "rgba(254,128,63,0.05)" }}>
+              <tr style={{ background: "rgba(255,107,44,0.05)" }}>
                 <td style={{ ...td, fontWeight: 900, fontSize: 13, color: C.white }}>Total</td>
                 <td style={{ ...td, color: C.green,  fontWeight: 900 }}>{totalActive}</td>
                 <td style={{ ...td, color: C.red,    fontWeight: 900 }}>{totalCancelled}</td>
