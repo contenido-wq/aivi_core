@@ -24,15 +24,21 @@ export interface DailyData {
 }
 
 export interface Transaction {
-  id:         string;
-  eventType:  string;
-  buyerName:  string;
-  buyerEmail: string;
-  planName:   string;
-  amount:     number;
-  currency:   string;
-  amountUsd:  number;
-  createdAt:  string;
+  id:            string;
+  hotmartId:     string;
+  eventType:     string;
+  buyerName:     string;
+  buyerEmail:    string;
+  buyerPhone:    string;
+  buyerCountry:  string;
+  offerCode:     string;
+  saleOrigin:    string;
+  trafficSource: string;
+  planName:      string;
+  amount:        number;
+  currency:      string;
+  amountUsd:     number;
+  createdAt:     string;
 }
 
 export interface KPIData {
@@ -229,7 +235,7 @@ export async function getTransactions(
     // Sin filtro de fecha — traer las últimas 200
     const { data } = await supabase
       .from("transactions")
-      .select("id, event_type, buyer_name, buyer_email, plan_name, amount, currency, created_at, status")
+      .select("id, hotmart_id, event_type, buyer_name, buyer_email, buyer_phone, buyer_country, offer_code, sale_origin, traffic_source, plan_name, amount, currency, created_at, status")
       .or("status.in.(active,refunded,delayed,trial,chargeback,unknown),status.is.null")
       .order("created_at", { ascending: false })
       .limit(200);
@@ -255,7 +261,7 @@ export async function getTransactions(
 
   const { data } = await supabase
     .from("transactions")
-    .select("id, event_type, buyer_name, buyer_email, plan_name, amount, currency, created_at, status")
+    .select("id, hotmart_id, event_type, buyer_name, buyer_email, buyer_phone, buyer_country, offer_code, sale_origin, traffic_source, plan_name, amount, currency, created_at, status")
     .gte("created_at", start)
     .lte("created_at", end)
     .or("status.in.(active,refunded,delayed,trial,chargeback,unknown),status.is.null")
@@ -269,15 +275,21 @@ export async function getTransactions(
 
 function mapTransaction(r: any): Transaction {
   return {
-    id:         r.id,
-    eventType:  r.event_type,
-    buyerName:  r.buyer_name  ?? "—",
-    buyerEmail: r.buyer_email ?? "—",
-    planName:   r.plan_name,
-    amount:     Number(r.amount),
-    currency:   r.currency ?? "USD",
-    amountUsd:  toUSD(Number(r.amount), r.currency),
-    createdAt:  r.created_at,
+    id:            r.id,
+    hotmartId:     r.hotmart_id     ?? "—",
+    eventType:     r.event_type,
+    buyerName:     r.buyer_name     ?? "—",
+    buyerEmail:    r.buyer_email    ?? "—",
+    buyerPhone:    r.buyer_phone    ?? "—",
+    buyerCountry:  r.buyer_country  ?? "—",
+    offerCode:     r.offer_code     ?? "—",
+    saleOrigin:    r.sale_origin    ?? "—",
+    trafficSource: r.traffic_source ?? "—",
+    planName:      r.plan_name      ?? "—",
+    amount:        Number(r.amount),
+    currency:      r.currency       ?? "USD",
+    amountUsd:     toUSD(Number(r.amount), r.currency),
+    createdAt:     r.created_at,
   };
 }
 
@@ -294,7 +306,7 @@ export async function getTransactionsByDateRange(
 
   const { data } = await supabase
     .from("transactions")
-    .select("id, event_type, buyer_name, buyer_email, plan_name, amount, currency, created_at, status")
+    .select("id, hotmart_id, event_type, buyer_name, buyer_email, buyer_phone, buyer_country, offer_code, sale_origin, traffic_source, plan_name, amount, currency, created_at, status")
     .gte("created_at", start)
     .lte("created_at", end)
     .or("status.in.(active,refunded,delayed,trial,chargeback,unknown),status.is.null")
@@ -757,6 +769,62 @@ export async function getUsersTraceability(filter: ProductFilter = "todos"): Pro
   }
 
   return users.sort((a, b) => b.ltv - a.ltv);
+}
+
+export type TxCategory =
+  | "compras"
+  | "solicitudes_reembolso"
+  | "reembolsos"
+  | "cancelaciones"
+  | "atrasados"
+  | "chargeback";
+
+const STATUS_BY_CATEGORY: Record<TxCategory, string[]> = {
+  compras:               ["active"],
+  solicitudes_reembolso: ["refund_request"],
+  reembolsos:            ["refunded"],
+  cancelaciones:         ["cancelled"],
+  atrasados:             ["delayed"],
+  chargeback:            ["chargeback"],
+};
+
+export async function getFullTransactions(
+  category: TxCategory,
+  startDate: Date | null,
+  endDate: Date | null,
+  search: string = ""
+): Promise<Transaction[]> {
+  const statuses = STATUS_BY_CATEGORY[category];
+
+  let query = supabase
+    .from("transactions")
+    .select("id, hotmart_id, event_type, buyer_name, buyer_email, buyer_phone, buyer_country, offer_code, sale_origin, traffic_source, plan_name, amount, currency, created_at, status")
+    .in("status", statuses)
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  if (startDate) {
+    const { start } = localDayRange(startDate);
+    query = query.gte("created_at", start);
+  }
+  if (endDate) {
+    const { end } = localDayRange(endDate);
+    query = query.lte("created_at", end);
+  }
+
+  const { data } = await query;
+  const rows = (data ?? []) as any[];
+
+  const lowerSearch = search.toLowerCase().trim();
+  const filtered = lowerSearch
+    ? rows.filter((r) =>
+        (r.buyer_name  ?? "").toLowerCase().includes(lowerSearch) ||
+        (r.buyer_email ?? "").toLowerCase().includes(lowerSearch) ||
+        (r.buyer_phone ?? "").toLowerCase().includes(lowerSearch)
+      )
+    : rows;
+
+  return filtered.map(mapTransaction);
 }
 
 export async function syncToday(): Promise<{ ok: boolean; inserted?: number; total?: number; errors?: number; dias?: number; error?: string }> {
