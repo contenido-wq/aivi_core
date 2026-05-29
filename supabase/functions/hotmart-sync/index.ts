@@ -62,6 +62,12 @@ async function fetchAllSales(token: string, startDate: string, endDate: string) 
   return sales;
 }
 
+// Mapeo de offer.code de Hotmart → nombre legible del plan
+// Agregar nuevos códigos aquí cuando se creen nuevas ofertas en Hotmart
+const OFFER_NAMES: Record<string, string> = {
+  "z48o3uz9": "AIVI — Creator Lite Semestral",
+};
+
 serve(async (req) => {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -96,7 +102,8 @@ serve(async (req) => {
         const event_type      = purchase.status      ?? "COMPLETE";
         const buyer_name      = buyer.name           ?? "";
         const buyer_email     = buyer.email          ?? "";
-        const plan_name       = product.name         ?? "AIVI";
+        const offer_code      = purchase.offer?.code ?? "";
+        const plan_name       = OFFER_NAMES[offer_code] ?? product.name ?? "AIVI";
         const amount          = Number(purchase.price?.value ?? 0);
         const currency        = purchase.price?.currency_code ?? "USD";
         const subscriber_code = subscription?.subscriber?.code ?? hotmart_id;
