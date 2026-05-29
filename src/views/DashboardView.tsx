@@ -1,4 +1,4 @@
-import { useState }            from "react";
+import { useState, useCallback } from "react";
 import { useClock }            from "../hooks/useClock";
 import { useDashboardData }    from "../hooks/useDashboardData";
 import { useResponsive }       from "../hooks/useResponsive";
@@ -12,6 +12,7 @@ import { CountriesPanel }      from "../components/dashboard/CountriesPanel";
 import { AtRiskPanel }         from "../components/dashboard/AtRiskPanel";
 import { DashFooter }          from "../components/dashboard/DashFooter";
 import { C }                   from "../tokens";
+import { syncToday }           from "../services/dashboard";
 import type { ProductFilter }  from "../services/dashboard";
 
 interface DashboardViewProps {
@@ -32,6 +33,11 @@ export function DashboardView({ onSettings, onSignOut, onUsers, activeView = "da
 
   const { kpis, plans, daily, transactions, countries, chartData, atRiskUsers, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
     useDashboardData(date, filter);
+
+  const handleSync = useCallback(async () => {
+    await syncToday();
+    await refresh();
+  }, [refresh]);
 
   if (error) {
     return (
@@ -89,6 +95,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, activeView = "da
           onAdsToggle={() => setAdsOn(!adsOn)}
           isMobile={isMobile || isTablet}
           onMenuOpen={() => setSidebarOpen(true)}
+          onSync={handleSync}
         />
 
         {isDesktop ? (
