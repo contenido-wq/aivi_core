@@ -627,6 +627,7 @@ export interface UserProfile {
   lastPurchaseDate:  string;
   country:           string;
   channel:           string;
+  phone:             string | null;
   transactions:      UserTx[];
   daysActive:        number;
   renewalsCount:     number;   // número de renovaciones (transacciones activas - 1)
@@ -710,6 +711,16 @@ export async function getUsersTraceability(filter: ProductFilter = "todos"): Pro
       if (country !== "—" && channel !== "Orgánico") break;
     }
 
+    // Teléfono: recorrer todos los payloads hasta encontrar uno
+    let phone: string | null = null;
+    for (const tx of sorted) {
+      try {
+        const rp = typeof tx.raw_payload === "string" ? JSON.parse(tx.raw_payload) : tx.raw_payload;
+        const p = rp?.data?.buyer?.checkout_phone ?? rp?.data?.buyer?.phone ?? null;
+        if (p && String(p).trim() !== "") { phone = String(p).trim(); break; }
+      } catch { /* ignore */ }
+    }
+
     const rawStatus = sub?.status ?? (activeTxs.length > 0 ? "active" : "cancelled");
     const status: UserProfile["status"] =
       ["active", "cancelled", "delayed", "trial"].includes(rawStatus)
@@ -727,6 +738,7 @@ export async function getUsersTraceability(filter: ProductFilter = "todos"): Pro
       lastPurchaseDate,
       country,
       channel,
+      phone,
       transactions: [...txs]
         .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .map((t: any): UserTx => ({
@@ -745,4 +757,18 @@ export async function getUsersTraceability(filter: ProductFilter = "todos"): Pro
   }
 
   return users.sort((a, b) => b.ltv - a.ltv);
+}
+
+export async function syncToday(): Promise<{ ok: boolean; inserted?: number; error?: string }> {
+  const now   = Date.now();
+  const start = now - 24 * 60 * 60 * 1000; // últimas 24h
+  const url   = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hotmart-sync?start=${start}&end=${now}`;
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+    });
+    return res.json();
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
 }
