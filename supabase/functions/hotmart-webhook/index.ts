@@ -28,6 +28,16 @@ const DELAYED_EVENTS    = ["PURCHASE_DELAYED"];
 const TRIAL_EVENTS      = ["PURCHASE_PROTEST"];
 const CHARGEBACK_EVENTS = ["CHARGEBACK", "PURCHASE_CHARGEBACK"];
 
+const RATES: Record<string, number> = {
+  USD: 1,     COP: 1/4100,  EUR: 1.08,  DOP: 1/59,
+  BRL: 1/5.2, MXN: 1/17,   ARS: 1/1000, CLP: 1/950,
+  PEN: 1/3.7, VES: 1/36,
+};
+
+function amountToUSD(amount: number, currency: string): number {
+  return amount * (RATES[currency] ?? 1);
+}
+
 serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
@@ -156,15 +166,15 @@ async function recalcDailyMetrics(supabase: any, date: string) {
 
   const { data: todayTx } = await supabase
     .from("transactions")
-    .select("event_type, amount")
+    .select("event_type, amount, currency")
     .gte("created_at", start)
     .lte("created_at", end);
 
   const metrics = { new_users: 0, recurring: 0, trials: 0, refunds: 0, cancellations: 0, revenue: 0 };
 
   for (const tx of (todayTx ?? [])) {
-    if (SALE_EVENTS.includes(tx.event_type))   { metrics.new_users++; metrics.revenue += Number(tx.amount); }
-    if (REFUND_EVENTS.includes(tx.event_type)) { metrics.refunds++;   metrics.revenue -= Number(tx.amount); }
+    if (SALE_EVENTS.includes(tx.event_type))   { metrics.new_users++; metrics.revenue += amountToUSD(Number(tx.amount), tx.currency ?? "USD"); }
+    if (REFUND_EVENTS.includes(tx.event_type)) { metrics.refunds++;   metrics.revenue -= amountToUSD(Number(tx.amount), tx.currency ?? "USD"); }
     if (CANCEL_EVENTS.includes(tx.event_type))   metrics.cancellations++;
     if (TRIAL_EVENTS.includes(tx.event_type))    metrics.trials++;
   }
