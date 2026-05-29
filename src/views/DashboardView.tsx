@@ -16,13 +16,14 @@ import { syncToday }           from "../services/dashboard";
 import type { ProductFilter }  from "../services/dashboard";
 
 interface DashboardViewProps {
-  onSettings: () => void;
-  onSignOut?:  () => void;
-  onUsers?:    () => void;
-  activeView?: string;
+  onSettings:       () => void;
+  onSignOut?:       () => void;
+  onUsers?:         () => void;
+  onTransactions?:  () => void;
+  activeView?:      string;
 }
 
-export function DashboardView({ onSettings, onSignOut, onUsers, activeView = "dashboard" }: DashboardViewProps) {
+export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, activeView = "dashboard" }: DashboardViewProps) {
   const time                  = useClock();
   const [adsOn, setAdsOn]     = useState(false);
   const [date]                = useState(() => new Date());
@@ -64,6 +65,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, activeView = "da
         onSettings={onSettings}
         onSignOut={onSignOut}
         onUsers={onUsers}
+        onTransactions={onTransactions}
         activeView={activeView}
         mrr={kpis?.mrr ?? 0}
         arr={kpis?.arr ?? 0}

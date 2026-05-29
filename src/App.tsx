@@ -3,7 +3,8 @@ import type { AppView }   from "./types";
 import { DashboardView }  from "./views/DashboardView";
 import { AdminPanel }     from "./components/admin/AdminPanel";
 import { LoginView }      from "./views/LoginView";
-import { UsersView }      from "./views/UsersView";
+import { UsersView }        from "./views/UsersView";
+import { TransactionsView } from "./views/TransactionsView";
 import { useAuth }        from "./hooks/useAuth";
 import { C, FONT }        from "./tokens";
 
@@ -46,12 +47,16 @@ export default function App() {
   // Vista Usuarios (trazabilidad)
   if (view === "usuarios") return <UsersView onBack={() => setView("dashboard")} />;
 
+  // Vista Transacciones
+  if (view === "transacciones") return <TransactionsView onBack={() => setView("dashboard")} />;
+
   // Dashboard principal — pasamos onUsers para que el sidebar lo active
   return (
     <DashboardView
       onSettings={() => setView("admin")}
       onSignOut={signOut}
       onUsers={() => setView("usuarios")}
+      onTransactions={() => setView("transacciones")}
       activeView={view}
     />
   );

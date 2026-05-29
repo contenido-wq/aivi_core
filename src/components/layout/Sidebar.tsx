@@ -3,12 +3,13 @@ import { C } from "../../tokens";
 import type { ProductFilter, DailyData } from "../../services/dashboard";
 
 interface SidebarProps {
-  filter:     ProductFilter;
-  onFilter:   (f: ProductFilter) => void;
-  onSettings: () => void;
-  onSignOut?: () => void;
-  onUsers?:   () => void;
-  activeView?: string;
+  filter:           ProductFilter;
+  onFilter:         (f: ProductFilter) => void;
+  onSettings:       () => void;
+  onSignOut?:       () => void;
+  onUsers?:         () => void;
+  onTransactions?:  () => void;
+  activeView?:      string;
   mrr:        number;
   arr:        number;
   daily?:     DailyData | null;
@@ -21,11 +22,11 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS = [
-  { icon: LayoutDashboard, label: "Dashboard",     view: "dashboard" },
-  { icon: Users,           label: "Usuarios",      view: "usuarios"  },
-  { icon: BarChart2,       label: "Analytics",     view: null        },
-  { icon: CreditCard,      label: "Transacciones", view: null        },
-  { icon: RefreshCw,       label: "Suscripciones", view: null        },
+  { icon: LayoutDashboard, label: "Dashboard",     view: "dashboard"     },
+  { icon: Users,           label: "Usuarios",      view: "usuarios"      },
+  { icon: CreditCard,      label: "Transacciones", view: "transacciones" },
+  { icon: BarChart2,       label: "Analytics",     view: null            },
+  { icon: RefreshCw,       label: "Suscripciones", view: null            },
 ];
 
 const FILTERS: { value: ProductFilter; label: string }[] = [
@@ -34,7 +35,7 @@ const FILTERS: { value: ProductFilter; label: string }[] = [
   { value: "MV3",   label: "MV3"   },
 ];
 
-export function Sidebar({ filter, onFilter, onSettings, onSignOut, onUsers, activeView, mrr, arr, daily, open, onClose, isMobile }: SidebarProps) {
+export function Sidebar({ filter, onFilter, onSettings, onSignOut, onUsers, onTransactions, activeView, mrr, arr, daily, open, onClose, isMobile }: SidebarProps) {
   const fmtK = (n: number) => {
     const parts = n.toFixed(2).split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -105,6 +106,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onUsers, acti
           const handleClick = () => {
             if (!clickable) return;
             if (item.view === "usuarios") onUsers?.();
+            if (item.view === "transacciones") onTransactions?.();
             if (isMobile) onClose?.();
           };
           return (
