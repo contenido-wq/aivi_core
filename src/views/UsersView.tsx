@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo }  from "react";
-import { ArrowLeft, Search, RefreshCw, Loader2, TrendingUp, Calendar, MapPin, Radio, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Search, RefreshCw, Loader2, TrendingUp, Calendar, MapPin, Radio, CheckCircle2, XCircle, Clock, AlertTriangle, Mail, Phone } from "lucide-react";
 import { C, FONT }                       from "../tokens";
 import { getUsersTraceability }           from "../services/dashboard";
 import type { UserProfile, ProductFilter } from "../services/dashboard";
@@ -89,6 +89,10 @@ const PROGRAM_FILTERS: { value: ProductFilter; label: string }[] = [
   { value: "AIVI",  label: "AIVI"  },
   { value: "MV3",   label: "MV3"   },
 ];
+
+function cleanPhone(raw: string): string {
+  return raw.replace(/[\s+\-().]/g, "");
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -315,13 +319,12 @@ export function UsersView({ onBack }: UsersViewProps) {
           {statusBadge(selected.status)}
         </div>
 
-        {/* Info row — 4 datos únicos sin repetir */}
-        <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+        {/* Info row — 3 datos: Canal, Primera compra, Programa */}
+        <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 10 }}>
           {[
-            { icon: <MapPin size={11}/>,    val: `${flag(selected.country)} ${selected.country !== "—" ? selected.country : "Sin país"}`, lbl: "País" },
-            { icon: <Radio size={11}/>,      val: selected.channel,                  lbl: "Canal" },
-            { icon: <Calendar size={11}/>,   val: fmtDate(selected.firstPurchaseDate), lbl: "Primera compra" },
-            { icon: <TrendingUp size={11}/>, val: selected.planName || "—",          lbl: "Programa" },
+            { icon: <Radio size={11}/>,      val: selected.channel,                    lbl: "Canal"          },
+            { icon: <Calendar size={11}/>,   val: fmtDate(selected.firstPurchaseDate),  lbl: "Primera compra" },
+            { icon: <TrendingUp size={11}/>, val: selected.planName || "—",             lbl: "Programa"       },
           ].map(({ icon, val, lbl }) => (
             <div key={lbl} style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ color: C.label }}>{icon}</span>
@@ -331,6 +334,26 @@ export function UsersView({ onBack }: UsersViewProps) {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Contacto row — accionable */}
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+          <a href={`mailto:${selected.email}`}
+            style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 10px", borderRadius:6, background:"rgba(255,255,255,0.05)", border:`1px solid ${C.border}`, color:C.white, textDecoration:"none", fontSize:11, cursor:"pointer" }}>
+            <Mail size={11} style={{ color: C.orange, flexShrink: 0 }} />
+            <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:180 }}>{selected.email}</span>
+          </a>
+          {selected.phone && (
+            <a href={`https://wa.me/${cleanPhone(selected.phone)}`} target="_blank" rel="noopener noreferrer"
+              style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 10px", borderRadius:6, background:"rgba(37,211,102,0.08)", border:"1px solid rgba(37,211,102,0.25)", color:"#25D366", textDecoration:"none", fontSize:11, cursor:"pointer" }}>
+              <Phone size={11} style={{ flexShrink: 0 }} />
+              <span>{selected.phone}</span>
+            </a>
+          )}
+          <span style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 10px", borderRadius:6, background:"rgba(255,255,255,0.03)", border:`1px solid ${C.border}`, color:C.mutedLight, fontSize:11 }}>
+            <MapPin size={11} style={{ color: C.label, flexShrink: 0 }} />
+            {flag(selected.country)} {selected.country !== "—" ? selected.country : "Sin país"}
+          </span>
         </div>
       </div>
 
