@@ -759,7 +759,7 @@ export async function getUsersTraceability(filter: ProductFilter = "todos"): Pro
   return users.sort((a, b) => b.ltv - a.ltv);
 }
 
-export async function syncToday(): Promise<{ ok: boolean; inserted?: number; error?: string }> {
+export async function syncToday(): Promise<{ ok: boolean; inserted?: number; total?: number; errors?: number; dias?: number; error?: string }> {
   const now   = Date.now();
   const start = now - 24 * 60 * 60 * 1000; // últimas 24h
   const url   = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hotmart-sync?start=${start}&end=${now}`;
@@ -767,6 +767,10 @@ export async function syncToday(): Promise<{ ok: boolean; inserted?: number; err
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
     });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return { ok: false, error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+    }
     return res.json();
   } catch (e) {
     return { ok: false, error: String(e) };
