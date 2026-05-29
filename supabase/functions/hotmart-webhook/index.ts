@@ -59,8 +59,6 @@ serve(async (req) => {
 
   const expectedToken = Deno.env.get("HOTMART_HOTTOK") ?? "";
 
-  console.log("Token recibido:", hottok);
-  console.log("Token esperado:", expectedToken);
   console.log("Evento:", payload.event);
 
   if (expectedToken && hottok !== expectedToken) {
@@ -96,8 +94,7 @@ serve(async (req) => {
   // Para eventos de cancelación/chargeback, evitar duplicados del mismo día
   // (Hotmart a veces reintenta con distinto hotmart_id para el mismo evento)
   if ([...CANCEL_EVENTS, ...CHARGEBACK_EVENTS].includes(event)) {
-    const dayStart = `${today}T00:00:00.000Z`;
-    const dayEnd   = `${today}T23:59:59.999Z`;
+    const { start: dayStart, end: dayEnd } = colombiaDayRange(today);
     const { data: existing } = await supabase
       .from("transactions")
       .select("id")
