@@ -21,12 +21,13 @@ function colombiaDayRange(date: string): { start: string; end: string } {
   };
 }
 
-const SALE_EVENTS       = ["PURCHASE_COMPLETE", "PURCHASE_APPROVED"];
-const REFUND_EVENTS     = ["PURCHASE_REFUNDED"];
-const CANCEL_EVENTS     = ["PURCHASE_CANCELED", "SUBSCRIPTION_CANCELLATION"];
-const DELAYED_EVENTS    = ["PURCHASE_DELAYED"];
-const TRIAL_EVENTS      = ["PURCHASE_PROTEST"];
-const CHARGEBACK_EVENTS = ["CHARGEBACK", "PURCHASE_CHARGEBACK"];
+const SALE_EVENTS           = ["PURCHASE_COMPLETE", "PURCHASE_APPROVED"];
+const REFUND_REQUEST_EVENTS = ["PURCHASE_REFUND_REQUEST"];
+const REFUND_EVENTS         = ["PURCHASE_REFUNDED"];
+const CANCEL_EVENTS         = ["PURCHASE_CANCELED", "SUBSCRIPTION_CANCELLATION"];
+const DELAYED_EVENTS        = ["PURCHASE_DELAYED"];
+const TRIAL_EVENTS          = ["PURCHASE_PROTEST"];
+const CHARGEBACK_EVENTS     = ["CHARGEBACK", "PURCHASE_CHARGEBACK"];
 
 const RATES: Record<string, number> = {
   USD: 1,     COP: 1/4100,  EUR: 1.08,  DOP: 1/59,
@@ -91,6 +92,12 @@ serve(async (req) => {
   const currency        = (purchase.price?.currency_value ?? "USD") as string;
   const today           = toColombiaDate(new Date());
 
+  const buyer_phone     = buyer?.checkout_phone                         ?? buyer?.phone ?? "";
+  const buyer_country   = buyer?.address?.country                       ?? "";
+  const offer_code      = purchase?.offer?.code                         ?? "";
+  const sale_origin     = purchase?.origin                              ?? "";
+  const traffic_source  = payload.data?.trackingParameters?.source_sck ?? payload.data?.trackingParameters?.src ?? "";
+
   // Para eventos de cancelación/chargeback, evitar duplicados del mismo día
   // (Hotmart a veces reintenta con distinto hotmart_id para el mismo evento)
   if ([...CANCEL_EVENTS, ...CHARGEBACK_EVENTS].includes(event)) {
@@ -113,15 +120,20 @@ serve(async (req) => {
 
   await supabase.from("transactions").upsert({
     hotmart_id,
-    event_type:  event,
+    event_type:     event,
     buyer_name,
     buyer_email,
+    buyer_phone,
+    buyer_country,
+    offer_code,
+    sale_origin,
+    traffic_source,
     plan_name,
     amount,
     currency,
-    status:      deriveStatus(event),
-    raw_payload: payload,
-    created_at:  new Date().toISOString(),
+    status:         deriveStatus(event),
+    raw_payload:    payload,
+    created_at:     new Date().toISOString(),
   }, { onConflict: "hotmart_id" });
 
   await supabase.from("subscriptions").upsert({
@@ -144,12 +156,13 @@ serve(async (req) => {
 });
 
 function deriveStatus(event: string): string {
-  if (SALE_EVENTS.includes(event))       return "active";
-  if (REFUND_EVENTS.includes(event))     return "refunded";
-  if (CANCEL_EVENTS.includes(event))     return "cancelled";
-  if (DELAYED_EVENTS.includes(event))    return "delayed";
-  if (TRIAL_EVENTS.includes(event))      return "trial";
-  if (CHARGEBACK_EVENTS.includes(event)) return "chargeback";
+  if (SALE_EVENTS.includes(event))           return "active";
+  if (REFUND_REQUEST_EVENTS.includes(event)) return "refund_request";
+  if (REFUND_EVENTS.includes(event))         return "refunded";
+  if (CANCEL_EVENTS.includes(event))         return "cancelled";
+  if (DELAYED_EVENTS.includes(event))        return "delayed";
+  if (TRIAL_EVENTS.includes(event))          return "trial";
+  if (CHARGEBACK_EVENTS.includes(event))     return "chargeback";
   return "unknown";
 }
 
