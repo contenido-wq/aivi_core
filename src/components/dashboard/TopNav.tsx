@@ -1,18 +1,26 @@
+import { useState }            from "react";
 import { RefreshCw, BarChart2, Bell, Zap, Menu } from "lucide-react";
-import { C } from "../../tokens";
-import { Toggle } from "../ui/Toggle";
+import { C }                   from "../../tokens";
+import { Toggle }              from "../ui/Toggle";
 
 interface TopNavProps {
   time:        string;
   adsOn:       boolean;
   onAdsToggle: () => void;
-  /** Show hamburger menu on mobile */
   isMobile?:   boolean;
-  /** Callback to open sidebar drawer */
   onMenuOpen?: () => void;
+  onSync?:     () => Promise<void>;
 }
 
-export function TopNav({ time, adsOn, onAdsToggle, isMobile, onMenuOpen }: TopNavProps) {
+export function TopNav({ time, adsOn, onAdsToggle, isMobile, onMenuOpen, onSync }: TopNavProps) {
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    if (!onSync || syncing) return;
+    setSyncing(true);
+    try { await onSync(); } finally { setSyncing(false); }
+  };
+
   return (
     <nav style={{
       background: C.nav,
@@ -30,14 +38,9 @@ export function TopNav({ time, adsOn, onAdsToggle, isMobile, onMenuOpen }: TopNa
             onClick={onMenuOpen}
             aria-label="Abrir menú"
             style={{
-              background: "none",
-              border: "none",
-              color: C.white,
-              padding: 6,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: 4,
+              background: "none", border: "none", color: C.white,
+              padding: 6, display: "flex", alignItems: "center",
+              justifyContent: "center", marginRight: 4,
             }}
           >
             <Menu size={20} />
@@ -51,9 +54,22 @@ export function TopNav({ time, adsOn, onAdsToggle, isMobile, onMenuOpen }: TopNa
       <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 16, fontSize: 11, flexShrink: 0 }}>
         {!isMobile && (
           <>
-            <button style={{ background: "none", border: "none", color: C.mutedLight, display: "flex", alignItems: "center" }}>
-              <RefreshCw size={14} />
-            </button>
+            {onSync && (
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                title="Sincronizar últimas 24h con Hotmart"
+                style={{
+                  background: "none", border: "none",
+                  color: syncing ? C.orange : C.mutedLight,
+                  cursor: syncing ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", gap: 5,
+                }}
+              >
+                <RefreshCw size={13} style={{ animation: syncing ? "spin 0.8s linear infinite" : "none" }} />
+                <span style={{ fontSize: 10 }}>{syncing ? "Sincronizando…" : "Sincronizar"}</span>
+              </button>
+            )}
             <button style={{ background: "none", border: "none", color: C.mutedLight, display: "flex", alignItems: "center", gap: 5 }}>
               <BarChart2 size={14} />
               <span>Sync Ads</span>
