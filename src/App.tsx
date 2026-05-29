@@ -48,7 +48,15 @@ export default function App() {
   if (view === "usuarios") return <UsersView onBack={() => setView("dashboard")} />;
 
   // Vista Transacciones
-  if (view === "transacciones") return <TransactionsView onBack={() => setView("dashboard")} />;
+  if (view === "transacciones") return (
+    <TransactionsView
+      onSettings={() => setView("admin")}
+      onSignOut={signOut}
+      onDashboard={() => setView("dashboard")}
+      onUsers={() => setView("usuarios")}
+      activeView={view}
+    />
+  );
 
   // Dashboard principal — pasamos onUsers para que el sidebar lo active
   return (
