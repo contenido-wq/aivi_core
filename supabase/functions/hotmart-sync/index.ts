@@ -102,7 +102,11 @@ serve(async (req) => {
         const event_type      = purchase.status      ?? "COMPLETE";
         const buyer_name      = buyer.name           ?? "";
         const buyer_email     = buyer.email          ?? "";
+        const buyer_phone     = buyer.checkout_phone ?? buyer.phone ?? "";
+        const buyer_country   = buyer.address?.country ?? "";
         const offer_code      = purchase.offer?.code ?? "";
+        const sale_origin     = purchase.origin ?? "";
+        const traffic_source  = sale.tracking?.src ?? sale.tracking?.source_sck ?? "";
         const plan_name       = OFFER_NAMES[offer_code] ?? product.name ?? "AIVI";
         const amount          = Number(purchase.price?.value ?? 0);
         const currency        = purchase.price?.currency_code ?? "USD";
@@ -129,6 +133,11 @@ serve(async (req) => {
           event_type,
           buyer_name,
           buyer_email,
+          buyer_phone,
+          buyer_country,
+          offer_code,
+          sale_origin,
+          traffic_source,
           plan_name,
           amount,
           currency,
