@@ -85,9 +85,10 @@ function riskLabel(score: number) {
 }
 
 const PROGRAM_FILTERS: { value: ProductFilter; label: string }[] = [
-  { value: "todos", label: "Todos" },
-  { value: "AIVI",  label: "AIVI"  },
-  { value: "MV3",   label: "MV3"   },
+  { value: "todos",   label: "Todos"    },
+  { value: "AIVI",    label: "AIVI"     },
+  { value: "MV3",     label: "MV3"      },
+  { value: "sinAIVI", label: "Sin AIVI" },
 ];
 
 function cleanPhone(raw: string): string {
@@ -210,7 +211,7 @@ export function UsersView({ onBack }: UsersViewProps) {
         <span style={{ fontSize: 13, fontWeight: 700, color: C.orange }}>Trazabilidad de Usuarios</span>
         {programFilter !== "todos" && (
           <span style={{ fontSize: 10, fontWeight: 700, color: C.orange, background: "rgba(255,107,44,0.12)", border: "1px solid rgba(255,107,44,0.3)", borderRadius: 4, padding: "1px 7px" }}>
-            {programFilter}
+            {programFilter === "sinAIVI" ? "Sin AIVI" : programFilter}
           </span>
         )}
       </div>

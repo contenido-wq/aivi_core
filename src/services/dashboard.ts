@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 import { toUSD } from "./currency";
 
-export type ProductFilter = "todos" | "AIVI" | "MV3";
+export type ProductFilter = "todos" | "AIVI" | "MV3" | "sinAIVI";
 
 export interface PlanRow {
   name:      string;
@@ -669,8 +669,7 @@ export async function getUsersTraceability(filter: ProductFilter = "todos"): Pro
   // Mapa email → suscripción vigente
   const subsMap: Record<string, any> = {};
   for (const sub of (allSubs ?? [])) {
-    if (!matchesPlan(sub.plan_name, filter)) continue;
-    // Dar preferencia al estado activo
+    if (filter !== "sinAIVI" && !matchesPlan(sub.plan_name, filter)) continue;
     if (!subsMap[sub.buyer_email] || sub.status === "active") {
       subsMap[sub.buyer_email] = sub;
     }
@@ -681,9 +680,23 @@ export async function getUsersTraceability(filter: ProductFilter = "todos"): Pro
   for (const tx of allTx) {
     const email = tx.buyer_email;
     if (!email || email === "—") continue;
-    if (!matchesPlan(tx.plan_name, filter)) continue;
+    if (filter !== "sinAIVI" && !matchesPlan(tx.plan_name, filter)) continue;
     if (!txMap[email]) txMap[email] = [];
     txMap[email].push(tx);
+  }
+
+  // sinAIVI: excluir usuarios que ya tienen alguna transacción AIVI
+  if (filter === "sinAIVI") {
+    for (const email of Object.keys(txMap)) {
+      if (txMap[email].some((t: any) => (t.plan_name ?? "").startsWith("AIVI"))) {
+        delete txMap[email];
+      }
+    }
+    for (const email of Object.keys(subsMap)) {
+      if ((subsMap[email]?.plan_name ?? "").startsWith("AIVI")) {
+        delete subsMap[email];
+      }
+    }
   }
 
   // Combinar emails de ambas fuentes
