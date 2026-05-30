@@ -5,6 +5,7 @@ import { Sidebar } from "../components/layout/Sidebar";
 import { useResponsive } from "../hooks/useResponsive";
 import {
   getFullTransactions,
+  getTransactionCount,
   type Transaction,
   type TxCategory,
   type ProductFilter,
@@ -34,26 +35,38 @@ export function TransactionsView({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [filter, setFilter]           = useState<ProductFilter>("todos");
 
-  const [activeTab, setActiveTab] = useState<TxCategory>("compras");
-  const [rows, setRows]           = useState<Transaction[]>([]);
-  const [loading, setLoading]     = useState(false);
-  const [search, setSearch]       = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate]     = useState("");
+  const PAGE_SIZE = 50;
+
+  const [activeTab, setActiveTab]     = useState<TxCategory>("compras");
+  const [rows, setRows]               = useState<Transaction[]>([]);
+  const [totalCount, setTotalCount]   = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading]         = useState(false);
+  const [search, setSearch]           = useState("");
+  const [startDate, setStartDate]     = useState("2026-01-01");
+  const [endDate, setEndDate]         = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const start = startDate ? new Date(startDate) : null;
       const end   = endDate   ? new Date(endDate)   : null;
-      const data  = await getFullTransactions(activeTab, start, end, search);
+      const [data, total] = await Promise.all([
+        getFullTransactions(activeTab, start, end, search, filter, currentPage, PAGE_SIZE),
+        getTransactionCount(activeTab, start, end, filter),
+      ]);
       setRows(data);
+      setTotalCount(total);
     } finally {
       setLoading(false);
     }
-  }, [activeTab, startDate, endDate, search]);
+  }, [activeTab, startDate, endDate, search, filter, currentPage]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, startDate, endDate, filter]);
 
   function exportCSV() {
     const headers = [
@@ -135,7 +148,9 @@ export function TransactionsView({
               Transacciones
             </div>
             <div style={{ fontSize: 11, color: C.mutedMid }}>
-              {loading ? "Cargando..." : `${rows.length} registros · ${activeCategory.label}`}
+              {loading
+                ? "Cargando..."
+                : `${totalCount.toLocaleString()} registros · ${activeCategory.label}`}
             </div>
           </div>
           <button
@@ -220,7 +235,7 @@ export function TransactionsView({
             <span style={{ color: C.muted, fontSize: 12 }}>→</span>
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={dateInputStyle()} />
             <button
-              onClick={() => { setStartDate(""); setEndDate(""); setSearch(""); }}
+              onClick={() => { setStartDate("2026-01-01"); setEndDate(""); setSearch(""); setCurrentPage(1); }}
               style={{ padding: "5px 10px", borderRadius: 8, fontSize: 11, background: "none", border: `1px solid ${C.border}`, color: C.muted, cursor: "pointer" }}
             >
               Limpiar
@@ -304,6 +319,52 @@ export function TransactionsView({
               </table>
             )}
           </div>
+
+          {/* Paginación */}
+          {totalCount > 0 && (() => {
+            const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+            return (
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                gap: 16, padding: "14px 20px",
+                borderTop: `1px solid ${C.border}`,
+                background: C.panel,
+                flexShrink: 0,
+              }}>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700,
+                    background: currentPage === 1 ? C.card : C.orange,
+                    border: "none",
+                    color: currentPage === 1 ? C.muted : "#fff",
+                    cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                  }}
+                >
+                  ← Anterior
+                </button>
+                <span style={{ fontSize: 12, color: C.mutedLight }}>
+                  Página <strong style={{ color: C.white }}>{currentPage}</strong> de{" "}
+                  <strong style={{ color: C.white }}>{totalPages || 1}</strong>
+                  <span style={{ color: C.muted }}> · {totalCount.toLocaleString()} registros</span>
+                </span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  style={{
+                    padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700,
+                    background: currentPage >= totalPages ? C.card : C.orange,
+                    border: "none",
+                    color: currentPage >= totalPages ? C.muted : "#fff",
+                    cursor: currentPage >= totalPages ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Siguiente →
+                </button>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>
