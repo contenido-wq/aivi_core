@@ -21,9 +21,10 @@ interface DashboardViewProps {
   onUsers?:         () => void;
   onTransactions?:  () => void;
   activeView?:      string;
+  isAdmin?:         boolean;
 }
 
-export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, activeView = "dashboard" }: DashboardViewProps) {
+export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, activeView = "dashboard", isAdmin = false }: DashboardViewProps) {
   const time                  = useClock();
   const [adsOn, setAdsOn]     = useState(false);
   const [date]                = useState(() => new Date());
@@ -73,6 +74,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         isMobile={isMobile || isTablet}
+        isAdmin={isAdmin}
       />
 
       <div style={{

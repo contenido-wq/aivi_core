@@ -26,10 +26,11 @@ interface TransactionsViewProps {
   onDashboard?: () => void;
   onUsers?:     () => void;
   activeView?:  string;
+  isAdmin?:     boolean;
 }
 
 export function TransactionsView({
-  onSettings, onSignOut, onDashboard, onUsers, activeView = "transacciones",
+  onSettings, onSignOut, onDashboard, onUsers, activeView = "transacciones", isAdmin = false,
 }: TransactionsViewProps) {
   const { isMobile, isTablet } = useResponsive();
   const thisYearStart = `${new Date().getFullYear()}-01-01`;
@@ -119,6 +120,7 @@ export function TransactionsView({
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         isMobile={isMobileLayout}
+        isAdmin={isAdmin}
       />
 
       <div style={{

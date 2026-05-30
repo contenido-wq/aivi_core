@@ -9,7 +9,8 @@ import { useAuth }        from "./hooks/useAuth";
 import { C, FONT }        from "./tokens";
 
 export default function App() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, teamEmail } = useAuth();
+  const isAdmin = teamEmail === import.meta.env.VITE_ADMIN_EMAIL;
   const [view, setView] = useState<AppView>("dashboard");
 
   // Pantalla de carga mientras se verifica la sesión
@@ -55,6 +56,7 @@ export default function App() {
       onDashboard={() => setView("dashboard")}
       onUsers={() => setView("usuarios")}
       activeView={view}
+      isAdmin={isAdmin}
     />
   );
 
@@ -66,6 +68,7 @@ export default function App() {
       onUsers={() => setView("usuarios")}
       onTransactions={() => setView("transacciones")}
       activeView={view}
+      isAdmin={isAdmin}
     />
   );
 }
