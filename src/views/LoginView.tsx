@@ -1,23 +1,27 @@
 import { useState }  from "react";
-import { Mail, Lock, ArrowRight, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Mail, ArrowRight, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { supabase }  from "../services/supabase";
 import { C, FONT }   from "../tokens";
 
+const SESSION_KEY = "aivi_team_session";
+
 type Mode = "login" | "request";
 
+type LoginStep = "idle" | "checking" | "signing-in" | "done";
+
 export function LoginView() {
-  const [mode, setMode]           = useState<Mode>("login");
-  const [email, setEmail]         = useState("");
-  const [password, setPassword]   = useState("");
-  const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState<string | null>(null);
-  const [success, setSuccess]     = useState<string | null>(null);
+  const [mode, setMode]       = useState<Mode>("login");
+  const [email, setEmail]     = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loginStep, setLoginStep] = useState<LoginStep>("idle");
+  const [error, setError]     = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const reset = (nextMode: Mode) => {
     setMode(nextMode);
     setError(null);
     setSuccess(null);
-    setPassword("");
+    setLoginStep("idle");
   };
 
   // ── LOGIN ──────────────────────────────────────────────
@@ -25,18 +29,47 @@ export function LoginView() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      if (error.message.includes("Invalid login credentials")) {
-        setError("Correo o contraseña incorrectos.");
-      } else if (error.message.includes("Email not confirmed")) {
-        setError("Debes confirmar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.");
-      } else {
-        setError(error.message);
-      }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // 1. Verificar si el correo está aprobado (como anon)
+    setLoginStep("checking");
+    const { data: rows, error: selectErr } = await supabase
+      .from("access_requests")
+      .select("email")
+      .eq("email", normalizedEmail)
+      .eq("status", "approved")
+      .limit(1);
+
+    if (selectErr || !rows || rows.length === 0) {
+      setError("Este correo no tiene acceso. Pide acceso al admin.");
+      setLoading(false);
+      setLoginStep("idle");
+      return;
     }
-    // Si no hay error, useAuth detecta el cambio y App.tsx renderiza el dashboard
+
+    // 2. Login con cuenta portal
+    setLoginStep("signing-in");
+    const portalEmail    = import.meta.env.VITE_PORTAL_EMAIL as string;
+    const portalPassword = import.meta.env.VITE_PORTAL_PASSWORD as string;
+
+    const { error: authErr } = await supabase.auth.signInWithPassword({
+      email:    portalEmail,
+      password: portalPassword,
+    });
+
+    if (authErr) {
+      setError("Error al iniciar sesión. Contacta al administrador.");
+      setLoading(false);
+      setLoginStep("idle");
+      return;
+    }
+
+    // 3. Guardar email real del miembro en localStorage
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ email: normalizedEmail }));
+    setLoginStep("done");
+    setLoading(false);
+    // App.tsx detecta el cambio de sesión vía onAuthStateChange y renderiza el dashboard
   };
 
   // ── SOLICITAR ACCESO ───────────────────────────────────
@@ -54,7 +87,6 @@ export function LoginView() {
 
     if (error) {
       if (error.code === "23505") {
-        // Unique violation — ya existe una solicitud para ese correo
         setSuccess("Ya tienes una solicitud registrada. Te avisaremos cuando sea revisada.");
       } else {
         setError("No pudimos registrar tu solicitud. Inténtalo de nuevo.");
@@ -65,7 +97,13 @@ export function LoginView() {
     }
   };
 
-  // ── ESTILOS ────────────────────────────────────────────
+  const stepLabel: Record<LoginStep, string> = {
+    idle:        "Entrar",
+    checking:    "Verificando acceso...",
+    "signing-in":"Entrando...",
+    done:        "¡Listo!",
+  };
+
   const inputStyle: React.CSSProperties = {
     width: "100%",
     background: "rgba(255,255,255,0.06)",
@@ -90,7 +128,6 @@ export function LoginView() {
       fontFamily: FONT,
       padding: "0 16px",
     }}>
-      {/* Card */}
       <div style={{
         width: "100%",
         maxWidth: 400,
@@ -100,8 +137,7 @@ export function LoginView() {
         padding: "40px 32px",
         boxShadow: "0 24px 80px rgba(0,0,0,0.5)",
       }}>
-
-        {/* Logo / marca */}
+        {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{
             display: "inline-flex",
@@ -117,7 +153,7 @@ export function LoginView() {
           </div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.white }}>AIVI Core</h1>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: C.mutedLight }}>
-            {mode === "login" ? "Inicia sesión en tu cuenta" : "Solicita acceso a la plataforma"}
+            {mode === "login" ? "Ingresa tu correo para acceder" : "Solicita acceso a la plataforma"}
           </p>
         </div>
 
@@ -156,7 +192,6 @@ export function LoginView() {
         {/* ── FORM LOGIN ── */}
         {mode === "login" && (
           <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Email */}
             <div style={{ position: "relative" }}>
               <Mail size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.mutedMid }} />
               <input
@@ -168,20 +203,7 @@ export function LoginView() {
                 style={inputStyle}
               />
             </div>
-            {/* Password */}
-            <div style={{ position: "relative" }}>
-              <Lock size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.mutedMid }} />
-              <input
-                type="password"
-                required
-                placeholder="Contraseña"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                style={inputStyle}
-              />
-            </div>
 
-            {/* Error */}
             {error && (
               <div style={{
                 display: "flex", alignItems: "flex-start", gap: 8,
@@ -215,8 +237,8 @@ export function LoginView() {
               }}
             >
               {loading
-                ? <><Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> Entrando...</>
-                : <><ArrowRight size={15} /> Entrar</>
+                ? <><Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> {stepLabel[loginStep]}</>
+                : <><ArrowRight size={15} /> {stepLabel["idle"]}</>
               }
             </button>
           </form>
@@ -225,7 +247,6 @@ export function LoginView() {
         {/* ── FORM SOLICITAR ACCESO ── */}
         {mode === "request" && (
           <form onSubmit={handleRequest} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Email */}
             <div style={{ position: "relative" }}>
               <Mail size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.mutedMid }} />
               <input
@@ -239,10 +260,9 @@ export function LoginView() {
             </div>
 
             <p style={{ margin: 0, fontSize: 12, color: C.mutedMid, lineHeight: 1.6 }}>
-              Ingresa tu correo y el administrador revisará tu solicitud. Recibirás un email de invitación cuando sea aprobada.
+              Ingresa tu correo y el administrador revisará tu solicitud. Una vez aprobada, podrás entrar solo con tu correo.
             </p>
 
-            {/* Error */}
             {error && (
               <div style={{
                 display: "flex", alignItems: "flex-start", gap: 8,
@@ -254,7 +274,6 @@ export function LoginView() {
               </div>
             )}
 
-            {/* Éxito */}
             {success && (
               <div style={{
                 display: "flex", alignItems: "flex-start", gap: 8,
@@ -318,7 +337,6 @@ export function LoginView() {
         )}
       </div>
 
-      {/* Animación spinner */}
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
