@@ -32,6 +32,8 @@ export function TransactionsView({
   onSettings, onSignOut, onDashboard, onUsers, activeView = "transacciones",
 }: TransactionsViewProps) {
   const { isMobile, isTablet } = useResponsive();
+  const thisYearStart = `${new Date().getFullYear()}-01-01`;
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [filter, setFilter]           = useState<ProductFilter>("todos");
 
@@ -43,7 +45,7 @@ export function TransactionsView({
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading]         = useState(false);
   const [search, setSearch]           = useState("");
-  const [startDate, setStartDate]     = useState("2026-01-01");
+  const [startDate, setStartDate]     = useState(thisYearStart);
   const [endDate, setEndDate]         = useState("");
 
   const load = useCallback(async () => {
@@ -57,6 +59,8 @@ export function TransactionsView({
       ]);
       setRows(data);
       setTotalCount(total);
+    } catch (err) {
+      console.error("[TransactionsView] Error cargando transacciones:", err);
     } finally {
       setLoading(false);
     }
@@ -235,7 +239,7 @@ export function TransactionsView({
             <span style={{ color: C.muted, fontSize: 12 }}>→</span>
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={dateInputStyle()} />
             <button
-              onClick={() => { setStartDate("2026-01-01"); setEndDate(""); setSearch(""); setCurrentPage(1); }}
+              onClick={() => { setStartDate(thisYearStart); setEndDate(""); setSearch(""); setCurrentPage(1); }}
               style={{ padding: "5px 10px", borderRadius: 8, fontSize: 11, background: "none", border: `1px solid ${C.border}`, color: C.muted, cursor: "pointer" }}
             >
               Limpiar
