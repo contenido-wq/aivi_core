@@ -792,16 +792,21 @@ export async function getFullTransactions(
   category: TxCategory,
   startDate: Date | null,
   endDate: Date | null,
-  search: string = ""
+  search: string = "",
+  productFilter: ProductFilter = "todos",
+  page: number = 1,
+  pageSize: number = 50
 ): Promise<Transaction[]> {
   const statuses = STATUS_BY_CATEGORY[category];
+  const from     = (page - 1) * pageSize;
+  const to       = from + pageSize - 1;
 
   let query = supabase
     .from("transactions")
     .select("id, hotmart_id, event_type, buyer_name, buyer_email, buyer_phone, buyer_country, offer_code, sale_origin, traffic_source, plan_name, amount, currency, created_at, status")
     .in("status", statuses)
     .order("created_at", { ascending: false })
-    .limit(500);
+    .range(from, to);
 
   if (startDate) {
     const { start } = localDayRange(startDate);
@@ -810,6 +815,11 @@ export async function getFullTransactions(
   if (endDate) {
     const { end } = localDayRange(endDate);
     query = query.lte("created_at", end);
+  }
+  if (productFilter === "AIVI") {
+    query = query.ilike("plan_name", "AIVI%");
+  } else if (productFilter === "MV3") {
+    query = query.or("plan_name.ilike.Método V3%,plan_name.ilike.MV3%");
   }
 
   const { data } = await query;
@@ -825,6 +835,37 @@ export async function getFullTransactions(
     : rows;
 
   return filtered.map(mapTransaction);
+}
+
+export async function getTransactionCount(
+  category: TxCategory,
+  startDate: Date | null,
+  endDate: Date | null,
+  productFilter: ProductFilter = "todos"
+): Promise<number> {
+  const statuses = STATUS_BY_CATEGORY[category];
+
+  let query = supabase
+    .from("transactions")
+    .select("*", { count: "exact", head: true })
+    .in("status", statuses);
+
+  if (startDate) {
+    const { start } = localDayRange(startDate);
+    query = query.gte("created_at", start);
+  }
+  if (endDate) {
+    const { end } = localDayRange(endDate);
+    query = query.lte("created_at", end);
+  }
+  if (productFilter === "AIVI") {
+    query = query.ilike("plan_name", "AIVI%");
+  } else if (productFilter === "MV3") {
+    query = query.or("plan_name.ilike.Método V3%,plan_name.ilike.MV3%");
+  }
+
+  const { count } = await query;
+  return count ?? 0;
 }
 
 export async function syncToday(): Promise<{ ok: boolean; inserted?: number; total?: number; errors?: number; dias?: number; error?: string }> {
