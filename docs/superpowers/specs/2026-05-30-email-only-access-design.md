@@ -47,7 +47,7 @@ Jhei quiere eliminar los pasos 2 y 3 del lado del miembro: **solo ingresar el co
 ```
 VITE_PORTAL_EMAIL=portal@aivicore.app
 VITE_PORTAL_PASSWORD=<random-string-64-chars>
-VITE_ADMIN_EMAIL=jhei@ejemplo.com
+VITE_ADMIN_EMAIL=contenido@jheitrujillo.com
 ```
 
 ### RLS — nueva política
@@ -84,7 +84,7 @@ Esto expone solo emails aprobados a consultas anónimas. Los pendientes y rechaz
 - Expone `teamEmail: string | null` junto al `user` existente
 
 ### `App.tsx`
-- Botón de ajustes/admin: visible solo si `teamEmail === import.meta.env.VITE_ADMIN_EMAIL`
+- Botón de ajustes/admin: visible solo si `teamEmail === import.meta.env.VITE_ADMIN_EMAIL` (contenido@jheitrujillo.com)
 
 ### `AdminPanel.tsx`
 - Botón "Aprobar": cambia de llamar `invite-user` Edge Function a solo hacer UPDATE directo en `access_requests`
