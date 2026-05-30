@@ -59,26 +59,20 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
   const handleApprove = async (req: AccessRequest) => {
     setActionId(req.id);
     setActionMsg(null);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
 
-      const res = await supabase.functions.invoke("invite-user", {
-        body: { email: req.email, requestId: req.id },
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+    const { error } = await supabase
+      .from("access_requests")
+      .update({ status: "approved", reviewed_at: new Date().toISOString() })
+      .eq("id", req.id);
 
-      if (res.error) {
-        setActionMsg({ id: req.id, msg: res.error.message ?? "Error al aprobar", ok: false });
-      } else {
-        setActionMsg({ id: req.id, msg: "Invitación enviada correctamente.", ok: true });
-        await loadRequests();
-      }
-    } catch (e) {
-      setActionMsg({ id: req.id, msg: String(e), ok: false });
-    } finally {
-      setActionId(null);
+    if (error) {
+      setActionMsg({ id: req.id, msg: error.message, ok: false });
+    } else {
+      setActionMsg({ id: req.id, msg: "Acceso aprobado. El miembro ya puede entrar con su correo.", ok: true });
+      await loadRequests();
     }
+
+    setActionId(null);
   };
 
   // ── Rechazar solicitud ────────────────────────────────
