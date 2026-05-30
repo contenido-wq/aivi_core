@@ -2,6 +2,7 @@ import { useState }  from "react";
 import { Mail, ArrowRight, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { supabase }  from "../services/supabase";
 import { C, FONT }   from "../tokens";
+import { env }       from "../lib/env";
 
 const SESSION_KEY = "aivi_team_session";
 
@@ -31,8 +32,8 @@ export function LoginView() {
     setError(null);
 
     const normalizedEmail = email.trim().toLowerCase();
-    const adminEmail      = import.meta.env.VITE_ADMIN_EMAIL as string;
-    const adminPassword   = import.meta.env.VITE_ADMIN_PASSWORD as string;
+    const adminEmail      = env("VITE_ADMIN_EMAIL");
+    const adminPassword   = env("VITE_ADMIN_PASSWORD");
 
     setLoginStep("checking");
 
@@ -76,8 +77,8 @@ export function LoginView() {
     localStorage.setItem(SESSION_KEY, JSON.stringify({ email: normalizedEmail }));
     setLoginStep("signing-in");
     const { error: authErr } = await supabase.auth.signInWithPassword({
-      email:    import.meta.env.VITE_PORTAL_EMAIL as string,
-      password: import.meta.env.VITE_PORTAL_PASSWORD as string,
+      email:    env("VITE_PORTAL_EMAIL"),
+      password: env("VITE_PORTAL_PASSWORD"),
     });
 
     if (authErr) {

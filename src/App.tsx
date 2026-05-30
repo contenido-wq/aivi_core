@@ -1,5 +1,6 @@
 import { useState }       from "react";
 import type { AppView }   from "./types";
+import { env }            from "./lib/env";
 import { DashboardView }  from "./views/DashboardView";
 import { AdminPanel }     from "./components/admin/AdminPanel";
 import { LoginView }      from "./views/LoginView";
@@ -10,7 +11,7 @@ import { C, FONT }        from "./tokens";
 
 export default function App() {
   const { user, loading, signOut, teamEmail } = useAuth();
-  const isAdmin = teamEmail === import.meta.env.VITE_ADMIN_EMAIL;
+  const isAdmin = !!teamEmail && teamEmail === env("VITE_ADMIN_EMAIL");
   const [view, setView] = useState<AppView>("dashboard");
 
   // Pantalla de carga mientras se verifica la sesión
