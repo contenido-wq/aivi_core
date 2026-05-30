@@ -2,7 +2,7 @@ import { useState }  from "react";
 import { Mail, ArrowRight, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { supabase }  from "../services/supabase";
 import { C, FONT }   from "../tokens";
-import { env }       from "../lib/env";
+import { PORTAL_EMAIL, PORTAL_PASSWORD, ADMIN_EMAIL } from "../lib/authConfig";
 
 const SESSION_KEY = "aivi_team_session";
 
@@ -32,33 +32,9 @@ export function LoginView() {
     setError(null);
 
     const normalizedEmail = email.trim().toLowerCase();
-    const adminEmail      = env("VITE_ADMIN_EMAIL");
-    const adminPassword   = env("VITE_ADMIN_PASSWORD");
-
     setLoginStep("checking");
 
-    if (normalizedEmail === adminEmail) {
-      // Admin: login directo — escribir localStorage ANTES de signIn para que
-      // onAuthStateChange lo lea correctamente cuando se dispare
-      localStorage.setItem(SESSION_KEY, JSON.stringify({ email: normalizedEmail }));
-      setLoginStep("signing-in");
-      const { error: authErr } = await supabase.auth.signInWithPassword({
-        email:    normalizedEmail,
-        password: adminPassword,
-      });
-      if (authErr) {
-        localStorage.removeItem(SESSION_KEY);
-        setError("Credenciales incorrectas.");
-        setLoading(false);
-        setLoginStep("idle");
-        return;
-      }
-      setLoginStep("done");
-      setLoading(false);
-      return;
-    }
-
-    // Resto del equipo: verificar en access_requests y entrar con cuenta portal
+    // Todos (incluido admin) verifican en access_requests y entran por la cuenta portal
     const { data: rows, error: selectErr } = await supabase
       .from("access_requests")
       .select("email")
@@ -73,12 +49,12 @@ export function LoginView() {
       return;
     }
 
-    // Escribir localStorage ANTES de signIn por la misma razón
+    // Escribir localStorage ANTES de signIn para que onAuthStateChange lea el email real
     localStorage.setItem(SESSION_KEY, JSON.stringify({ email: normalizedEmail }));
     setLoginStep("signing-in");
     const { error: authErr } = await supabase.auth.signInWithPassword({
-      email:    env("VITE_PORTAL_EMAIL"),
-      password: env("VITE_PORTAL_PASSWORD"),
+      email:    PORTAL_EMAIL,
+      password: PORTAL_PASSWORD,
     });
 
     if (authErr) {
