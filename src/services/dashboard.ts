@@ -94,7 +94,8 @@ export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData>
   // Traer todas las suscripciones con moneda
   const { data: allSubs } = await supabase
     .from("subscriptions")
-    .select("amount, currency, status, plan_name");
+    .select("amount, currency, status, plan_name")
+    .limit(5000);
 
   const subs = (allSubs ?? []).filter((s: any) => matchesPlan(s.plan_name, filter));
 
@@ -108,7 +109,8 @@ export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData>
   // Revenue total histórico
   const { data: allTx } = await supabase
     .from("transactions")
-    .select("amount, currency, status, created_at, plan_name");
+    .select("amount, currency, status, created_at, plan_name")
+    .limit(10000);
 
   const filteredTx = (allTx ?? []).filter((t: any) => matchesPlan(t.plan_name, filter));
   const grossRevenue = filteredTx

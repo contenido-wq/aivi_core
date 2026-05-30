@@ -27,7 +27,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
   const time                  = useClock();
   const [adsOn, setAdsOn]     = useState(false);
   const [date]                = useState(() => new Date());
-  const [filter, setFilter]   = useState<ProductFilter>("todos");
+  const [filter, setFilter]   = useState<ProductFilter>("AIVI");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { isMobile, isTablet, isDesktop, isShortScreen } = useResponsive();
