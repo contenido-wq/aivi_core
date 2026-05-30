@@ -105,7 +105,10 @@ serve(async (req) => {
         const buyer_phone     = buyer.checkout_phone ?? buyer.phone ?? "";
         const buyer_country   = buyer.address?.country ?? "";
         const offer_code      = purchase.offer?.code ?? "";
-        const sale_origin     = purchase.origin ?? "";
+        const rawOrigin       = purchase.origin;
+        const sale_origin     = typeof rawOrigin === "object" && rawOrigin !== null
+          ? (rawOrigin.sck ?? rawOrigin.src ?? JSON.stringify(rawOrigin))
+          : (rawOrigin ?? "");
         const traffic_source  = sale.tracking?.src ?? sale.tracking?.source_sck ?? "";
         const plan_name       = OFFER_NAMES[offer_code] ?? product.name ?? "AIVI";
         const amount          = Number(purchase.price?.value ?? 0);

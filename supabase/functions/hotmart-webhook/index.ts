@@ -95,7 +95,10 @@ serve(async (req) => {
   const buyer_phone     = buyer?.checkout_phone                         ?? buyer?.phone ?? "";
   const buyer_country   = buyer?.address?.country                       ?? "";
   const offer_code      = purchase?.offer?.code                         ?? "";
-  const sale_origin     = purchase?.origin                              ?? "";
+  const rawOrigin       = purchase?.origin;
+  const sale_origin     = typeof rawOrigin === "object" && rawOrigin !== null
+    ? (rawOrigin.sck ?? rawOrigin.src ?? JSON.stringify(rawOrigin))
+    : (rawOrigin ?? "");
   const traffic_source  = payload.data?.trackingParameters?.source_sck ?? payload.data?.trackingParameters?.src ?? "";
 
   // Para eventos de cancelación/chargeback, evitar duplicados del mismo día
