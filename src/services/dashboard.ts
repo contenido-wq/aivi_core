@@ -819,7 +819,7 @@ export async function getFullTransactions(
   if (productFilter === "AIVI") {
     query = query.ilike("plan_name", "AIVI%");
   } else if (productFilter === "MV3") {
-    query = query.or("plan_name.ilike.Método V3%,plan_name.ilike.MV3%");
+    query = query.or('plan_name.ilike."Método V3%",plan_name.ilike.MV3%');
   }
 
   const { data } = await query;
@@ -861,7 +861,7 @@ export async function getTransactionCount(
   if (productFilter === "AIVI") {
     query = query.ilike("plan_name", "AIVI%");
   } else if (productFilter === "MV3") {
-    query = query.or("plan_name.ilike.Método V3%,plan_name.ilike.MV3%");
+    query = query.or('plan_name.ilike."Método V3%",plan_name.ilike.MV3%');
   }
 
   const { count } = await query;
