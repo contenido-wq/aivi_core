@@ -2,25 +2,39 @@ import { useState, useEffect } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "../services/supabase";
 
+const SESSION_KEY = "aivi_team_session";
+
 export function useAuth() {
-  const [user, setUser]       = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser]           = useState<User | null>(null);
+  const [session, setSession]     = useState<Session | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [teamEmail, setTeamEmail] = useState<string | null>(() => {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      return raw ? (JSON.parse(raw) as { email: string }).email : null;
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
-    // Carga la sesión inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Escucha cambios de sesión (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Si la sesión se cierra externamente, limpiar también el teamEmail
+        if (!session) {
+          localStorage.removeItem(SESSION_KEY);
+          setTeamEmail(null);
+        }
       }
     );
 
@@ -30,7 +44,11 @@ export function useAuth() {
   const signIn = (email: string, password: string) =>
     supabase.auth.signInWithPassword({ email, password });
 
-  const signOut = () => supabase.auth.signOut();
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem(SESSION_KEY);
+    setTeamEmail(null);
+  };
 
-  return { user, session, loading, signIn, signOut };
+  return { user, session, loading, teamEmail, signIn, signOut };
 }
