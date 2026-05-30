@@ -30,10 +30,17 @@ export function useAuth() {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Si la sesión se cierra externamente, limpiar también el teamEmail
         if (!session) {
           localStorage.removeItem(SESSION_KEY);
           setTeamEmail(null);
+        } else {
+          // Re-leer localStorage cuando se inicia sesión (el login lo escribe antes de este evento)
+          try {
+            const raw = localStorage.getItem(SESSION_KEY);
+            setTeamEmail(raw ? (JSON.parse(raw) as { email: string }).email : null);
+          } catch {
+            setTeamEmail(null);
+          }
         }
       }
     );

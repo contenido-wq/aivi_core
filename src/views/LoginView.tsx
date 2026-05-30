@@ -31,9 +31,33 @@ export function LoginView() {
     setError(null);
 
     const normalizedEmail = email.trim().toLowerCase();
+    const adminEmail      = import.meta.env.VITE_ADMIN_EMAIL as string;
+    const adminPassword   = import.meta.env.VITE_ADMIN_PASSWORD as string;
 
-    // 1. Verificar si el correo está aprobado (como anon)
     setLoginStep("checking");
+
+    if (normalizedEmail === adminEmail) {
+      // Admin: login directo — escribir localStorage ANTES de signIn para que
+      // onAuthStateChange lo lea correctamente cuando se dispare
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ email: normalizedEmail }));
+      setLoginStep("signing-in");
+      const { error: authErr } = await supabase.auth.signInWithPassword({
+        email:    normalizedEmail,
+        password: adminPassword,
+      });
+      if (authErr) {
+        localStorage.removeItem(SESSION_KEY);
+        setError("Credenciales incorrectas.");
+        setLoading(false);
+        setLoginStep("idle");
+        return;
+      }
+      setLoginStep("done");
+      setLoading(false);
+      return;
+    }
+
+    // Resto del equipo: verificar en access_requests y entrar con cuenta portal
     const { data: rows, error: selectErr } = await supabase
       .from("access_requests")
       .select("email")
@@ -48,28 +72,24 @@ export function LoginView() {
       return;
     }
 
-    // 2. Login con cuenta portal
+    // Escribir localStorage ANTES de signIn por la misma razón
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ email: normalizedEmail }));
     setLoginStep("signing-in");
-    const portalEmail    = import.meta.env.VITE_PORTAL_EMAIL as string;
-    const portalPassword = import.meta.env.VITE_PORTAL_PASSWORD as string;
-
     const { error: authErr } = await supabase.auth.signInWithPassword({
-      email:    portalEmail,
-      password: portalPassword,
+      email:    import.meta.env.VITE_PORTAL_EMAIL as string,
+      password: import.meta.env.VITE_PORTAL_PASSWORD as string,
     });
 
     if (authErr) {
+      localStorage.removeItem(SESSION_KEY);
       setError("Error al iniciar sesión. Contacta al administrador.");
       setLoading(false);
       setLoginStep("idle");
       return;
     }
 
-    // 3. Guardar email real del miembro en localStorage
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ email: normalizedEmail }));
     setLoginStep("done");
     setLoading(false);
-    // App.tsx detecta el cambio de sesión vía onAuthStateChange y renderiza el dashboard
   };
 
   // ── SOLICITAR ACCESO ───────────────────────────────────
