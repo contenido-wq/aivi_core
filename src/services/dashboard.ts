@@ -113,8 +113,13 @@ export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData>
     .limit(10000);
 
   const filteredTx = (allTx ?? []).filter((t: any) => matchesPlan(t.plan_name, filter));
+  // Incluye activos + delayed + cancelados (revenue real cobrado aunque el cliente haya cancelado)
+  // Excluye reembolsos y chargebacks (dinero devuelto)
   const grossRevenue = filteredTx
-    .filter((t: any) => ["active", "delayed"].includes(t.status))
+    .filter((t: any) => ["active", "delayed", "cancelled"].includes(t.status))
+    .reduce((s: number, t: any) => s + toUSD(Number(t.amount), t.currency), 0)
+  - filteredTx
+    .filter((t: any) => ["refunded", "chargeback"].includes(t.status))
     .reduce((s: number, t: any) => s + toUSD(Number(t.amount), t.currency), 0);
 
   // Meses activos desde primera transacción
