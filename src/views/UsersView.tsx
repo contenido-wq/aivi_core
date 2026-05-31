@@ -116,6 +116,7 @@ function getProductFamilySummary(
     });
 }
 
+// Used in the user list to badge all users — cheaper than full summary since we don't need isActive per row
 function countFamilies(transactions: { planName: string; status: string }[]): number {
   const set = new Set<string>();
   for (const tx of transactions) {
@@ -146,6 +147,7 @@ function computeProspectingScore(
 }
 
 function getProspectingReasons(user: UserProfile, families: FamilySummary[]): string[] {
+  if (families.some(f => f.family === "AIVI")) return [];
   const reasons: string[] = [];
   reasons.push("Sin AIVI todavía — oportunidad directa de upsell");
 
@@ -162,7 +164,7 @@ function getProspectingReasons(user: UserProfile, families: FamilySummary[]): st
   if (user.daysActive >= 30)
     reasons.push(`Lleva ${user.daysActive} días en el ecosistema — relación establecida`);
 
-  if (user.ltv >= 200)
+  if (user.ltv >= 300)
     reasons.push(`LTV de $${user.ltv.toFixed(0)} — cliente de alto valor`);
 
   if (user.status === "active")
