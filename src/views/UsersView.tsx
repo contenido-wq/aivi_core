@@ -564,8 +564,8 @@ export function UsersView({ onBack }: UsersViewProps) {
 
       {/* Productos del Ecosistema */}
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-        <div style={{ padding: "11px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: C.mutedMid, textTransform: "uppercase" }}>
+        <div style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: C.label, textTransform: "uppercase" }}>
             Productos del ecosistema
           </span>
           <span style={{ fontSize: 9, color: C.muted }}>
@@ -574,7 +574,7 @@ export function UsersView({ onBack }: UsersViewProps) {
         </div>
         <div style={{ padding: "10px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
           {familySummary.length === 0 ? (
-            <p style={{ fontSize: 12, color: C.muted }}>Sin productos registrados.</p>
+            <div style={{ fontSize: 12, color: C.muted }}>Sin productos registrados.</div>
           ) : familySummary.map(f => (
             <div key={f.family} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
