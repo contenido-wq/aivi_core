@@ -1,32 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { AppView }        from "./types";
-import { PORTAL_EMAIL, PORTAL_PASSWORD } from "./lib/authConfig";
 import { DashboardView }       from "./views/DashboardView";
+import { LoginView }           from "./views/LoginView";
 import { AdminPanel }          from "./components/admin/AdminPanel";
 import { UsersView }           from "./views/UsersView";
 import { TransactionsView }    from "./views/TransactionsView";
 import { useAuth }             from "./hooks/useAuth";
-import { supabase }            from "./services/supabase";
 import { C, FONT }             from "./tokens";
 
 export default function App() {
   const { user, loading, signOut } = useAuth();
   const [view, setView]            = useState<AppView>("dashboard");
-  const [signingIn, setSigningIn]  = useState(false);
 
-  // Auto-login con cuenta portal — cualquiera con la URL entra directo
-  useEffect(() => {
-    if (!loading && !user && !signingIn) {
-      setSigningIn(true);
-      supabase.auth.signInWithPassword({
-        email:    PORTAL_EMAIL,
-        password: PORTAL_PASSWORD,
-      }).finally(() => setSigningIn(false));
-    }
-  }, [loading, user, signingIn]);
-
-  // Spinner mientras carga o hace auto-login
-  if (loading || signingIn || !user) {
+  // Spinner mientras Supabase restaura la sesión
+  if (loading) {
     return (
       <div style={{
         height: "100vh",
@@ -50,6 +37,9 @@ export default function App() {
       </div>
     );
   }
+
+  // Sin sesión → pantalla de login con verificación de acceso
+  if (!user) return <LoginView />;
 
   // Vista Admin
   if (view === "admin") return <AdminPanel onBack={() => setView("dashboard")} />;

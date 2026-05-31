@@ -34,19 +34,21 @@ export function LoginView() {
     const normalizedEmail = email.trim().toLowerCase();
     setLoginStep("checking");
 
-    // Todos (incluido admin) verifican en access_requests y entran por la cuenta portal
-    const { data: rows, error: selectErr } = await supabase
-      .from("access_requests")
-      .select("email")
-      .eq("email", normalizedEmail)
-      .eq("status", "approved")
-      .limit(1);
+    // El super admin entra directamente sin verificar access_requests
+    if (normalizedEmail !== ADMIN_EMAIL) {
+      const { data: rows, error: selectErr } = await supabase
+        .from("access_requests")
+        .select("email")
+        .eq("email", normalizedEmail)
+        .eq("status", "approved")
+        .limit(1);
 
-    if (selectErr || !rows || rows.length === 0) {
-      setError("Este correo no tiene acceso. Pide acceso al admin.");
-      setLoading(false);
-      setLoginStep("idle");
-      return;
+      if (selectErr || !rows || rows.length === 0) {
+        setError("Este correo no tiene acceso. Pide acceso al admin.");
+        setLoading(false);
+        setLoginStep("idle");
+        return;
+      }
     }
 
     // Escribir localStorage ANTES de signIn para que onAuthStateChange lea el email real
