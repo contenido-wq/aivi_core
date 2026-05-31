@@ -102,10 +102,10 @@ function localDayRange(d: Date): { start: string; end: string } {
 }
 
 function matchesPlan(planName: string, filter: ProductFilter): boolean {
-  if (filter === "todos") return true;
+  if (filter === "todos" || filter === "multiProducto") return true;
   if (filter === "AIVI")  return planName.startsWith("AIVI");
   if (filter === "MV3")   return planName.startsWith("Método V3") || planName.startsWith("MV3");
-  return true;
+  return true; // sinAIVI handled upstream
 }
 
 export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData> {
