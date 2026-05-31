@@ -131,12 +131,13 @@ serve(async (req) => {
         if (e.includes("CANCEL"))                        d.cancellations++;
         if (e.includes("PROTEST") || e === "TRIAL")      d.trials++;
 
-        await supabase.from("transactions").upsert({
+        // La API de historial de Hotmart no devuelve teléfono — omitir buyer_phone
+        // del upsert para no sobreescribir el que llegó por webhook
+        const txRecord: Record<string, any> = {
           hotmart_id,
           event_type,
           buyer_name,
           buyer_email,
-          buyer_phone,
           buyer_country,
           offer_code,
           sale_origin,
@@ -147,7 +148,10 @@ serve(async (req) => {
           status,
           raw_payload: sale,
           created_at: order_date,
-        }, { onConflict: "hotmart_id" });
+        };
+        if (buyer_phone) txRecord.buyer_phone = buyer_phone;
+
+        await supabase.from("transactions").upsert(txRecord, { onConflict: "hotmart_id" });
 
         await supabase.from("subscriptions").upsert({
           subscriber_code,

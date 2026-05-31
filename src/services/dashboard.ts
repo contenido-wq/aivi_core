@@ -676,7 +676,7 @@ export async function getUsersTraceability(filter: ProductFilter = "todos"): Pro
   // Traer todas las transacciones
   const { data: allTx } = await supabase
     .from("transactions")
-    .select("id, event_type, buyer_name, buyer_email, plan_name, amount, currency, created_at, status, raw_payload")
+    .select("id, event_type, buyer_name, buyer_email, buyer_phone, plan_name, amount, currency, created_at, status, raw_payload")
     .order("created_at", { ascending: false });
 
   if (!allTx) return [];
@@ -763,12 +763,19 @@ export async function getUsersTraceability(filter: ProductFilter = "todos"): Pro
       if (country !== "—" && channel !== "Orgánico") break;
     }
 
-    // Teléfono: recorrer todos los payloads hasta encontrar uno
+    // Teléfono: primero intentar la columna buyer_phone, luego raw_payload
     let phone: string | null = null;
     for (const tx of sorted) {
+      const col = (tx as any).buyer_phone;
+      if (col && String(col).trim() !== "") { phone = String(col).trim(); break; }
       try {
         const rp = typeof tx.raw_payload === "string" ? JSON.parse(tx.raw_payload) : tx.raw_payload;
-        const p = rp?.data?.buyer?.checkout_phone ?? rp?.data?.buyer?.phone ?? null;
+        // webhook: data.buyer.checkout_phone | sync fallback: buyer.checkout_phone
+        const p = rp?.data?.buyer?.checkout_phone
+               ?? rp?.data?.buyer?.phone
+               ?? rp?.buyer?.checkout_phone
+               ?? rp?.buyer?.phone
+               ?? null;
         if (p && String(p).trim() !== "") { phone = String(p).trim(); break; }
       } catch { /* ignore */ }
     }
