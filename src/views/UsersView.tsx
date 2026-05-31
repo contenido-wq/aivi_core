@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo }  from "react";
 import { ArrowLeft, Search, RefreshCw, Loader2, TrendingUp, Calendar, MapPin, Radio, CheckCircle2, XCircle, Clock, AlertTriangle, Mail, Phone } from "lucide-react";
 import { C, FONT }                       from "../tokens";
-import { getUsersTraceability }           from "../services/dashboard";
+import { getUsersTraceability, getProductFamily } from "../services/dashboard";
 import type { UserProfile, ProductFilter } from "../services/dashboard";
 
 interface UsersViewProps { onBack: () => void; }
@@ -82,6 +82,100 @@ function riskLabel(score: number) {
   if (score >= 80) return { txt: "Bajo — cliente fidelizado",    color: C.green };
   if (score >= 55) return { txt: "Medio — mantener seguimiento", color: C.yellow };
   return           { txt: "Alto — riesgo de cancelación",        color: C.red };
+}
+
+interface FamilySummary {
+  family:   string;
+  count:    number;    // compras activas o delayed
+  isActive: boolean;   // es el plan de suscripción actual del usuario
+  isRepeat: boolean;   // count >= 2
+}
+
+function getProductFamilySummary(
+  transactions: { planName: string; status: string }[],
+  currentPlanName: string
+): FamilySummary[] {
+  const map: Record<string, number> = {};
+  for (const tx of transactions) {
+    if (tx.status !== "active" && tx.status !== "delayed") continue;
+    const fam = getProductFamily(tx.planName);
+    map[fam] = (map[fam] ?? 0) + 1;
+  }
+  const activeFamily = getProductFamily(currentPlanName);
+  return Object.entries(map)
+    .map(([family, count]) => ({
+      family,
+      count,
+      isActive: family === activeFamily,
+      isRepeat: count >= 2,
+    }))
+    .sort((a, b) => {
+      if (a.family === "AIVI") return -1;
+      if (b.family === "AIVI") return 1;
+      return b.count - a.count;
+    });
+}
+
+function countFamilies(transactions: { planName: string; status: string }[]): number {
+  const set = new Set<string>();
+  for (const tx of transactions) {
+    if (tx.status !== "active" && tx.status !== "delayed") continue;
+    set.add(getProductFamily(tx.planName));
+  }
+  return set.size;
+}
+
+function computeProspectingScore(
+  user: UserProfile,
+  families: FamilySummary[]
+): number {
+  const hasAIVI = families.some(f => f.family === "AIVI");
+  if (hasAIVI) return -1; // -1 = señal de "ya es cliente AIVI"
+
+  let score = 0;
+  if (families.length >= 1)                              score += 30;
+  if (families.some(f => f.family === "Método V3"))      score += 20;
+  if (families.length >= 3)                              score += 15;
+  else if (families.length >= 2)                         score += 10;
+  if (families.some(f => f.isRepeat))                    score += 15;
+  if (user.status === "active")                          score += 10;
+  if (user.ltv >= 500)                                   score += 10;
+  else if (user.ltv >= 300)                              score += 5;
+  if (user.daysActive >= 90)                             score += 5;
+  return Math.min(100, score);
+}
+
+function getProspectingReasons(user: UserProfile, families: FamilySummary[]): string[] {
+  const reasons: string[] = [];
+  reasons.push("Sin AIVI todavía — oportunidad directa de upsell");
+
+  if (families.some(f => f.family === "Método V3" && f.isActive))
+    reasons.push("Tiene Método V3 activo — ya conoce el ecosistema");
+
+  if (families.length >= 2)
+    reasons.push(`Ha comprado ${families.length} productos distintos — confía en la marca`);
+
+  const repeatFam = families.find(f => f.isRepeat);
+  if (repeatFam)
+    reasons.push(`Ha renovado ${repeatFam.family} ×${repeatFam.count} — disposición de pago probada`);
+
+  if (user.daysActive >= 30)
+    reasons.push(`Lleva ${user.daysActive} días en el ecosistema — relación establecida`);
+
+  if (user.ltv >= 200)
+    reasons.push(`LTV de $${user.ltv.toFixed(0)} — cliente de alto valor`);
+
+  if (user.status === "active")
+    reasons.push("Suscripción activa — momento ideal para upsell");
+
+  return reasons;
+}
+
+function prospectScoreLabel(score: number): { txt: string; color: string } {
+  if (score >= 80) return { txt: "🔥 Listo para comprar", color: C.green  };
+  if (score >= 55) return { txt: "Buen prospecto",        color: C.orange };
+  if (score >= 30) return { txt: "Calentar primero",      color: C.yellow };
+  return             { txt: "No priorizar",               color: C.muted  };
 }
 
 const PROGRAM_FILTERS: { value: ProductFilter; label: string }[] = [
