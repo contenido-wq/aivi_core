@@ -673,18 +673,20 @@ export interface UserProfile {
 export async function getUsersTraceability(filter: ProductFilter = "todos"): Promise<UserProfile[]> {
   // multiProducto se resuelve en el frontend — fetching como "todos"
   const fetchFilter: ProductFilter = filter === "multiProducto" ? "todos" : filter;
-  // Traer todas las transacciones
+  // Traer todas las transacciones (limit alto para superar el tope por defecto de PostgREST)
   const { data: allTx } = await supabase
     .from("transactions")
     .select("id, event_type, buyer_name, buyer_email, buyer_phone, plan_name, amount, currency, created_at, status, raw_payload")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(10000);
 
   if (!allTx) return [];
 
   // Traer suscripciones para obtener el estado actual
   const { data: allSubs } = await supabase
     .from("subscriptions")
-    .select("buyer_email, buyer_name, plan_name, status, amount, currency");
+    .select("buyer_email, buyer_name, plan_name, status, amount, currency")
+    .limit(10000);
 
   // Mapa email → suscripción vigente
   const subsMap: Record<string, any> = {};
