@@ -273,6 +273,11 @@ export function UsersView({ onBack }: UsersViewProps) {
   const score = selected ? retentionScore(selected) : 0;
   const risk  = riskLabel(score);
 
+  const familySummary: FamilySummary[] = selected
+    ? getProductFamilySummary(selected.transactions, selected.planName)
+    : [];
+  const hasAIVI = familySummary.some(f => f.family === "AIVI");
+
   // Transacciones ordenadas de más antigua a más nueva (para identificar "primera compra")
   const txsSorted = selected
     ? [...selected.transactions].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -555,6 +560,47 @@ export function UsersView({ onBack }: UsersViewProps) {
             <div style={{ fontSize: 10, color: C.muted, marginTop: 5 }}>{sub}</div>
           </div>
         ))}
+      </div>
+
+      {/* Productos del Ecosistema */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ padding: "11px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: C.mutedMid, textTransform: "uppercase" }}>
+            Productos del ecosistema
+          </span>
+          <span style={{ fontSize: 9, color: C.muted }}>
+            {familySummary.length} familia{familySummary.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <div style={{ padding: "10px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
+          {familySummary.length === 0 ? (
+            <p style={{ fontSize: 12, color: C.muted }}>Sin productos registrados.</p>
+          ) : familySummary.map(f => (
+            <div key={f.family} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                {f.isActive
+                  ? <span style={{ fontSize: 11, color: C.green, fontWeight: 700 }}>✓</span>
+                  : <span style={{ fontSize: 11, color: C.border }}>·</span>
+                }
+                <span style={{ fontSize: 12, color: f.isActive ? C.white : C.mutedLight, fontWeight: f.isActive ? 600 : 400 }}>
+                  {f.family}
+                </span>
+                {f.isRepeat && (
+                  <span style={{ fontSize: 9, color: C.orange }}>🔁</span>
+                )}
+              </div>
+              <span style={{
+                fontSize: 10, fontWeight: 700,
+                color: f.count >= 2 ? C.orange : C.mutedMid,
+                background: f.count >= 2 ? "rgba(255,107,44,0.10)" : "transparent",
+                border: f.count >= 2 ? "1px solid rgba(255,107,44,0.25)" : "1px solid transparent",
+                borderRadius: 4, padding: "1px 7px",
+              }}>
+                ×{f.count}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Calendario de actividad */}
