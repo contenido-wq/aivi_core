@@ -24,22 +24,13 @@ async function getAccessToken(): Promise<string> {
  * mapear exactamente qué campos tiene el endpoint individual.
  */
 async function inspectEndpoints(token: string, code: string): Promise<any> {
-  // Endpoints a explorar — distintos parámetros para encontrar el teléfono
   const endpoints = [
-    // Lista de compradores sin filtro (paginada) — devuelve datos básicos del buyer
-    `/sales/users?max_results=1`,
-    // Participantes de venta (puede incluir contacto completo)
-    `/sales/participants?max_results=1`,
-    // Resumen de ventas
-    `/sales/summary?max_results=1`,
-    // Historia con email específico del subscriber
-    `/sales/history?max_results=1&buyer_email=kevinfpa1406@gmail.com`,
-    // Historia usando transaction ID que obtuvimos del purchases endpoint
-    `/sales/history?max_results=1`,
-    // Compradores con filtro de suscripción (parámetro correcto)
-    `/sales/users?max_results=2&subscription_status=ACTIVE`,
-    // Endpoint de comprador individual por ucode — obtener ucode primero
-    `/subscriptions?subscriber_code=${code}&max_results=1`,
+    // Reto 15D con product_id
+    `/sales/users?max_results=2&product_id=4857530`,
+    // Todos los productos sin filtro
+    `/sales/users?max_results=2`,
+    // Con product_id del Clon
+    `/sales/users?max_results=2&product_id=4337977`,
   ];
 
   const results: any = {};
@@ -67,13 +58,14 @@ async function inspectEndpoints(token: string, code: string): Promise<any> {
  * Modo "list": pagina /sales/users y extrae phone/cellphone del rol BUYER.
  * Este endpoint sí devuelve datos de contacto completos del comprador.
  */
-async function fetchPhonesByList(token: string): Promise<Map<string, string>> {
+async function fetchPhonesByList(token: string, productId?: string): Promise<Map<string, string>> {
   const phoneMap = new Map<string, string>();
   let pageToken: string | null = null;
   let page = 1;
 
   while (true) {
     let url = `${HOTMART_API_URL}/sales/users?max_results=500`;
+    if (productId) url += `&product_id=${productId}`;
     if (pageToken) url += `&page_token=${pageToken}`;
 
     const res = await fetch(url, {
@@ -212,12 +204,14 @@ serve(async (req) => {
     let phoneMap: Map<string, string>;
     let rawSample: any = null;
 
+    const productId = url.searchParams.get("product_id") ?? undefined;
+
     if (mode === "codes") {
       const result = await fetchPhonesByCodes(token, supabase, offset, limit, phoneField);
       phoneMap  = result.phoneMap;
       rawSample = result.rawSample;
     } else {
-      phoneMap = await fetchPhonesByList(token);
+      phoneMap = await fetchPhonesByList(token, productId);
     }
 
     console.log(`Teléfonos encontrados: ${phoneMap.size}`);
