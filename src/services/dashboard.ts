@@ -1,7 +1,25 @@
 import { supabase } from "./supabase";
 import { toUSD } from "./currency";
 
-export type ProductFilter = "todos" | "AIVI" | "MV3" | "sinAIVI";
+export type ProductFilter = "todos" | "AIVI" | "MV3" | "sinAIVI" | "multiProducto";
+
+const FAMILY_PATTERNS: Array<{ keywords: string[]; family: string }> = [
+  { keywords: ["aivi"],                                    family: "AIVI" },
+  { keywords: ["método v3", "metodo v3", "mv3"],           family: "Método V3" },
+  { keywords: ["master creator"],                          family: "Master Creator" },
+  { keywords: ["reto 11", "11d"],                          family: "Reto 11D" },
+  { keywords: ["cero a viral", "de cero"],                 family: "De Cero a Viral" },
+  { keywords: ["clon"],                                    family: "Haz que tu Clon te haga Viral" },
+  { keywords: ["contenido que vende", "vende con ia"],     family: "Contenido que Vende con IA" },
+];
+
+export function getProductFamily(planName: string): string {
+  const lower = (planName ?? "").toLowerCase();
+  for (const { keywords, family } of FAMILY_PATTERNS) {
+    if (keywords.some(k => lower.includes(k))) return family;
+  }
+  return planName; // fallback: nombre original del plan
+}
 
 export interface PlanRow {
   name:      string;
@@ -653,6 +671,8 @@ export interface UserProfile {
 }
 
 export async function getUsersTraceability(filter: ProductFilter = "todos"): Promise<UserProfile[]> {
+  // multiProducto se resuelve en el frontend — fetching como "todos"
+  const fetchFilter: ProductFilter = filter === "multiProducto" ? "todos" : filter;
   // Traer todas las transacciones
   const { data: allTx } = await supabase
     .from("transactions")
@@ -669,7 +689,7 @@ export async function getUsersTraceability(filter: ProductFilter = "todos"): Pro
   // Mapa email → suscripción vigente
   const subsMap: Record<string, any> = {};
   for (const sub of (allSubs ?? [])) {
-    if (filter !== "sinAIVI" && !matchesPlan(sub.plan_name, filter)) continue;
+    if (fetchFilter !== "sinAIVI" && !matchesPlan(sub.plan_name, fetchFilter)) continue;
     if (!subsMap[sub.buyer_email] || sub.status === "active") {
       subsMap[sub.buyer_email] = sub;
     }
@@ -680,13 +700,13 @@ export async function getUsersTraceability(filter: ProductFilter = "todos"): Pro
   for (const tx of allTx) {
     const email = tx.buyer_email;
     if (!email || email === "—") continue;
-    if (filter !== "sinAIVI" && !matchesPlan(tx.plan_name, filter)) continue;
+    if (fetchFilter !== "sinAIVI" && !matchesPlan(tx.plan_name, fetchFilter)) continue;
     if (!txMap[email]) txMap[email] = [];
     txMap[email].push(tx);
   }
 
   // sinAIVI: excluir usuarios que ya tienen alguna transacción AIVI
-  if (filter === "sinAIVI") {
+  if (fetchFilter === "sinAIVI") {
     for (const email of Object.keys(txMap)) {
       if (txMap[email].some((t: any) => (t.plan_name ?? "").startsWith("AIVI"))) {
         delete txMap[email];
