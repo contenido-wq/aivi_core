@@ -181,10 +181,11 @@ function prospectScoreLabel(score: number): { txt: string; color: string } {
 }
 
 const PROGRAM_FILTERS: { value: ProductFilter; label: string }[] = [
-  { value: "todos",   label: "Todos"    },
-  { value: "AIVI",    label: "AIVI"     },
-  { value: "MV3",     label: "MV3"      },
-  { value: "sinAIVI", label: "Sin AIVI" },
+  { value: "todos",        label: "Todos"          },
+  { value: "AIVI",         label: "AIVI"           },
+  { value: "MV3",          label: "MV3"            },
+  { value: "sinAIVI",      label: "Sin AIVI"       },
+  { value: "multiProducto", label: "Multi-producto" },
 ];
 
 function cleanPhone(raw: string): string {
@@ -237,7 +238,8 @@ export function UsersView({ onBack }: UsersViewProps) {
   const load = async (pf: ProductFilter) => {
     setLoading(true);
     setSelected(null);
-    const data = await getUsersTraceability(pf);
+    const fetchFilter: ProductFilter = pf === "multiProducto" ? "todos" : pf;
+    const data = await getUsersTraceability(fetchFilter);
     setUsers(data);
     if (data.length > 0) setSelected(data[0]);
     setLoading(false);
@@ -247,6 +249,13 @@ export function UsersView({ onBack }: UsersViewProps) {
 
   const filtered = useMemo(() => {
     let list = users;
+
+    if (programFilter === "multiProducto") {
+      list = list
+        .filter(u => countFamilies(u.transactions) >= 2)
+        .sort((a, b) => countFamilies(b.transactions) - countFamilies(a.transactions));
+    }
+
     if (statusFilter !== "todos") list = list.filter(u => u.status === statusFilter);
     const q = query.toLowerCase();
     if (!q) return list;
@@ -255,7 +264,7 @@ export function UsersView({ onBack }: UsersViewProps) {
       u.name.toLowerCase().includes(q) ||
       u.planName.toLowerCase().includes(q)
     );
-  }, [users, query, statusFilter]);
+  }, [users, query, statusFilter, programFilter]);
 
   const score = selected ? retentionScore(selected) : 0;
   const risk  = riskLabel(score);
@@ -418,6 +427,16 @@ export function UsersView({ onBack }: UsersViewProps) {
                 <span style={{ fontSize: 9, color: C.label }}>
                   {flag(u.country)} {u.country !== "—" ? u.country : ""}
                 </span>
+                {countFamilies(u.transactions) >= 2 && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700,
+                    color: C.orange, background: "rgba(255,107,44,0.12)",
+                    border: "1px solid rgba(255,107,44,0.25)",
+                    borderRadius: 4, padding: "1px 5px",
+                  }}>
+                    {countFamilies(u.transactions)}⬡
+                  </span>
+                )}
               </div>
             </div>
           );
