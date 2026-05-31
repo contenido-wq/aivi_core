@@ -192,28 +192,6 @@ function cleanPhone(raw: string): string {
   return raw.replace(/[\s+\-().]/g, "");
 }
 
-const CAL_DAYS   = ["Lu","Ma","Mi","Ju","Vi","Sá","Do"] as const;
-const CAL_MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"] as const;
-const PRIORITY: Record<string, number> = { active: 3, delayed: 2, cancelled: 2, refunded: 1, chargeback: 1 };
-
-type DotStatus = "active" | "delayed" | "refunded";
-
-function buildTxDateMap(txs: { createdAt: string; status: string }[]): Record<string, DotStatus> {
-  const map: Record<string, DotStatus> = {};
-  for (const tx of txs) {
-    if (!tx.createdAt) continue;
-    const col = new Date(new Date(tx.createdAt).getTime() - 5 * 60 * 60 * 1000);
-    const key = col.toISOString().slice(0, 10);
-    const incoming: DotStatus =
-      tx.status === "active"   ? "active" :
-      tx.status === "refunded" || tx.status === "chargeback" ? "refunded" : "delayed";
-    const inP  = PRIORITY[tx.status]  ?? 0;
-    const curP = PRIORITY[map[key]]   ?? 0;
-    if (inP > curP) map[key] = incoming;
-  }
-  return map;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function UsersView({ onBack }: UsersViewProps) {
@@ -223,17 +201,6 @@ export function UsersView({ onBack }: UsersViewProps) {
   const [query,         setQuery]         = useState("");
   const [programFilter, setProgramFilter] = useState<ProductFilter>("todos");
   const [statusFilter,  setStatusFilter]  = useState<"todos" | UserProfile["status"]>("todos");
-
-  const [calView, setCalView] = useState<{ year: number; month: number }>(() => {
-    const now = new Date();
-    return { year: now.getFullYear(), month: now.getMonth() };
-  });
-
-  useEffect(() => {
-    if (!selected?.firstPurchaseDate) return;
-    const d = new Date(selected.firstPurchaseDate);
-    setCalView({ year: d.getFullYear(), month: d.getMonth() });
-  }, [selected?.email]); // eslint-disable-line
 
   const load = async (pf: ProductFilter) => {
     setLoading(true);
@@ -296,16 +263,6 @@ export function UsersView({ onBack }: UsersViewProps) {
   const ltvSum          = users.reduce((s, u) => s + u.ltv, 0);
   const ltvProm         = users.length > 0 ? ltvSum / users.length : 0;
 
-  // Calendario
-  const txDateMap   = useMemo(() => selected ? buildTxDateMap(selected.transactions) : {}, [selected]);
-  const calFirst    = new Date(calView.year, calView.month, 1);
-  const calStartCol = (calFirst.getDay() + 6) % 7;
-  const calDaysN    = new Date(calView.year, calView.month + 1, 0).getDate();
-  const calCells    = [...Array(calStartCol).fill(null), ...Array.from({ length: calDaysN }, (_, i) => i + 1)] as (number | null)[];
-  const nowForCal   = new Date();
-  const isMaxMonth  = calView.year === nowForCal.getFullYear() && calView.month === nowForCal.getMonth();
-  const calPrev     = () => setCalView(v => v.month === 0 ? { year: v.year - 1, month: 11 } : { year: v.year, month: v.month - 1 });
-  const calNext     = () => { if (!isMaxMonth) setCalView(v => v.month === 11 ? { year: v.year + 1, month: 0 } : { year: v.year, month: v.month + 1 }); };
 
   /* ── TOPBAR ── */
   const topbar = (
@@ -604,62 +561,6 @@ export function UsersView({ onBack }: UsersViewProps) {
               </span>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Calendario de actividad */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-        <div style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: C.mutedMid, textTransform: "uppercase" }}>Actividad de pagos</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button onClick={calPrev} style={{ background: "none", border: "none", color: C.mutedLight, cursor: "pointer", padding: "0 4px", fontSize: 16, lineHeight: 1, fontFamily: FONT }}>‹</button>
-            <span style={{ fontSize: 11, fontWeight: 700, color: C.white, minWidth: 80, textAlign: "center" }}>
-              {CAL_MONTHS[calView.month]} {calView.year}
-            </span>
-            <button onClick={calNext} disabled={isMaxMonth} style={{ background: "none", border: "none", color: isMaxMonth ? C.muted : C.mutedLight, cursor: isMaxMonth ? "default" : "pointer", padding: "0 4px", fontSize: 16, lineHeight: 1, fontFamily: FONT }}>›</button>
-          </div>
-        </div>
-        <div style={{ padding: "12px 16px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: 4 }}>
-            {CAL_DAYS.map(d => (
-              <div key={d} style={{ textAlign: "center", fontSize: 9, fontWeight: 700, color: C.muted, padding: "2px 0" }}>{d}</div>
-            ))}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 1 }}>
-            {calCells.map((d, i) => {
-              const dayKey = d !== null
-                ? `${calView.year}-${String(calView.month + 1).padStart(2,"0")}-${String(d).padStart(2,"0")}`
-                : null;
-              const dot = dayKey ? txDateMap[dayKey] : undefined;
-              const dotColor = dot === "active" ? C.green : dot === "refunded" ? C.red : dot === "delayed" ? C.yellow : null;
-              const isToday  = d !== null && nowForCal.getDate() === d && nowForCal.getMonth() === calView.month && nowForCal.getFullYear() === calView.year;
-              return (
-                <div key={i} style={{ textAlign: "center", padding: "3px 1px" }}>
-                  {d !== null && (
-                    <>
-                      <span style={{ fontSize: 10, color: isToday ? C.orange : dotColor ? C.white : C.mutedMid, fontWeight: isToday ? 800 : dotColor ? 600 : 400, display: "block" }}>{d}</span>
-                      {dotColor
-                        ? <div style={{ width: 4, height: 4, borderRadius: "50%", background: dotColor, boxShadow: `0 0 4px ${dotColor}`, margin: "1px auto 0" }} />
-                        : <div style={{ height: 5 }} />
-                      }
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ display: "flex", gap: 12, marginTop: 10, paddingTop: 8, borderTop: `1px solid rgba(255,255,255,0.04)` }}>
-            {([
-              { color: C.green,  label: "Cobro"     },
-              { color: C.yellow, label: "Retrasado" },
-              { color: C.red,    label: "Reembolso" },
-            ] as const).map(({ color, label }) => (
-              <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, boxShadow: `0 0 4px ${color}`, flexShrink: 0 }} />
-                <span style={{ fontSize: 9, color: C.muted }}>{label}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
