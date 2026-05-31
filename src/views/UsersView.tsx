@@ -238,22 +238,26 @@ export function UsersView({ onBack }: UsersViewProps) {
   const load = async (pf: ProductFilter) => {
     setLoading(true);
     setSelected(null);
-    const fetchFilter: ProductFilter = pf === "multiProducto" ? "todos" : pf;
-    const data = await getUsersTraceability(fetchFilter);
+    const data = await getUsersTraceability(pf);
     setUsers(data);
-    if (data.length > 0) setSelected(data[0]);
+    if (pf !== "multiProducto" && data.length > 0) setSelected(data[0]);
     setLoading(false);
   };
 
   useEffect(() => { load(programFilter); }, [programFilter]); // eslint-disable-line
+
+  const familyCounts = useMemo(
+    () => new Map(users.map(u => [u.email, countFamilies(u.transactions)])),
+    [users]
+  );
 
   const filtered = useMemo(() => {
     let list = users;
 
     if (programFilter === "multiProducto") {
       list = list
-        .filter(u => countFamilies(u.transactions) >= 2)
-        .sort((a, b) => countFamilies(b.transactions) - countFamilies(a.transactions));
+        .filter(u => (familyCounts.get(u.email) ?? 0) >= 2)
+        .sort((a, b) => (familyCounts.get(b.email) ?? 0) - (familyCounts.get(a.email) ?? 0));
     }
 
     if (statusFilter !== "todos") list = list.filter(u => u.status === statusFilter);
@@ -264,7 +268,7 @@ export function UsersView({ onBack }: UsersViewProps) {
       u.name.toLowerCase().includes(q) ||
       u.planName.toLowerCase().includes(q)
     );
-  }, [users, query, statusFilter, programFilter]);
+  }, [users, query, statusFilter, programFilter, familyCounts]);
 
   const score = selected ? retentionScore(selected) : 0;
   const risk  = riskLabel(score);
@@ -316,7 +320,7 @@ export function UsersView({ onBack }: UsersViewProps) {
         <span style={{ fontSize: 13, fontWeight: 700, color: C.orange }}>Trazabilidad de Usuarios</span>
         {programFilter !== "todos" && (
           <span style={{ fontSize: 10, fontWeight: 700, color: C.orange, background: "rgba(255,107,44,0.12)", border: "1px solid rgba(255,107,44,0.3)", borderRadius: 4, padding: "1px 7px" }}>
-            {programFilter === "sinAIVI" ? "Sin AIVI" : programFilter}
+            {PROGRAM_FILTERS.find(f => f.value === programFilter)?.label ?? programFilter}
           </span>
         )}
       </div>
@@ -427,14 +431,14 @@ export function UsersView({ onBack }: UsersViewProps) {
                 <span style={{ fontSize: 9, color: C.label }}>
                   {flag(u.country)} {u.country !== "—" ? u.country : ""}
                 </span>
-                {countFamilies(u.transactions) >= 2 && (
+                {(familyCounts.get(u.email) ?? 0) >= 2 && (
                   <span style={{
                     fontSize: 9, fontWeight: 700,
                     color: C.orange, background: "rgba(255,107,44,0.12)",
                     border: "1px solid rgba(255,107,44,0.25)",
                     borderRadius: 4, padding: "1px 5px",
                   }}>
-                    {countFamilies(u.transactions)}⬡
+                    {familyCounts.get(u.email)}⬡
                   </span>
                 )}
               </div>
