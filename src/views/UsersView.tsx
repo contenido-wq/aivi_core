@@ -748,14 +748,14 @@ export function UsersView({ onBack }: UsersViewProps) {
             <div style={{ height: 1, background: C.border, margin: "10px 0" }} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: C.label, textTransform: "uppercase" }}>Score retención</span>
-              <span style={{ fontSize: 18, fontWeight: 900, color: riskLabel(retentionScore(selected!)).color }}>{retentionScore(selected!)}</span>
+              <span style={{ fontSize: 18, fontWeight: 900, color: risk.color }}>{score}</span>
             </div>
             <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 99, marginBottom: 8, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${retentionScore(selected!)}%`, borderRadius: 99, background: C.gradRetention, transition: "width 0.6s" }} />
+              <div style={{ height: "100%", width: `${score}%`, borderRadius: 99, background: C.gradRetention, transition: "width 0.6s" }} />
             </div>
             <div style={{ fontSize: 10, color: C.muted }}>
-              <span style={{ color: riskLabel(retentionScore(selected!)).color, fontWeight: 600 }}>
-                {riskLabel(retentionScore(selected!)).txt}
+              <span style={{ color: risk.color, fontWeight: 600 }}>
+                {risk.txt}
               </span>
             </div>
           </div>
