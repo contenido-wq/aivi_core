@@ -278,6 +278,10 @@ export function UsersView({ onBack }: UsersViewProps) {
     : [];
   const hasAIVI = familySummary.some(f => f.family === "AIVI");
 
+  const prospectScore   = selected ? computeProspectingScore(selected, familySummary) : 0;
+  const prospectReasons = selected && prospectScore >= 0 ? getProspectingReasons(selected, familySummary) : [];
+  const prospectLabel   = prospectScore >= 0 ? prospectScoreLabel(prospectScore) : { txt: "", color: "" };
+
   // Transacciones ordenadas de más antigua a más nueva (para identificar "primera compra")
   const txsSorted = selected
     ? [...selected.transactions].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -725,21 +729,93 @@ export function UsersView({ onBack }: UsersViewProps) {
         </div>
       </div>
 
-      {/* Score de retención */}
+      {/* Prospección AIVI */}
       <div>
-        <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", color: C.label, textTransform: "uppercase", marginBottom: 8 }}>Riesgo de Cancelación</div>
-        <div style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, borderRadius: 11, padding: 13 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: C.label, textTransform: "uppercase" }}>Score retención</span>
-            <span style={{ fontSize: 22, fontWeight: 900, color: risk.color }}>{score}</span>
-          </div>
-          <div style={{ height: 5, background: "rgba(255,255,255,0.06)", borderRadius: 99, marginBottom: 9, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${score}%`, borderRadius: 99, background: C.gradRetention, transition: "width 0.6s" }} />
-          </div>
-          <div style={{ fontSize: 10, color: C.muted }}>
-            Estado: <span style={{ color: risk.color, fontWeight: 600 }}>{risk.txt}</span>
-          </div>
+        <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", color: C.label, textTransform: "uppercase", marginBottom: 8 }}>
+          Prospección AIVI
         </div>
+
+        {hasAIVI ? (
+          /* Estado B: Ya es cliente AIVI — mostrar retención */
+          <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 11, padding: 13 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+              <span style={{ fontSize: 14, color: C.green }}>✓</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>Ya es cliente AIVI</span>
+            </div>
+            <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>
+              Plan: <span style={{ color: C.mutedLight }}>{selected!.planName}</span>
+            </div>
+            <div style={{ height: 1, background: C.border, margin: "10px 0" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: C.label, textTransform: "uppercase" }}>Score retención</span>
+              <span style={{ fontSize: 18, fontWeight: 900, color: riskLabel(retentionScore(selected!)).color }}>{retentionScore(selected!)}</span>
+            </div>
+            <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 99, marginBottom: 8, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${retentionScore(selected!)}%`, borderRadius: 99, background: C.gradRetention, transition: "width 0.6s" }} />
+            </div>
+            <div style={{ fontSize: 10, color: C.muted }}>
+              <span style={{ color: riskLabel(retentionScore(selected!)).color, fontWeight: 600 }}>
+                {riskLabel(retentionScore(selected!)).txt}
+              </span>
+            </div>
+          </div>
+        ) : (
+          /* Estado A: No tiene AIVI — mostrar score de prospección */
+          <div style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, borderRadius: 11, padding: 13 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: C.label, textTransform: "uppercase" }}>Score de upsell</span>
+              <span style={{ fontSize: 22, fontWeight: 900, color: prospectLabel.color }}>{prospectScore}</span>
+            </div>
+            <div style={{ height: 5, background: "rgba(255,255,255,0.06)", borderRadius: 99, marginBottom: 8, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${prospectScore}%`, borderRadius: 99, background: `linear-gradient(90deg, ${C.orange}, #FF3366)`, transition: "width 0.6s" }} />
+            </div>
+            <div style={{ fontSize: 11, color: prospectLabel.color, fontWeight: 700, marginBottom: 12 }}>
+              {prospectLabel.txt}
+            </div>
+
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", color: C.label, textTransform: "uppercase", marginBottom: 7 }}>
+              Por qué ofrecerle AIVI
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 12 }}>
+              {prospectReasons.map((r, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                  <span style={{ color: C.orange, fontSize: 10, flexShrink: 0, marginTop: 1 }}>›</span>
+                  <span style={{ fontSize: 11, color: C.mutedLight, lineHeight: 1.4 }}>{r}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", gap: 7 }}>
+              <a
+                href={`mailto:${selected!.email}`}
+                style={{
+                  flex: 1, textAlign: "center" as const, padding: "7px 0",
+                  borderRadius: 7, background: C.orange, color: "#fff",
+                  fontSize: 11, fontWeight: 700, textDecoration: "none",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                }}
+              >
+                ✉ Contactar
+              </a>
+              <button
+                onClick={() => {
+                  const name = selected!.name !== "—" ? selected!.name : selected!.email;
+                  const text = `Por qué ofrecerle AIVI a ${name}:\n\n` +
+                    prospectReasons.map(r => `• ${r}`).join("\n");
+                  navigator.clipboard.writeText(text).catch(() => {});
+                }}
+                style={{
+                  flex: 1, padding: "7px 0", borderRadius: 7,
+                  border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.04)",
+                  color: C.mutedLight, fontSize: 11, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                📋 Copiar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={{ height: 1, background: C.border }} />
