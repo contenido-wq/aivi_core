@@ -101,11 +101,11 @@ serve(async (req) => {
     : (rawOrigin ?? "");
   const traffic_source  = payload.data?.trackingParameters?.source_sck ?? payload.data?.trackingParameters?.src ?? "";
 
-  // Para eventos de cancelación/chargeback, evitar duplicados del mismo día
-  // (Hotmart a veces reintenta con distinto hotmart_id para el mismo evento)
-  if ([...CANCEL_EVENTS, ...CHARGEBACK_EVENTS].includes(event)) {
+  // Para cancelaciones, chargebacks y pagos atrasados, evitar duplicados del mismo día
+  // (Hotmart reintenta webhooks con distinto hotmart_id para el mismo evento)
+  if ([...CANCEL_EVENTS, ...CHARGEBACK_EVENTS, ...DELAYED_EVENTS].includes(event)) {
     const { start: dayStart, end: dayEnd } = colombiaDayRange(today);
-    const { data: existing } = await supabase
+    const query = supabase
       .from("transactions")
       .select("id")
       .eq("buyer_email", buyer_email)
@@ -113,8 +113,14 @@ serve(async (req) => {
       .gte("created_at", dayStart)
       .lte("created_at", dayEnd)
       .limit(1);
+    // Para pagos atrasados también filtramos por plan para no bloquear
+    // usuarios con dos suscripciones distintas retrasadas el mismo día
+    if (DELAYED_EVENTS.includes(event)) {
+      query.eq("plan_name", plan_name);
+    }
+    const { data: existing } = await query;
     if (existing && existing.length > 0) {
-      console.log(`⚠️ Duplicado ignorado: ${event} — ${buyer_email}`);
+      console.log(`⚠️ Duplicado ignorado: ${event} — ${buyer_email} — ${plan_name}`);
       return new Response(JSON.stringify({ ok: true, skipped: true }), {
         headers: { "Content-Type": "application/json" },
       });
