@@ -151,7 +151,13 @@ serve(async (req) => {
         };
         if (buyer_phone) txRecord.buyer_phone = buyer_phone;
 
-        await supabase.from("transactions").upsert(txRecord, { onConflict: "hotmart_id" });
+        // Para cancelaciones, no sobreescribir filas existentes:
+        // la suscripción terminó pero el dinero ya fue recibido y cuenta como revenue.
+        // Refunds/chargebacks sí sobreescriben porque implican devolución de dinero.
+        const upsertOpts = status === "cancelled"
+          ? { onConflict: "hotmart_id", ignoreDuplicates: true }
+          : { onConflict: "hotmart_id" };
+        await supabase.from("transactions").upsert(txRecord, upsertOpts);
 
         await supabase.from("subscriptions").upsert({
           subscriber_code,

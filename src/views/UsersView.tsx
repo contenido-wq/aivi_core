@@ -181,10 +181,11 @@ function prospectScoreLabel(score: number): { txt: string; color: string } {
 }
 
 const PROGRAM_FILTERS: { value: ProductFilter; label: string }[] = [
-  { value: "todos",        label: "Todos"          },
-  { value: "AIVI",         label: "AIVI"           },
-  { value: "MV3",          label: "MV3"            },
-  { value: "sinAIVI",      label: "Sin AIVI"       },
+  { value: "todos",         label: "Todos"          },
+  { value: "AIVI",          label: "AIVI"           },
+  { value: "MV3",           label: "MV3"            },
+  { value: "Reto15D",       label: "Reto 15D"       },
+  { value: "sinAIVI",       label: "Sin AIVI"       },
   { value: "multiProducto", label: "Multi-producto" },
 ];
 

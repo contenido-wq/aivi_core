@@ -1,13 +1,14 @@
 import { supabase } from "./supabase";
 import { toUSD } from "./currency";
 
-export type ProductFilter = "todos" | "AIVI" | "MV3" | "sinAIVI" | "multiProducto";
+export type ProductFilter = "todos" | "AIVI" | "MV3" | "Reto15D" | "sinAIVI" | "multiProducto";
 
 const FAMILY_PATTERNS: Array<{ keywords: string[]; family: string }> = [
   { keywords: ["aivi"],                                    family: "AIVI" },
   { keywords: ["método v3", "metodo v3", "mv3"],           family: "Método V3" },
   { keywords: ["master creator"],                          family: "Master Creator" },
   { keywords: ["reto 11", "11d"],                          family: "Reto 11D" },
+  { keywords: ["reto 15", "15d"],                          family: "Reto 15D" },
   { keywords: ["cero a viral", "de cero"],                 family: "De Cero a Viral" },
   { keywords: ["clon"],                                    family: "Haz que tu Clon te haga Viral" },
   { keywords: ["contenido que vende", "vende con ia"],     family: "Contenido que Vende con IA" },
@@ -103,8 +104,9 @@ function localDayRange(d: Date): { start: string; end: string } {
 
 function matchesPlan(planName: string, filter: ProductFilter): boolean {
   if (filter === "todos" || filter === "multiProducto") return true;
-  if (filter === "AIVI")  return planName.startsWith("AIVI");
-  if (filter === "MV3")   return planName.startsWith("Método V3") || planName.startsWith("MV3");
+  if (filter === "AIVI")    return planName.startsWith("AIVI");
+  if (filter === "MV3")     return planName.startsWith("Método V3") || planName.startsWith("MV3");
+  if (filter === "Reto15D") return planName.startsWith("Reto 15D") || planName.startsWith("Reto15D");
   return true; // sinAIVI handled upstream
 }
 
@@ -128,7 +130,8 @@ export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData>
   const { data: allTx } = await supabase
     .from("transactions")
     .select("amount, currency, status, created_at, plan_name")
-    .limit(10000);
+    .order("created_at", { ascending: true })
+    .limit(50000);
 
   const filteredTx = (allTx ?? []).filter((t: any) => matchesPlan(t.plan_name, filter));
   // Solo activos + delayed: las cancelaciones crean una fila NUEVA en transactions
@@ -679,7 +682,7 @@ export async function getUsersTraceability(filter: ProductFilter = "todos"): Pro
     .from("transactions")
     .select("id, event_type, buyer_name, buyer_email, buyer_phone, plan_name, amount, currency, created_at, status, raw_payload")
     .order("created_at", { ascending: false })
-    .limit(10000);
+    .limit(50000);
 
   if (!allTx) return [];
 
@@ -687,7 +690,7 @@ export async function getUsersTraceability(filter: ProductFilter = "todos"): Pro
   const { data: allSubs } = await supabase
     .from("subscriptions")
     .select("buyer_email, buyer_name, plan_name, status, amount, currency")
-    .limit(10000);
+    .limit(50000);
 
   // Mapa email → suscripción vigente
   const subsMap: Record<string, any> = {};

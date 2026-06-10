@@ -32,9 +32,10 @@ const NAV_ITEMS = [
 ];
 
 const FILTERS: { value: ProductFilter; label: string }[] = [
-  { value: "todos", label: "Todos" },
-  { value: "AIVI",  label: "AIVI"  },
-  { value: "MV3",   label: "MV3"   },
+  { value: "todos",    label: "Todos"    },
+  { value: "AIVI",     label: "AIVI"     },
+  { value: "MV3",      label: "MV3"      },
+  { value: "Reto15D",  label: "Reto 15D" },
 ];
 
 export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, onUsers, onTransactions, activeView, mrr, arr, daily, open, onClose, isMobile, isAdmin = false }: SidebarProps) {
