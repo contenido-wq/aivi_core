@@ -18,4 +18,5 @@ ALTER TABLE investment_data ENABLE ROW LEVEL SECURITY;
 -- El frontend no necesita acceso directo a esta tabla.
 CREATE POLICY "service role only"
   ON investment_data
+  FOR ALL
   USING (false);
