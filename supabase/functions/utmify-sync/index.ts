@@ -61,7 +61,7 @@ async function runSync(debug: boolean): Promise<Response> {
     }
 
     for (const [platform, metrics] of Object.entries(platformMap)) {
-      await supabase.from("investment_data").upsert({
+      const { error: invErr } = await supabase.from("investment_data").upsert({
         date:        today,
         platform,
         investment:  metrics.investment,
@@ -70,15 +70,17 @@ async function runSync(debug: boolean): Promise<Response> {
         raw_data:    debug ? data : null,
         synced_at:   new Date().toISOString(),
       }, { onConflict: "date,platform" });
+      if (invErr) throw new Error(`investment_data upsert failed: ${invErr.message}`);
     }
 
     const totalInvestment = Object.values(platformMap).reduce((s, m) => s + m.investment, 0);
 
-    await supabase.from("daily_metrics").upsert({
+    const { error: dmErr } = await supabase.from("daily_metrics").upsert({
       date:       today,
       investment: totalInvestment,
       updated_at: new Date().toISOString(),
     }, { onConflict: "date" });
+    if (dmErr) throw new Error(`daily_metrics upsert failed: ${dmErr.message}`);
 
     console.log(`✅ UTMify sync OK — ${today} — $${totalInvestment.toFixed(2)}`);
 
