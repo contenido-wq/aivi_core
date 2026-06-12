@@ -136,31 +136,23 @@ export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData>
 
   const mrr = active.reduce((s: number, sub: any) => s + toUSD(Number(sub.amount), sub.currency), 0);
 
-  // Revenue total histórico — filtrar en DB para evitar el cap de 1000 filas del servidor.
-  let txQuery = supabase
+  // Revenue total histórico — calculado en DB para evitar el cap de filas de PostgREST.
+  // calc_gross_revenue devuelve net_amount por moneda; toUSD convierte cada fila a USD.
+  const { data: revenueRows } = await supabase
+    .rpc("calc_gross_revenue", { filter_type: filter });
+
+  const grossRevenue = (revenueRows ?? [])
+    .reduce((s: number, r: any) => s + toUSD(Number(r.net_amount), r.currency), 0);
+
+  // Meses activos desde primera transacción — una sola fila
+  let oldestQuery = supabase
     .from("transactions")
-    .select("amount, currency, status, created_at, plan_name");
-  if (filter === "AIVI")         txQuery = txQuery.ilike("plan_name", "AIVI%");
-  else if (filter === "MV3")     txQuery = txQuery.or('plan_name.ilike.Método V3%,plan_name.ilike.MV3%');
-  else if (filter === "Reto15D") txQuery = txQuery.or('plan_name.ilike.Reto 15D%,plan_name.ilike.Reto15D%');
-  const { data: allTx } = await txQuery.order("created_at", { ascending: true }).limit(5000);
-
-  const filteredTx = (allTx ?? []).filter((t: any) => matchesPlan(t.plan_name, filter));
-  // Solo activos + delayed: las cancelaciones crean una fila NUEVA en transactions
-  // (hotmart_id distinto al de la compra original), por lo que incluirlas causaría
-  // doble conteo — el ingreso ya está en la fila "active" original.
-  const grossRevenue = filteredTx
-    .filter((t: any) => ["active", "delayed"].includes(t.status))
-    .reduce((s: number, t: any) => s + toUSD(Number(t.amount), t.currency), 0)
-  - filteredTx
-    .filter((t: any) => ["refunded", "chargeback"].includes(t.status))
-    .reduce((s: number, t: any) => s + toUSD(Number(t.amount), t.currency), 0);
-
-  // Meses activos desde primera transacción
-  const dates = filteredTx
-    .filter((t: any) => t.created_at)
-    .map((t: any) => new Date(t.created_at).getTime());
-  const firstDate = dates.length > 0 ? new Date(Math.min(...dates)) : new Date();
+    .select("created_at");
+  if (filter === "AIVI")         oldestQuery = oldestQuery.ilike("plan_name", "AIVI%");
+  else if (filter === "MV3")     oldestQuery = oldestQuery.or('plan_name.ilike.Método V3%,plan_name.ilike.MV3%');
+  else if (filter === "Reto15D") oldestQuery = oldestQuery.or('plan_name.ilike.Reto 15D%,plan_name.ilike.Reto15D%');
+  const { data: oldestTx } = await oldestQuery.order("created_at", { ascending: true }).limit(1);
+  const firstDate = oldestTx?.[0]?.created_at ? new Date(oldestTx[0].created_at) : new Date();
   const now = new Date();
   const monthsActive = Math.max(1, Math.round(
     (now.getFullYear() - firstDate.getFullYear()) * 12 +
