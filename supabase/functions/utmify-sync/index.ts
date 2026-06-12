@@ -101,7 +101,10 @@ async function runSync(debug: boolean): Promise<Response> {
 }
 
 // Sync automático — cada hora en el minuto 0
-Deno.cron("utmify-hourly", "0 * * * *", async () => { await runSync(false); });
+// El guard evita crash si la feature Cron no está habilitada en el proyecto de Supabase
+if (typeof Deno.cron === "function") {
+  Deno.cron("utmify-hourly", "0 * * * *", async () => { await runSync(false); });
+}
 
 // Trigger manual (botón TopNav) o ?debug=true para inspeccionar respuesta de UTMify
 serve(async (req) => {
