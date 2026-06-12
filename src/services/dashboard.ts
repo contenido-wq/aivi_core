@@ -114,30 +114,6 @@ function matchesPlan(planName: string, filter: ProductFilter): boolean {
   return true; // sinAIVI handled upstream
 }
 
-/** Aplica el filtro de producto directamente en la query de Supabase. */
-function applyDbFilter(query: any, filter: ProductFilter): any {
-  if (filter === "AIVI")    return query.ilike("plan_name", "AIVI%");
-  if (filter === "MV3")     return query.or('plan_name.ilike.Método V3%,plan_name.ilike.MV3%');
-  if (filter === "Reto15D") return query.or('plan_name.ilike.Reto 15D%,plan_name.ilike.Reto15D%');
-  return query;
-}
-
-const PAGE_SIZE = 1000;
-
-/** Pagina automáticamente por todas las filas superando el cap de 1000 del servidor. */
-async function fetchAll<T>(queryFn: (from: number, to: number) => any): Promise<T[]> {
-  const rows: T[] = [];
-  let from = 0;
-  while (true) {
-    const { data, error } = await queryFn(from, from + PAGE_SIZE - 1);
-    if (error) break;
-    const page: T[] = data ?? [];
-    rows.push(...page);
-    if (page.length < PAGE_SIZE) break;
-    from += PAGE_SIZE;
-  }
-  return rows;
-}
 
 export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData> {
   // Filtrar en DB para evitar el cap de 1000 filas del servidor.
