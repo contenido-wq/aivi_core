@@ -12,7 +12,7 @@ import { CountriesPanel }      from "../components/dashboard/CountriesPanel";
 import { AtRiskPanel }         from "../components/dashboard/AtRiskPanel";
 import { DashFooter }          from "../components/dashboard/DashFooter";
 import { C }                   from "../tokens";
-import { syncToday }           from "../services/dashboard";
+import { syncToday, syncUtmify } from "../services/dashboard";
 import type { ProductFilter }  from "../services/dashboard";
 
 interface DashboardViewProps {
@@ -33,12 +33,18 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
 
   const { isMobile, isTablet, isDesktop, isShortScreen } = useResponsive();
 
-  const { kpis, plans, daily, transactions, countries, chartData, atRiskUsers, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
+  const { kpis, plans, daily, transactions, comparison, countries, chartData, atRiskUsers, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
     useDashboardData(date, filter);
 
   const handleSync = useCallback(async () => {
     await syncToday();
     await refresh();
+  }, [refresh]);
+
+  const handleSyncUtmify = useCallback(async () => {
+    const result = await syncUtmify();
+    if (result.ok) await refresh();
+    return result;
   }, [refresh]);
 
   if (error) {
@@ -100,6 +106,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
           isMobile={isMobile || isTablet}
           onMenuOpen={() => setSidebarOpen(true)}
           onSync={handleSync}
+          onSyncUtmify={handleSyncUtmify}
         />
 
         {isDesktop ? (
@@ -109,7 +116,12 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
                layout scrollable para evitar compresión
                ═══════════════════════════════════════════════ */
             <div style={{ flex: 1, overflow: "auto", WebkitOverflowScrolling: "touch", display: "flex", flexDirection: "column" }}>
-              <KPIRow kpis={kpis} />
+              <KPIRow
+                kpis={kpis}
+                daily={daily}
+                weekRevenue={comparison?.weekRevenue ?? 0}
+                monthRevenue={comparison?.monthRevenue ?? 0}
+              />
 
               {/* Sección principal: Usuarios + At Risk lado a lado */}
               <div style={{
