@@ -396,27 +396,66 @@ export async function getComparisonData(date: Date): Promise<ComparisonData> {
   const d30 = new Date(date); d30.setDate(d30.getDate() - 30);
   const d7  = new Date(date); d7.setDate(d7.getDate() - 7);
   const d1  = new Date(date); d1.setDate(d1.getDate() - 1);
+  const d30Str = localDateStr(d30);
+  const w7Str  = localDateStr(d7);
+  const yStr   = localDateStr(d1);
 
-  const { data } = await supabase
+  // daily_metrics.revenue almacena montos en moneda local sin convertir (hotmart-sync
+  // acumula el precio bruto de cada transacción sin toUSD). Calculamos los totales de
+  // semana y mes directamente desde transactions con conversión correcta a USD.
+  const { start: txStart } = localDayRange(d30);
+  const { end:   txEnd   } = localDayRange(d1);
+
+  const { data: txs } = await supabase
+    .from("transactions")
+    .select("amount, currency, status, created_at")
+    .gte("created_at", txStart)
+    .lte("created_at", txEnd)
+    .in("status", ["active", "delayed", "refunded", "chargeback"])
+    .limit(3000);
+
+  const dailyRevMap: Record<string, number> = {};
+  for (const tx of (txs ?? [])) {
+    const dayKey = localDateStr(new Date(tx.created_at));
+    const sign = (tx.status === "refunded" || tx.status === "chargeback") ? -1 : 1;
+    dailyRevMap[dayKey] = (dailyRevMap[dayKey] ?? 0) + sign * toUSD(Number(tx.amount), tx.currency);
+  }
+
+  // investment y new_users no tienen problema de moneda — siguen desde daily_metrics
+  const { data: metricRows } = await supabase
     .from("daily_metrics")
-    .select("date, revenue, investment, new_users")
-    .gte("date", localDateStr(d30))
+    .select("date, investment, new_users")
+    .gte("date", d30Str)
     .lt("date", todayStr)
     .order("date", { ascending: true });
 
-  const rows     = data ?? [];
-  const yStr     = localDateStr(d1);
-  const w7Str    = localDateStr(d7);
-  const yesterday = rows.find((r: any) => r.date === yStr);
-  const weekRows  = rows.filter((r: any) => r.date >= w7Str);
+  const metricMap: Record<string, { investment: number; new_users: number }> = {};
+  for (const r of (metricRows ?? [])) {
+    metricMap[r.date] = { investment: Number(r.investment ?? 0), new_users: Number(r.new_users ?? 0) };
+  }
+
+  let weekRevenue  = 0;
+  let monthRevenue = 0;
+  const sparklineEntries: [string, number][] = [];
+
+  for (const [day, rev] of Object.entries(dailyRevMap)) {
+    const v = Math.max(0, rev);
+    monthRevenue += v;
+    if (day >= w7Str) {
+      weekRevenue += v;
+      sparklineEntries.push([day, v]);
+    }
+  }
+
+  sparklineEntries.sort(([a], [b]) => a.localeCompare(b));
 
   return {
-    yesterdayRevenue:    Number(yesterday?.revenue    ?? 0),
-    yesterdayInvestment: Number(yesterday?.investment ?? 0),
-    yesterdayNewUsers:   Number(yesterday?.new_users  ?? 0),
-    weekRevenue:  weekRows.reduce((s: number, r: any) => s + Number(r.revenue), 0),
-    monthRevenue: rows.reduce((s: number, r: any) => s + Number(r.revenue), 0),
-    sparkline:    weekRows.map((r: any) => Number(r.revenue)),
+    yesterdayRevenue:    Math.max(0, dailyRevMap[yStr] ?? 0),
+    yesterdayInvestment: metricMap[yStr]?.investment ?? 0,
+    yesterdayNewUsers:   metricMap[yStr]?.new_users  ?? 0,
+    weekRevenue,
+    monthRevenue,
+    sparkline: sparklineEntries.map(([, v]) => v),
   };
 }
 
