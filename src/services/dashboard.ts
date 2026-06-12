@@ -136,12 +136,14 @@ export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData>
 
   const mrr = active.reduce((s: number, sub: any) => s + toUSD(Number(sub.amount), sub.currency), 0);
 
-  // Revenue total histórico
-  const { data: allTx } = await supabase
+  // Revenue total histórico — filtrar en DB para evitar el cap de 1000 filas del servidor.
+  let txQuery = supabase
     .from("transactions")
-    .select("amount, currency, status, created_at, plan_name")
-    .order("created_at", { ascending: true })
-    .limit(50000);
+    .select("amount, currency, status, created_at, plan_name");
+  if (filter === "AIVI")         txQuery = txQuery.ilike("plan_name", "AIVI%");
+  else if (filter === "MV3")     txQuery = txQuery.or('plan_name.ilike.Método V3%,plan_name.ilike.MV3%');
+  else if (filter === "Reto15D") txQuery = txQuery.or('plan_name.ilike.Reto 15D%,plan_name.ilike.Reto15D%');
+  const { data: allTx } = await txQuery.order("created_at", { ascending: true }).limit(5000);
 
   const filteredTx = (allTx ?? []).filter((t: any) => matchesPlan(t.plan_name, filter));
   // Solo activos + delayed: las cancelaciones crean una fila NUEVA en transactions
