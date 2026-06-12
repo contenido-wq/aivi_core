@@ -151,7 +151,12 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
              DESKTOP TALL: layout original con flex fijo (no scroll)
              ═══════════════════════════════════════════════ */
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <KPIRow kpis={kpis} />
+            <KPIRow
+              kpis={kpis}
+              daily={daily}
+              weekRevenue={comparison?.weekRevenue ?? 0}
+              monthRevenue={comparison?.monthRevenue ?? 0}
+            />
 
             {/* Sección principal: Usuarios + At Risk */}
             <div style={{
@@ -187,7 +192,12 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
             display: "flex",
             flexDirection: "column",
           }}>
-            <KPIRow kpis={kpis} />
+            <KPIRow
+              kpis={kpis}
+              daily={daily}
+              weekRevenue={comparison?.weekRevenue ?? 0}
+              monthRevenue={comparison?.monthRevenue ?? 0}
+            />
 
             {/* Sección principal */}
             <div style={{ padding: `0 ${px}px`, display: "flex", flexDirection: "column", gap: 10 }}>
