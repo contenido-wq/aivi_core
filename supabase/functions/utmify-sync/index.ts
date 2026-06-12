@@ -3,20 +3,26 @@ import { serve }        from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 declare const Deno: {
-  env: {
-    get(key: string): string | undefined;
-  };
+  env:  { get(key: string): string | undefined };
+  cron: (name: string, schedule: string, handler: () => Promise<void>) => void;
 };
 
 const UTMIFY_BASE = "https://api.utmify.com.br";
 
-/** Devuelve la fecha en Colombia (UTC-5) como "YYYY-MM-DD" */
 function toColombiaDate(d: Date): string {
   const local = new Date(d.getTime() - 5 * 60 * 60 * 1000);
   return local.toISOString().split("T")[0];
 }
 
-serve(async (_req) => {
+function normalizePlatform(source: string): string {
+  const s = source.toLowerCase();
+  if (s.includes("facebook") || s.includes("meta") || s.includes("fb")) return "facebook";
+  if (s.includes("google") || s.includes("gads"))                        return "google";
+  if (s.includes("tiktok") || s.includes("tt"))                          return "tiktok";
+  return "other";
+}
+
+async function runSync(debug: boolean): Promise<Response> {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -33,7 +39,10 @@ serve(async (_req) => {
     if (!res.ok) {
       const err = await res.text();
       console.error("UTMify API error:", res.status, err);
-      return new Response(JSON.stringify({ ok: false, error: err }), { status: 502 });
+      return new Response(JSON.stringify({ ok: false, error: err }), {
+        status: 502,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const data = await res.json();
@@ -58,7 +67,7 @@ serve(async (_req) => {
         investment:  metrics.investment,
         impressions: metrics.impressions,
         clicks:      metrics.clicks,
-        raw_data:    data,
+        raw_data:    debug ? data : null,
         synced_at:   new Date().toISOString(),
       }, { onConflict: "date,platform" });
     }
@@ -72,20 +81,28 @@ serve(async (_req) => {
     }, { onConflict: "date" });
 
     console.log(`✅ UTMify sync OK — ${today} — $${totalInvestment.toFixed(2)}`);
-    return new Response(JSON.stringify({ ok: true, totalInvestment, platforms: platformMap }), {
+
+    const result: Record<string, unknown> = { ok: true, totalInvestment, platforms: platformMap };
+    if (debug) result.rawUtmify = data;
+
+    return new Response(JSON.stringify(result), {
       headers: { "Content-Type": "application/json" },
     });
 
   } catch (e) {
     console.error("UTMify sync failed:", e);
-    return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500 });
+    return new Response(JSON.stringify({ ok: false, error: String(e) }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
-});
-
-function normalizePlatform(source: string): string {
-  const s = source.toLowerCase();
-  if (s.includes("facebook") || s.includes("meta") || s.includes("fb")) return "facebook";
-  if (s.includes("google") || s.includes("gads"))                        return "google";
-  if (s.includes("tiktok") || s.includes("tt"))                          return "tiktok";
-  return "other";
 }
+
+// Sync automático — cada hora en el minuto 0
+Deno.cron("utmify-hourly", "0 * * * *", async () => { await runSync(false); });
+
+// Trigger manual (botón TopNav) o ?debug=true para inspeccionar respuesta de UTMify
+serve(async (req) => {
+  const debug = new URL(req.url).searchParams.has("debug");
+  return runSync(debug);
+});
