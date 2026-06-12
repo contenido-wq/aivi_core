@@ -192,7 +192,8 @@ export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData>
   // Leer inversión histórica acumulada desde daily_metrics
   const { data: metricRows } = await supabase
     .from("daily_metrics")
-    .select("investment");
+    .select("investment")
+    .limit(5000);
 
   const totalInvestment = (metricRows ?? [])
     .reduce((s: number, r: any) => s + Number(r.investment ?? 0), 0);
@@ -246,8 +247,8 @@ export async function getPlansBreakdown(filter: ProductFilter = "todos"): Promis
       };
     }
     if (row.status === "active") {
-      map[row.plan_name].active++;
       const period = getBillingPeriod(row.plan_name);
+      if (period !== "trial") map[row.plan_name].active++;
       map[row.plan_name][period]++;
     }
     if (row.status === "cancelled") map[row.plan_name].cancelled++;
