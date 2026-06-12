@@ -84,8 +84,16 @@ serve(async (req) => {
     const token = await getAccessToken();
     console.log("✅ Token OK");
 
-    const sales = await fetchAllSales(token, startDate, endDate);
-    console.log(`Total ventas encontradas: ${sales.length}`);
+    const rawSales = await fetchAllSales(token, startDate, endDate);
+    console.log(`Total ventas encontradas: ${rawSales.length}`);
+
+    // Ordenar cronológicamente (más antiguo primero) para que el evento más reciente
+    // sea siempre el último en upsertarse y defina el estado final de la suscripción.
+    const sales = [...rawSales].sort((a, b) => {
+      const dateA = Number(a.purchase?.order_date ?? 0);
+      const dateB = Number(b.purchase?.order_date ?? 0);
+      return dateA - dateB;
+    });
 
     let inserted = 0;
     let errors   = 0;
@@ -167,7 +175,7 @@ serve(async (req) => {
           status,
           amount,
           currency,
-          updated_at: new Date().toISOString(),
+          updated_at: order_date,
         }, { onConflict: "subscriber_code" });
 
         inserted++;
