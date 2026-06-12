@@ -159,13 +159,13 @@ export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData>
     (now.getMonth() - firstDate.getMonth())
   ));
 
-  // Leer inversión histórica acumulada desde daily_metrics
-  const { data: metricRows } = await supabase
-    .from("daily_metrics")
+  // Leer inversión histórica acumulada desde investment_data (fuente canónica — UTMify sync)
+  const { data: invRows } = await supabase
+    .from("investment_data")
     .select("investment")
     .limit(5000);
 
-  const totalInvestment = (metricRows ?? [])
+  const totalInvestment = (invRows ?? [])
     .reduce((s: number, r: any) => s + Number(r.investment ?? 0), 0);
 
   const roas = totalInvestment > 0
@@ -580,14 +580,28 @@ async function getDailyChartData(date: Date, range: ChartTimeRange, filter: Prod
   const startDate = new Date(date);
   startDate.setDate(startDate.getDate() - days);
 
-  const { data: metrics } = await supabase
-    .from("daily_metrics")
-    .select("date, revenue, investment")
-    .gte("date", localDateStr(startDate))
-    .lte("date", localDateStr(date))
-    .order("date", { ascending: true });
+  // Leer revenue desde daily_metrics y inversión desde investment_data
+  // (investment_data es la fuente canónica — escrita por UTMify sync)
+  const [{ data: metrics }, { data: invRows }] = await Promise.all([
+    supabase
+      .from("daily_metrics")
+      .select("date, revenue")
+      .gte("date", localDateStr(startDate))
+      .lte("date", localDateStr(date))
+      .order("date", { ascending: true }),
+    supabase
+      .from("investment_data")
+      .select("date, investment")
+      .gte("date", localDateStr(startDate))
+      .lte("date", localDateStr(date)),
+  ]);
 
-  // Si hay filtro por producto, necesitamos calcular desde transactions
+  // Agregar inversión por fecha (puede haber varias plataformas por día)
+  const investmentMap: Record<string, number> = {};
+  for (const r of (invRows ?? [])) {
+    investmentMap[r.date] = (investmentMap[r.date] ?? 0) + Math.round(Number(r.investment ?? 0) * 100) / 100;
+  }
+
   let points: ChartPoint[];
 
   if (filter !== "todos") {
@@ -614,13 +628,13 @@ async function getDailyChartData(date: Date, range: ChartTimeRange, filter: Prod
       .map(([d, ingresos]) => ({
         t: d.slice(5), // "05-10" formato corto
         ingresos: Math.round(ingresos * 100) / 100,
-        inversion: 0,
+        inversion: investmentMap[d] ?? 0,
       }));
   } else {
     points = (metrics ?? []).map((r: any) => ({
       t: (r.date as string).slice(5), // "05-10"
-      ingresos: Math.round(Number(r.revenue) * 100) / 100,
-      inversion: Math.round(Number(r.investment ?? 0) * 100) / 100,
+      ingresos:  Math.round(Number(r.revenue) * 100) / 100,
+      inversion: investmentMap[r.date] ?? 0,
     }));
   }
 
