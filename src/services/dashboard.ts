@@ -24,9 +24,13 @@ export function getProductFamily(planName: string): string {
 
 export interface PlanRow {
   name:      string;
+  family:    string;
   active:    number;
   cancelled: number;
   delayed:   number;
+  mensual:   number;
+  anual:     number;
+  trial:     number;
 }
 
 export interface DailyData {
@@ -110,12 +114,42 @@ function matchesPlan(planName: string, filter: ProductFilter): boolean {
   return true; // sinAIVI handled upstream
 }
 
+/** Aplica el filtro de producto directamente en la query de Supabase. */
+function applyDbFilter(query: any, filter: ProductFilter): any {
+  if (filter === "AIVI")    return query.ilike("plan_name", "AIVI%");
+  if (filter === "MV3")     return query.or('plan_name.ilike.Método V3%,plan_name.ilike.MV3%');
+  if (filter === "Reto15D") return query.or('plan_name.ilike.Reto 15D%,plan_name.ilike.Reto15D%');
+  return query;
+}
+
+const PAGE_SIZE = 1000;
+
+/** Pagina automáticamente por todas las filas superando el cap de 1000 del servidor. */
+async function fetchAll<T>(queryFn: (from: number, to: number) => any): Promise<T[]> {
+  const rows: T[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await queryFn(from, from + PAGE_SIZE - 1);
+    if (error) break;
+    const page: T[] = data ?? [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return rows;
+}
+
 export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData> {
-  // Traer todas las suscripciones con moneda
-  const { data: allSubs } = await supabase
+  // Filtrar en DB para evitar el cap de 1000 filas del servidor.
+  // El servidor devuelve máximo 1000 filas por request; al filtrar por plan
+  // en la query solo traemos las filas relevantes (p.ej. ~233 para AIVI).
+  let subsQuery = supabase
     .from("subscriptions")
-    .select("amount, currency, status, plan_name")
-    .limit(5000);
+    .select("amount, currency, status, plan_name");
+  if (filter === "AIVI")    subsQuery = subsQuery.ilike("plan_name", "AIVI%");
+  else if (filter === "MV3")     subsQuery = subsQuery.or('plan_name.ilike.Método V3%,plan_name.ilike.MV3%');
+  else if (filter === "Reto15D") subsQuery = subsQuery.or('plan_name.ilike.Reto 15D%,plan_name.ilike.Reto15D%');
+  const { data: allSubs } = await subsQuery.limit(5000);
 
   const subs = (allSubs ?? []).filter((s: any) => matchesPlan(s.plan_name, filter));
 
@@ -155,6 +189,18 @@ export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData>
     (now.getMonth() - firstDate.getMonth())
   ));
 
+  // Leer inversión histórica acumulada desde daily_metrics
+  const { data: metricRows } = await supabase
+    .from("daily_metrics")
+    .select("investment");
+
+  const totalInvestment = (metricRows ?? [])
+    .reduce((s: number, r: any) => s + Number(r.investment ?? 0), 0);
+
+  const roas = totalInvestment > 0
+    ? Math.round((grossRevenue / totalInvestment) * 100) / 100
+    : 0;
+
   return {
     mrr,
     arr:          mrr * 12,
@@ -162,16 +208,25 @@ export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData>
     cancelled:    cancelled.length,
     delayed:      delayed.length,
     grossRevenue,
-    investment:   0,
-    roas:         0,
+    investment:   filter === "todos" ? totalInvestment : 0,
+    roas:         filter === "todos" ? roas : 0,
     monthsActive,
   };
 }
 
+function getBillingPeriod(planName: string): "mensual" | "anual" | "trial" {
+  const lower = (planName ?? "").toLowerCase();
+  if (lower.includes("trial"))                                          return "trial";
+  if (lower.includes("anual") || lower.includes("annual") || lower.includes("yearly")) return "anual";
+  return "mensual";
+}
+
 export async function getPlansBreakdown(filter: ProductFilter = "todos"): Promise<PlanRow[]> {
-  const { data } = await supabase
-    .from("subscriptions")
-    .select("plan_name, status");
+  let query = supabase.from("subscriptions").select("plan_name, status");
+  if (filter === "AIVI")    query = query.ilike("plan_name", "AIVI%");
+  else if (filter === "MV3")     query = query.or('plan_name.ilike.Método V3%,plan_name.ilike.MV3%');
+  else if (filter === "Reto15D") query = query.or('plan_name.ilike.Reto 15D%,plan_name.ilike.Reto15D%');
+  const { data } = await query.limit(5000);
 
   if (!data) return [];
 
@@ -179,9 +234,22 @@ export async function getPlansBreakdown(filter: ProductFilter = "todos"): Promis
   for (const row of (data ?? [])) {
     if (!matchesPlan(row.plan_name, filter)) continue;
     if (!map[row.plan_name]) {
-      map[row.plan_name] = { name: row.plan_name, active: 0, cancelled: 0, delayed: 0 };
+      map[row.plan_name] = {
+        name:      row.plan_name,
+        family:    getProductFamily(row.plan_name),
+        active:    0,
+        cancelled: 0,
+        delayed:   0,
+        mensual:   0,
+        anual:     0,
+        trial:     0,
+      };
     }
-    if (row.status === "active")    map[row.plan_name].active++;
+    if (row.status === "active") {
+      map[row.plan_name].active++;
+      const period = getBillingPeriod(row.plan_name);
+      map[row.plan_name][period]++;
+    }
     if (row.status === "cancelled") map[row.plan_name].cancelled++;
     if (row.status === "delayed")   map[row.plan_name].delayed++;
   }
@@ -932,6 +1000,22 @@ export async function syncToday(): Promise<{ ok: boolean; inserted?: number; tot
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       return { ok: false, error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+    }
+    return res.json();
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+export async function syncUtmify(): Promise<{ ok: boolean; totalInvestment?: number; error?: string }> {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/utmify-sync`;
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return { ok: false, error: `HTTP ${res.status}: ${text.slice(0, 100)}` };
     }
     return res.json();
   } catch (e) {
