@@ -1,6 +1,8 @@
-import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight, X, LogOut } from "lucide-react";
+import { useState } from "react";
+import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight, X, LogOut, Pencil } from "lucide-react";
 import { C } from "../../tokens";
 import type { ProductFilter, DailyData } from "../../services/dashboard";
+import { useDailyGoal } from "../../hooks/useDailyGoal";
 
 interface SidebarProps {
   filter:           ProductFilter;
@@ -44,6 +46,18 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return `$${parts.join(".")}`;
   };
+
+  const { goal, setGoal }               = useDailyGoal();
+  const [editingGoal, setEditingGoal]   = useState(false);
+  const [goalInput,   setGoalInput]     = useState("");
+
+  const startEdit = () => { setGoalInput(String(goal)); setEditingGoal(true); };
+  const saveGoal  = () => {
+    const parsed = Number(goalInput);
+    if (!isNaN(parsed) && parsed > 0) setGoal(parsed);
+    setEditingGoal(false);
+  };
+  const cancelEdit = () => setEditingGoal(false);
 
   // In mobile mode, don't render unless open
   if (isMobile && !open) return null;
@@ -173,21 +187,61 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
               </div>
             ))}
             {/* Meta diaria */}
-            {(() => {
-              const goal   = 400;
-              const pct    = Math.min(((daily?.revenue ?? 0) / goal) * 100, 100);
-              return (
-                <div style={{ paddingTop: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-                    <span style={{ fontSize: 10, color: C.mutedLight }}>Meta diaria</span>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: pct >= 100 ? C.green : C.orange }}>{pct.toFixed(0)}%</span>
-                  </div>
-                  <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${pct}%`, borderRadius: 2, transition: "width 0.6s ease", background: pct >= 100 ? C.green : `linear-gradient(90deg, ${C.orange}, ${C.yellow})` }} />
-                  </div>
+            <div style={{ paddingTop: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                <span style={{ fontSize: 10, color: C.mutedLight, display: "flex", alignItems: "center", gap: 4 }}>
+                  Meta diaria
+                  {!editingGoal && (
+                    <button
+                      onClick={startEdit}
+                      title="Editar meta"
+                      style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, padding: "0 2px", display: "flex", alignItems: "center" }}
+                    >
+                      <Pencil size={9} />
+                    </button>
+                  )}
+                </span>
+                {!editingGoal && (
+                  <span style={{ fontSize: 11, fontWeight: 800, color: ((daily?.revenue ?? 0) / goal) >= 1 ? C.green : C.orange }}>
+                    {Math.min(Math.round(((daily?.revenue ?? 0) / goal) * 100), 100)}%
+                  </span>
+                )}
+              </div>
+
+              {editingGoal ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
+                  <input
+                    type="number"
+                    min={1}
+                    value={goalInput}
+                    onChange={e => setGoalInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") saveGoal(); if (e.key === "Escape") cancelEdit(); }}
+                    autoFocus
+                    style={{
+                      background: "rgba(255,255,255,0.07)", border: `1px solid rgba(255,107,44,0.4)`,
+                      borderRadius: 6, color: C.white, fontSize: 12, fontWeight: 700,
+                      padding: "3px 6px", width: 72, outline: "none", fontFamily: "inherit",
+                    }}
+                  />
+                  <button onClick={saveGoal} style={{ background: "rgba(255,107,44,0.15)", border: `1px solid rgba(255,107,44,0.35)`, borderRadius: 5, color: C.orange, fontSize: 10, fontWeight: 700, padding: "3px 8px", cursor: "pointer" }}>
+                    OK
+                  </button>
+                  <button onClick={cancelEdit} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, color: C.muted, fontSize: 10, padding: "3px 6px", cursor: "pointer" }}>
+                    ×
+                  </button>
                 </div>
-              );
-            })()}
+              ) : null}
+
+              <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+                <div style={{
+                  height: "100%",
+                  width: `${Math.min(((daily?.revenue ?? 0) / goal) * 100, 100)}%`,
+                  borderRadius: 2,
+                  transition: "width 0.6s ease",
+                  background: ((daily?.revenue ?? 0) / goal) >= 1 ? C.green : `linear-gradient(90deg, ${C.orange}, ${C.yellow})`,
+                }} />
+              </div>
+            </div>
           </div>
         </div>
 
