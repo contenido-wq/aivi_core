@@ -1,7 +1,7 @@
 import { DollarSign, BarChart2, TrendingUp, Users, Clock } from "lucide-react";
 import type { ReactNode } from "react";
 import { C } from "../../tokens";
-import type { KPIData } from "../../services/dashboard";
+import type { KPIData, DailyData } from "../../services/dashboard";
 import { useResponsive } from "../../hooks/useResponsive";
 
 interface KPICardProps {
@@ -46,9 +46,14 @@ function KPICard({ icon, label, value, valueColor, sub, hero, compact }: KPICard
   );
 }
 
-interface KPIRowProps { kpis: KPIData | null; }
+interface KPIRowProps {
+  kpis:         KPIData   | null;
+  daily:        DailyData | null;
+  weekRevenue:  number;
+  monthRevenue: number;
+}
 
-export function KPIRow({ kpis }: KPIRowProps) {
+export function KPIRow({ kpis, daily, weekRevenue, monthRevenue }: KPIRowProps) {
   const { isMobile, isTablet } = useResponsive();
 
   const fmt  = (n: number) => {
@@ -56,6 +61,10 @@ export function KPIRow({ kpis }: KPIRowProps) {
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return `$${parts.join(".")}`;
   };
+  const fmtShort = (n: number) =>
+    n >= 1000
+      ? `$${(n / 1000).toFixed(1)}k`
+      : `$${n.toFixed(0)}`;
   const roas = kpis?.roas ?? 0;
   const compact = isMobile;
   const iconSize = compact ? 16 : 20;
@@ -77,7 +86,11 @@ export function KPIRow({ kpis }: KPIRowProps) {
     }}>
       <KPICard icon={<DollarSign size={iconSize}/>} label="Facturación Bruta"
         value={fmt(kpis?.grossRevenue ?? 0)} valueColor={C.green} hero compact={compact}
-        sub={`${kpis?.monthsActive ?? 0} ${(kpis?.monthsActive ?? 0) === 1 ? "mes" : "meses"} activo`}
+        sub={
+          weekRevenue > 0
+            ? `${kpis?.monthsActive ?? 0} meses · sem ${fmtShort(weekRevenue)} · mes ${fmtShort(monthRevenue)}`
+            : `${kpis?.monthsActive ?? 0} ${(kpis?.monthsActive ?? 0) === 1 ? "mes" : "meses"} activo`
+        }
       />
       <KPICard icon={<BarChart2 size={iconSize}/>}  label="Inversión Total"    value={fmt(kpis?.investment ?? 0)}   valueColor={C.yellow} compact={compact} />
       <KPICard icon={<TrendingUp size={iconSize}/>} label="ROAS"               value={`${roas.toFixed(2)}x`}        valueColor={C.yellow} sub="Ingresos / Inversión" compact={compact} />
@@ -89,6 +102,11 @@ export function KPIRow({ kpis }: KPIRowProps) {
           <span style={{ color: C.red }}>{kpis?.cancelled ?? 0}</span>
         </span>}
         valueColor={C.green}
+        sub={
+          (daily?.newUsers ?? 0) > 0
+            ? `+${daily!.newUsers} nuevos hoy`
+            : undefined
+        }
         compact={compact}
       />
       <KPICard icon={<Clock size={iconSize}/>} label="Atrasados" value={kpis?.delayed ?? 0} valueColor={C.yellow} sub="Pagos pendientes" compact={compact} />
