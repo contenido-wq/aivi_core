@@ -4,16 +4,35 @@ import { C }                   from "../../tokens";
 import { Toggle }              from "../ui/Toggle";
 
 interface TopNavProps {
-  time:        string;
-  adsOn:       boolean;
-  onAdsToggle: () => void;
-  isMobile?:   boolean;
-  onMenuOpen?: () => void;
-  onSync?:     () => Promise<void>;
+  time:            string;
+  adsOn:           boolean;
+  onAdsToggle:     () => void;
+  isMobile?:       boolean;
+  onMenuOpen?:     () => void;
+  onSync?:         () => Promise<void>;
+  onSyncUtmify?:   () => Promise<{ ok: boolean; totalInvestment?: number; error?: string }>;
 }
 
-export function TopNav({ time, adsOn, onAdsToggle, isMobile, onMenuOpen, onSync }: TopNavProps) {
+export function TopNav({ time, adsOn, onAdsToggle, isMobile, onMenuOpen, onSync, onSyncUtmify }: TopNavProps) {
   const [syncing, setSyncing] = useState(false);
+
+  type UtmStatus = "idle" | "loading" | "ok" | "error";
+  const [utmStatus, setUtmStatus] = useState<UtmStatus>("idle");
+  const [utmMsg,    setUtmMsg]    = useState("");
+
+  const handleSyncUtmify = async () => {
+    if (!onSyncUtmify || utmStatus === "loading") return;
+    setUtmStatus("loading");
+    const result = await onSyncUtmify();
+    if (result.ok) {
+      setUtmMsg(result.totalInvestment !== undefined ? `$${result.totalInvestment.toFixed(2)} sync` : "Sincronizado");
+      setUtmStatus("ok");
+    } else {
+      setUtmMsg("Error UTMify");
+      setUtmStatus("error");
+    }
+    setTimeout(() => setUtmStatus("idle"), 2000);
+  };
 
   const handleSync = async () => {
     if (!onSync || syncing) return;
@@ -70,9 +89,29 @@ export function TopNav({ time, adsOn, onAdsToggle, isMobile, onMenuOpen, onSync 
                 <span style={{ fontSize: 10 }}>{syncing ? "Sincronizando…" : "Sincronizar"}</span>
               </button>
             )}
-            <button style={{ background: "none", border: "none", color: C.mutedLight, display: "flex", alignItems: "center", gap: 5 }}>
-              <BarChart2 size={14} />
-              <span>Sync Ads</span>
+            <button
+              onClick={handleSyncUtmify}
+              disabled={utmStatus === "loading"}
+              title="Sincronizar inversión desde UTMify"
+              style={{
+                display: "flex", alignItems: "center", gap: 5,
+                borderRadius: 8, padding: "5px 10px", border: "1px solid",
+                fontSize: 10, fontWeight: 700, cursor: utmStatus === "loading" ? "not-allowed" : "pointer",
+                transition: "all 0.15s",
+                ...(utmStatus === "idle"    && { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.1)",      color: C.mutedLight }),
+                ...(utmStatus === "loading" && { background: "rgba(255,107,44,0.08)", borderColor: "rgba(255,107,44,0.25)",      color: C.orange }),
+                ...(utmStatus === "ok"      && { background: "rgba(34,197,94,0.08)",  borderColor: "rgba(34,197,94,0.25)",       color: C.green }),
+                ...(utmStatus === "error"   && { background: "rgba(255,65,59,0.08)",  borderColor: "rgba(255,65,59,0.25)",       color: C.red }),
+              }}
+            >
+              {utmStatus === "loading"
+                ? <><RefreshCw size={11} style={{ animation: "spin 0.8s linear infinite" }} /> Sincronizando…</>
+                : utmStatus === "ok"
+                ? <>✓ {utmMsg}</>
+                : utmStatus === "error"
+                ? <>✗ {utmMsg}</>
+                : <><BarChart2 size={11} /> UTMify</>
+              }
             </button>
           </>
         )}
