@@ -51,9 +51,10 @@ interface KPIRowProps {
   daily:        DailyData | null;
   weekRevenue:  number;
   monthRevenue: number;
+  filter?:      string;
 }
 
-export function KPIRow({ kpis, daily, weekRevenue, monthRevenue }: KPIRowProps) {
+export function KPIRow({ kpis, daily, weekRevenue, monthRevenue, filter = "todos" }: KPIRowProps) {
   const { isMobile, isTablet } = useResponsive();
 
   const fmt  = (n: number) => {
@@ -92,8 +93,8 @@ export function KPIRow({ kpis, daily, weekRevenue, monthRevenue }: KPIRowProps) 
             : `${kpis?.monthsActive ?? 0} ${(kpis?.monthsActive ?? 0) === 1 ? "mes" : "meses"} activo`
         }
       />
-      <KPICard icon={<BarChart2 size={iconSize}/>}  label="Inversión Total"    value={fmt(kpis?.investment ?? 0)}   valueColor={C.yellow} compact={compact} />
-      <KPICard icon={<TrendingUp size={iconSize}/>} label="ROAS"               value={`${roas.toFixed(2)}x`}        valueColor={C.yellow} sub="Ingresos / Inversión" compact={compact} />
+      <KPICard icon={<BarChart2 size={iconSize}/>}  label="Inversión Total"    value={fmt(kpis?.investment ?? 0)}   valueColor={C.yellow} compact={compact} sub={filter === "todos" ? "Pauta Meta Ads · total cuenta" : "Pauta Meta Ads · cuenta total"} />
+      <KPICard icon={<TrendingUp size={iconSize}/>} label="ROAS"               value={`${roas.toFixed(2)}x`}        valueColor={C.yellow} sub={filter === "todos" ? "Ingresos / Inversión" : "Revenue producto / Pauta total"} compact={compact} />
       <KPICard
         icon={<Users size={iconSize}/>} label="Activos / Cancel"
         value={<span>

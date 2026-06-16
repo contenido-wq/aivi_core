@@ -121,6 +121,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
                 daily={daily}
                 weekRevenue={comparison?.weekRevenue ?? 0}
                 monthRevenue={comparison?.monthRevenue ?? 0}
+                filter={filter}
               />
 
               {/* Sección principal: Usuarios + At Risk lado a lado */}

@@ -179,8 +179,8 @@ export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData>
     cancelled:    cancelled.length,
     delayed:      delayed.length,
     grossRevenue,
-    investment:   filter === "todos" ? totalInvestment : 0,
-    roas:         filter === "todos" ? roas : 0,
+    investment:   totalInvestment,
+    roas,
     monthsActive,
   };
 }
