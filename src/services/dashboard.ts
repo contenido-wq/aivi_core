@@ -132,9 +132,20 @@ export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData>
   const active    = subs.filter((s: any) => s.status === "active" && !s.plan_name.includes("Trial"));
   const trials    = subs.filter((s: any) => s.status === "active" && s.plan_name.includes("Trial"));
   const cancelled = subs.filter((s: any) => s.status === "cancelled");
-  const delayed   = subs.filter((s: any) => s.status === "delayed");
 
   const mrr = active.reduce((s: number, sub: any) => s + toUSD(Number(sub.amount), sub.currency), 0);
+
+  // Atrasados: compradores únicos con status delayed en transactions
+  // (subscriptions no registra delayed — la fuente correcta es transactions)
+  let delayedQuery = supabase
+    .from("transactions")
+    .select("buyer_email")
+    .eq("status", "delayed");
+  if (filter === "AIVI")         delayedQuery = delayedQuery.ilike("plan_name", "AIVI%");
+  else if (filter === "MV3")     delayedQuery = delayedQuery.or('plan_name.ilike.Método V3%,plan_name.ilike.MV3%');
+  else if (filter === "Reto15D") delayedQuery = delayedQuery.or('plan_name.ilike.Reto 15D%,plan_name.ilike.Reto15D%');
+  const { data: delayedRows } = await delayedQuery.limit(5000);
+  const delayedCount = new Set((delayedRows ?? []).map((r: any) => r.buyer_email)).size;
 
   // Revenue total histórico — calculado en DB para evitar el cap de filas de PostgREST.
   // calc_gross_revenue devuelve net_amount por moneda; toUSD convierte cada fila a USD.
@@ -177,7 +188,7 @@ export async function getKPIs(filter: ProductFilter = "todos"): Promise<KPIData>
     arr:          mrr * 12,
     activeTotal:  active.length + trials.length,
     cancelled:    cancelled.length,
-    delayed:      delayed.length,
+    delayed:      delayedCount,
     grossRevenue,
     investment:   totalInvestment,
     roas,
