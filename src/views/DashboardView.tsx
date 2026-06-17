@@ -10,6 +10,7 @@ import { ChartPanel }          from "../components/dashboard/ChartPanel";
 import { TransactionsPanel }   from "../components/dashboard/TransactionsPanel";
 import { CountriesPanel }      from "../components/dashboard/CountriesPanel";
 import { AtRiskPanel }         from "../components/dashboard/AtRiskPanel";
+import { DelayedPanel }        from "../components/dashboard/DelayedPanel";
 import { DashFooter }          from "../components/dashboard/DashFooter";
 import { C }                   from "../tokens";
 import { syncToday, syncUtmify } from "../services/dashboard";
@@ -33,7 +34,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
 
   const { isMobile, isTablet, isDesktop, isShortScreen } = useResponsive();
 
-  const { kpis, plans, daily, transactions, comparison, countries, chartData, atRiskUsers, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
+  const { kpis, plans, daily, transactions, comparison, countries, chartData, atRiskUsers, delayedUsers, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
     useDashboardData(date, filter);
 
   const handleSync = useCallback(async () => {
@@ -124,14 +125,17 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
                 filter={filter}
               />
 
-              {/* Sección principal: Usuarios + At Risk lado a lado */}
+              {/* Sección principal: Usuarios + At Risk + Atrasados lado a lado */}
               <div style={{
                 display: "grid", gridTemplateColumns: "1fr 300px",
                 gap: 10, padding: `0 ${px}px`,
                 minHeight: 260,
               }}>
                 <UsersTable plans={plans} kpis={kpis} />
-                <AtRiskPanel users={atRiskUsers} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <AtRiskPanel users={atRiskUsers} />
+                  <DelayedPanel users={delayedUsers} />
+                </div>
               </div>
 
               {/* Sección inferior: Ingresos + Países + Transacciones */}
@@ -159,13 +163,16 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
               monthRevenue={comparison?.monthRevenue ?? 0}
             />
 
-            {/* Sección principal: Usuarios + At Risk */}
+            {/* Sección principal: Usuarios + At Risk + Atrasados */}
             <div style={{
               display: "grid", gridTemplateColumns: "1fr 300px",
               gap: 10, padding: `0 ${px}px`, flex: 1, minHeight: 0, overflow: "hidden",
             }}>
               <UsersTable plans={plans} kpis={kpis} />
-              <AtRiskPanel users={atRiskUsers} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, overflow: "hidden" }}>
+                <AtRiskPanel users={atRiskUsers} />
+                <DelayedPanel users={delayedUsers} />
+              </div>
             </div>
 
             {/* Sección inferior: Ingresos + Países + Transacciones (altura automática) */}
@@ -204,6 +211,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
             <div style={{ padding: `0 ${px}px`, display: "flex", flexDirection: "column", gap: 10 }}>
               <UsersTable plans={plans} kpis={kpis} />
               <AtRiskPanel users={atRiskUsers} />
+              <DelayedPanel users={delayedUsers} />
             </div>
 
             {/* Sección inferior */}

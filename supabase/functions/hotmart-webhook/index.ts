@@ -87,10 +87,11 @@ serve(async (req) => {
   const plan_name       = product?.name         ?? "Desconocido";
   const buyer_email     = buyer?.email           ?? "";
   const buyer_name      = buyer?.name            ?? "";
-  const subscriber_code = sub?.subscriber?.code  ?? hotmart_id;
-  const amount          = Number(purchase.price?.value ?? 0);
-  const currency        = (purchase.price?.currency_value ?? "USD") as string;
-  const today           = toColombiaDate(new Date());
+  const subscriber_code    = sub?.subscriber?.code              ?? hotmart_id;
+  const cancellation_type  = sub?.subscriber?.cancellation_type ?? null;
+  const amount             = Number(purchase.price?.value ?? 0);
+  const currency           = (purchase.price?.currency_value ?? "USD") as string;
+  const today              = toColombiaDate(new Date());
 
   const buyer_phone     = buyer?.checkout_phone                         ?? buyer?.phone ?? "";
   const buyer_country   = buyer?.address?.country                       ?? "";
@@ -129,7 +130,7 @@ serve(async (req) => {
 
   await supabase.from("transactions").upsert({
     hotmart_id,
-    event_type:     event,
+    event_type:        event,
     buyer_name,
     buyer_email,
     buyer_phone,
@@ -140,9 +141,10 @@ serve(async (req) => {
     plan_name,
     amount,
     currency,
-    status:         deriveStatus(event),
-    raw_payload:    payload,
-    created_at:     new Date().toISOString(),
+    status:            deriveStatus(event),
+    cancellation_type,
+    raw_payload:       payload,
+    created_at:        new Date().toISOString(),
   }, { onConflict: "hotmart_id" });
 
   await supabase.from("subscriptions").upsert({

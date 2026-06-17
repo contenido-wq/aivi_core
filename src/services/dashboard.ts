@@ -1057,3 +1057,41 @@ export async function syncUtmify(): Promise<{ ok: boolean; totalInvestment?: num
     return { ok: false, error: String(e) };
   }
 }
+
+// ─── Usuarios atrasados (cuotas sin pagar) ────────────────────────────
+export interface DelayedUser {
+  email:    string;
+  name:     string;
+  planName: string;
+  cuotas:   number;
+  totalUsd: number;
+}
+
+export async function getDelayedUsers(filter: ProductFilter = "todos"): Promise<DelayedUser[]> {
+  let query = supabase
+    .from("transactions")
+    .select("buyer_email, buyer_name, plan_name, amount, currency")
+    .eq("status", "delayed")
+    .limit(5000);
+
+  if (filter === "AIVI")         query = query.ilike("plan_name", "AIVI%");
+  else if (filter === "MV3")     query = query.or('plan_name.ilike.Método V3%,plan_name.ilike.MV3%');
+  else if (filter === "Reto15D") query = query.or('plan_name.ilike.Reto 15D%,plan_name.ilike.Reto15D%');
+
+  const { data } = await query;
+  if (!data) return [];
+
+  const map: Record<string, DelayedUser> = {};
+  for (const t of data) {
+    const email = t.buyer_email ?? "";
+    if (!email) continue;
+    const usd = toUSD(Number(t.amount), t.currency);
+    if (!map[email]) {
+      map[email] = { email, name: t.buyer_name ?? "—", planName: t.plan_name ?? "—", cuotas: 0, totalUsd: 0 };
+    }
+    map[email].cuotas++;
+    map[email].totalUsd = Math.round((map[email].totalUsd + usd) * 100) / 100;
+  }
+
+  return Object.values(map).sort((a, b) => b.totalUsd - a.totalUsd);
+}
