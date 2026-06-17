@@ -110,7 +110,10 @@ export function KPIRow({ kpis, daily, weekRevenue, monthRevenue, filter = "todos
         }
         compact={compact}
       />
-      <KPICard icon={<Clock size={iconSize}/>} label="Atrasados" value={kpis?.delayed ?? 0} valueColor={C.yellow} sub="Pagos pendientes" compact={compact} />
+      {/* Última tarjeta: span 2 en móvil para no quedar sola a la izquierda */}
+      <div style={isMobile ? { gridColumn: "span 2" } : undefined}>
+        <KPICard icon={<Clock size={iconSize}/>} label="Atrasados" value={kpis?.delayed ?? 0} valueColor={C.yellow} sub="Pagos pendientes" compact={compact} />
+      </div>
     </div>
   );
 }
