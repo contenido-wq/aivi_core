@@ -11,13 +11,13 @@ import {
   type ProductFilter,
 } from "../services/dashboard";
 
-const CATEGORIES: { key: TxCategory; label: string; color: string }[] = [
-  { key: "compras",               label: "Compras Aprobadas",        color: C.green   },
-  { key: "solicitudes_reembolso", label: "Solicitudes de Reembolso", color: C.yellow  },
-  { key: "reembolsos",            label: "Reembolsos Hechos",        color: C.orange  },
-  { key: "cancelaciones",         label: "Cancelaciones",            color: C.red     },
-  { key: "atrasados",             label: "Atrasados",                color: C.purple  },
-  { key: "chargeback",            label: "Tarjeta Rechazada",        color: C.pink    },
+const CATEGORIES: { key: TxCategory; label: string; shortLabel: string; color: string }[] = [
+  { key: "compras",               label: "Compras Aprobadas",        shortLabel: "Compras",     color: C.green   },
+  { key: "solicitudes_reembolso", label: "Solicitudes de Reembolso", shortLabel: "Reembolso",   color: C.yellow  },
+  { key: "reembolsos",            label: "Reembolsos Hechos",        shortLabel: "Reembolsos",  color: C.orange  },
+  { key: "cancelaciones",         label: "Cancelaciones",            shortLabel: "Cancelac.",   color: C.red     },
+  { key: "atrasados",             label: "Atrasados",                shortLabel: "Atrasados",   color: C.purple  },
+  { key: "chargeback",            label: "Tarjeta Rechazada",        shortLabel: "Chargeback",  color: C.pink    },
 ];
 
 interface TransactionsViewProps {
@@ -32,7 +32,7 @@ interface TransactionsViewProps {
 export function TransactionsView({
   onSettings, onSignOut, onDashboard, onUsers, activeView = "transacciones", isAdmin = false,
 }: TransactionsViewProps) {
-  const { isMobile, isTablet } = useResponsive();
+  const { isMobile, isTablet, isLarge, isXLarge } = useResponsive();
   const thisYearStart = `${new Date().getFullYear()}-01-01`;
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -104,9 +104,18 @@ export function TransactionsView({
 
   const activeCategory = CATEGORIES.find((c) => c.key === activeTab)!;
   const isMobileLayout = isMobile || isTablet;
+  const sidebarWidth = isMobileLayout ? 0 : (isLarge ? 240 : 220);
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: C.bg, fontFamily: FONT, color: C.white, overflow: "hidden" }}>
+    <div style={{
+      display: "flex",
+      height: "100vh",
+      background: C.bg,
+      fontFamily: FONT,
+      color: C.white,
+      overflow: "hidden",
+      ...(isXLarge && { maxWidth: 1920, margin: "0 auto" }),
+    }}>
       <Sidebar
         filter={filter}
         onFilter={setFilter}
@@ -121,10 +130,11 @@ export function TransactionsView({
         onClose={() => setSidebarOpen(false)}
         isMobile={isMobileLayout}
         isAdmin={isAdmin}
+        width={isLarge ? 240 : 220}
       />
 
       <div style={{
-        marginLeft: isMobileLayout ? 0 : 220,
+        marginLeft: sidebarWidth,
         flex: 1,
         display: "flex",
         flexDirection: "column",
@@ -202,7 +212,7 @@ export function TransactionsView({
                   transition: "all 0.15s",
                 }}
               >
-                AIVI {cat.label.toUpperCase()}
+                {isMobile ? cat.shortLabel : `AIVI ${cat.label.toUpperCase()}`}
               </button>
             ))}
           </div>
