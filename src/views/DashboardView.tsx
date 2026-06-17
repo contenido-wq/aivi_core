@@ -85,7 +85,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
         onClose={() => setSidebarOpen(false)}
         isMobile={isMobile || isTablet}
         isAdmin={isAdmin}
-        width={isLarge ? 240 : 220}
+        width={sidebarWidth || 220}
       />
 
       <div style={{
