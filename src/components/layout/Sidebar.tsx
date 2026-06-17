@@ -23,6 +23,8 @@ interface SidebarProps {
   /** Whether sidebar is in mobile mode (drawer) */
   isMobile?: boolean;
   isAdmin?: boolean;
+  /** Override the sidebar width (desktop only). Default: 220 */
+  width?: number;
 }
 
 const NAV_ITEMS = [
@@ -40,7 +42,7 @@ const FILTERS: { value: ProductFilter; label: string }[] = [
   { value: "Reto15D",  label: "Reto 15D" },
 ];
 
-export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, onUsers, onTransactions, activeView, mrr, arr, daily, open, onClose, isMobile, isAdmin = false }: SidebarProps) {
+export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, onUsers, onTransactions, activeView, mrr, arr, daily, open, onClose, isMobile, isAdmin = false, width }: SidebarProps) {
   const fmtK = (n: number) => {
     const parts = n.toFixed(2).split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -64,7 +66,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
 
   const sidebarContent = (
     <aside style={{
-      width: isMobile ? 270 : 220,
+      width: isMobile ? 270 : (width ?? 220),
       flexShrink: 0,
       background: C.sidebar,
       borderRight: `1px solid ${C.border}`,

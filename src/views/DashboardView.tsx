@@ -32,7 +32,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
   const [filter, setFilter]   = useState<ProductFilter>("AIVI");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const { isMobile, isTablet, isDesktop, isShortScreen } = useResponsive();
+  const { isMobile, isTablet, isDesktop, isShortScreen, isLarge, isXLarge } = useResponsive();
 
   const { kpis, plans, daily, transactions, comparison, countries, chartData, atRiskUsers, delayedUsers, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
     useDashboardData(date, filter);
@@ -62,11 +62,14 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
     );
   }
 
+  // Sidebar width for desktop
+  const sidebarWidth = (isMobile || isTablet) ? 0 : (isLarge ? 240 : 220);
+
   // Padding values based on breakpoint
-  const px = isMobile ? 12 : isTablet ? 16 : 24;
+  const px = isMobile ? 12 : isTablet ? 16 : isLarge ? 32 : 24;
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: C.bg, overflow: "hidden" }}>
+    <div style={{ display: "flex", height: "100vh", background: C.bg, overflow: "hidden", ...(isXLarge && { maxWidth: 1920, margin: "0 auto" }) }}>
       <Sidebar
         filter={filter}
         onFilter={setFilter}
@@ -82,10 +85,11 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
         onClose={() => setSidebarOpen(false)}
         isMobile={isMobile || isTablet}
         isAdmin={isAdmin}
+        width={isLarge ? 240 : 220}
       />
 
       <div style={{
-        marginLeft: (isMobile || isTablet) ? 0 : 220,
+        marginLeft: (isMobile || isTablet) ? 0 : sidebarWidth,
         flex: 1,
         display: "flex",
         flexDirection: "column",
