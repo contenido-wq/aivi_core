@@ -3,6 +3,7 @@ import { ArrowLeft, Search, RefreshCw, Loader2, TrendingUp, Calendar, MapPin, Ra
 import { C, FONT }                       from "../tokens";
 import { getUsersTraceability, getProductFamily } from "../services/dashboard";
 import type { UserProfile, ProductFilter } from "../services/dashboard";
+import { useResponsive }                  from "../hooks/useResponsive";
 
 interface UsersViewProps { onBack: () => void; }
 
@@ -202,6 +203,9 @@ export function UsersView({ onBack }: UsersViewProps) {
   const [query,         setQuery]         = useState("");
   const [programFilter, setProgramFilter] = useState<ProductFilter>("todos");
   const [statusFilter,  setStatusFilter]  = useState<"todos" | UserProfile["status"]>("todos");
+  const [mobileView,    setMobileView]    = useState<"list" | "detail">("list");
+
+  const { isMobile, isLarge, isXLarge } = useResponsive();
 
   const load = async (pf: ProductFilter) => {
     setLoading(true);
@@ -276,6 +280,15 @@ export function UsersView({ onBack }: UsersViewProps) {
       zIndex: 10,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {isMobile && mobileView === "detail" && (
+          <button onClick={() => setMobileView("list")} style={{
+            background: "none", border: "none", color: C.mutedLight,
+            display: "flex", alignItems: "center", gap: 5, fontSize: 12,
+            cursor: "pointer", padding: "6px 10px", borderRadius: 8,
+          }}>
+            <ArrowLeft size={14} /> Lista
+          </button>
+        )}
         <button onClick={onBack} style={{
           background: "none", border: "none", color: C.mutedLight,
           display: "flex", alignItems: "center", gap: 5, fontSize: 12,
@@ -378,7 +391,7 @@ export function UsersView({ onBack }: UsersViewProps) {
         ) : filtered.map(u => {
           const isSel = selected?.email === u.email;
           return (
-            <div key={u.email} onClick={() => setSelected(u)} style={{
+            <div key={u.email} onClick={() => { setSelected(u); if (isMobile) setMobileView("detail"); }} style={{
               padding: "9px 14px",
               borderBottom: `1px solid rgba(255,255,255,0.025)`,
               cursor: "pointer",
@@ -743,20 +756,33 @@ export function UsersView({ onBack }: UsersViewProps) {
     </aside>
   );
 
+  const gridCols = isMobile
+    ? "1fr"
+    : isLarge
+    ? "300px 1fr 360px"
+    : "280px 1fr 330px";
+
   return (
     <div style={{
       display: "grid",
-      gridTemplateColumns: "280px 1fr 330px",
+      gridTemplateColumns: gridCols,
       gridTemplateRows: "52px 1fr",
       height: "100vh",
       background: C.bg,
       fontFamily: FONT,
       overflow: "hidden",
+      ...(isXLarge && { maxWidth: 1920, margin: "0 auto" }),
     }}>
       {topbar}
-      {leftPanel}
-      {mainPanel}
-      {rightPanel ?? <aside style={{ borderLeft: `1px solid ${C.border}`, background: C.sidebar }} />}
+      {isMobile ? (
+        mobileView === "list" ? leftPanel : mainPanel
+      ) : (
+        <>
+          {leftPanel}
+          {mainPanel}
+          {rightPanel ?? <aside style={{ borderLeft: `1px solid ${C.border}`, background: C.sidebar }} />}
+        </>
+      )}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
