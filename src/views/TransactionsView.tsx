@@ -130,7 +130,7 @@ export function TransactionsView({
         onClose={() => setSidebarOpen(false)}
         isMobile={isMobileLayout}
         isAdmin={isAdmin}
-        width={sidebarWidth || 220}
+        width={sidebarWidth || undefined}
       />
 
       <div style={{
