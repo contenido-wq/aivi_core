@@ -13,7 +13,7 @@ const PillBadge = ({ n, color }: { n: number; color: string }) =>
     : <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 11 }}>—</span>;
 
 const FAMILY_COLORS: Record<string, string> = {
-  "AIVI":           "#FF6B2C",
+  "AIVI":           "#FE803F",
   "Método V3":      "#FFC247",
   "Reto 15D":       "#2FB7FF",
   "Reto 11D":       "#2FB7FF",
@@ -129,7 +129,7 @@ export function UsersTable({ plans, kpis }: UsersTableProps) {
               </Fragment>
             ))}
             {families.length > 0 && (
-              <tr style={{ background: "rgba(255,107,44,0.05)" }}>
+              <tr style={{ background: "rgba(254,128,63,0.05)" }}>
                 <td style={{ ...td, fontWeight: 900, fontSize: 13, color: C.white }}>Total</td>
                 <td style={{ ...td, color: C.green,  fontWeight: 900 }}>{totalActive}</td>
                 <td style={{ ...td, color: C.red,    fontWeight: 900 }}>{totalCancelled}</td>

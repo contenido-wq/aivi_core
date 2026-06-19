@@ -97,8 +97,8 @@ export function ChartPanel({ chartData, chartRange, onRangeChange }: ChartPanelP
               key={t.value}
               onClick={() => onRangeChange(t.value)}
               style={{
-                background: chartRange === t.value ? "rgba(255,107,44,0.12)" : "transparent",
-                border: chartRange === t.value ? `1px solid rgba(255,107,44,0.3)` : "1px solid transparent",
+                background: chartRange === t.value ? "rgba(254,128,63,0.12)" : "transparent",
+                border: chartRange === t.value ? `1px solid rgba(254,128,63,0.3)` : "1px solid transparent",
                 borderRadius: 8,
                 color: chartRange === t.value ? C.orange : C.mutedMid,
                 padding: isMobile ? "4px 10px" : "5px 14px",

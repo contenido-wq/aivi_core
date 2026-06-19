@@ -99,7 +99,7 @@ export function TopNav({ time, adsOn, onAdsToggle, isMobile, onMenuOpen, onSync,
                 fontSize: 10, fontWeight: 700, cursor: utmStatus === "loading" ? "not-allowed" : "pointer",
                 transition: "all 0.15s",
                 ...(utmStatus === "idle"    && { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.1)",      color: C.mutedLight }),
-                ...(utmStatus === "loading" && { background: "rgba(255,107,44,0.08)", borderColor: "rgba(255,107,44,0.25)",      color: C.orange }),
+                ...(utmStatus === "loading" && { background: "rgba(254,128,63,0.08)", borderColor: "rgba(254,128,63,0.25)",      color: C.orange }),
                 ...(utmStatus === "ok"      && { background: "rgba(34,197,94,0.08)",  borderColor: "rgba(34,197,94,0.25)",       color: C.green }),
                 ...(utmStatus === "error"   && { background: "rgba(255,65,59,0.08)",  borderColor: "rgba(255,65,59,0.25)",       color: C.red }),
               }}

@@ -101,8 +101,8 @@ export function TransactionsPanel({ transactions, onDateRangeChange }: Transacti
               key={m}
               onClick={() => setViewMode(m)}
               style={{
-                background: viewMode === m ? "rgba(255,107,44,0.12)" : "transparent",
-                border: viewMode === m ? "1px solid rgba(255,107,44,0.3)" : `1px solid ${C.border}`,
+                background: viewMode === m ? "rgba(254,128,63,0.12)" : "transparent",
+                border: viewMode === m ? "1px solid rgba(254,128,63,0.3)" : `1px solid ${C.border}`,
                 borderRadius: 5, color: viewMode === m ? C.orange : C.muted,
                 padding: "3px 10px", fontSize: 10, fontWeight: viewMode === m ? 700 : 500,
                 cursor: "pointer", transition: "all 0.15s",

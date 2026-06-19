@@ -12,19 +12,19 @@ export const C = {
   // ── Borders ───────────────────────────────────────────────
   border:      "rgba(255,255,255,0.08)",
   borderMid:   "rgba(255,255,255,0.12)",
-  borderHover: "rgba(241,90,36,0.45)",
+  borderHover: "rgba(254,128,63,0.45)",
 
   // ── Text ──────────────────────────────────────────────────
-  white:       "#F4F4F5",
+  white:       "#FAFAFA",
   muted:       "#5E5E70",
   mutedMid:    "#8E8EA0",
   mutedLight:  "#A0A0B4",
   label:       "#6F6F85",
 
-  // ── Accents ───────────────────────────────────────────────
-  orange:      "#F15A24",
-  orangeLight: "#FE803F",
-  orangeDark:  "#8A2E14",
+  // ── Accents (brand guide: #FFC252 → #FE803F → #FF413B) ───
+  orange:      "#FE803F",
+  orangeLight: "#FFB07A",
+  orangeDark:  "#C04A18",
 
   yellow:      "#FFC252",
   green:       "#7AC943",
@@ -35,15 +35,15 @@ export const C = {
   purple:      "#A78BFA",
   pink:        "#F472B6",
 
-  // ── Gradients ─────────────────────────────────────────────
-  grad:        "linear-gradient(135deg, #FFC252, #F15A24, #FF413B)",
-  gradBtn:     "linear-gradient(135deg, #F15A24 0%, #8A2E14 100%)",
+  // ── Gradients (brand palette: yellow → orange → red) ─────
+  grad:        "linear-gradient(135deg, #FFC252, #FE803F, #FF413B)",
+  gradBtn:     "linear-gradient(135deg, #FE803F 0%, #FF413B 100%)",
 
   /** Hero KPI card — bold orange fill */
-  gradCard:    "linear-gradient(135deg, rgba(241,90,36,0.35) 0%, rgba(80,28,12,0.38) 60%, #1E1E1E 100%)",
+  gradCard:    "linear-gradient(135deg, rgba(254,128,63,0.35) 0%, rgba(80,28,12,0.38) 60%, #1E1E1E 100%)",
 
   /** LTV / financial highlight panel */
-  gradFinance: "linear-gradient(135deg, rgba(241,90,36,0.18) 0%, rgba(30,30,30,0.95) 100%)",
+  gradFinance: "linear-gradient(135deg, rgba(254,128,63,0.18) 0%, rgba(30,30,30,0.95) 100%)",
 
   /** Retention progress bar */
   gradRetention: "linear-gradient(90deg, #7AC943, #B6E85C, #FFB84D)",

@@ -299,7 +299,7 @@ export function UsersView({ onBack }: UsersViewProps) {
         <span style={{ color: C.border }}>›</span>
         <span style={{ fontSize: 13, fontWeight: 700, color: C.orange }}>Trazabilidad de Usuarios</span>
         {programFilter !== "todos" && (
-          <span style={{ fontSize: 10, fontWeight: 700, color: C.orange, background: "rgba(255,107,44,0.12)", border: "1px solid rgba(255,107,44,0.3)", borderRadius: 4, padding: "1px 7px" }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.orange, background: "rgba(254,128,63,0.12)", border: "1px solid rgba(254,128,63,0.3)", borderRadius: 4, padding: "1px 7px" }}>
             {PROGRAM_FILTERS.find(f => f.value === programFilter)?.label ?? programFilter}
           </span>
         )}
@@ -331,8 +331,8 @@ export function UsersView({ onBack }: UsersViewProps) {
         {PROGRAM_FILTERS.map(f => (
           <button key={f.value} onClick={() => setProgramFilter(f.value)} style={{
             flex: 1, padding: "5px 0", borderRadius: 6, fontSize: 11, fontWeight: 700,
-            border: `1px solid ${programFilter === f.value ? "rgba(255,107,44,0.35)" : C.border}`,
-            background: programFilter === f.value ? "rgba(255,107,44,0.12)" : "transparent",
+            border: `1px solid ${programFilter === f.value ? "rgba(254,128,63,0.35)" : C.border}`,
+            background: programFilter === f.value ? "rgba(254,128,63,0.12)" : "transparent",
             color: programFilter === f.value ? C.orange : C.mutedMid,
             cursor: "pointer", transition: "all 0.12s", fontFamily: FONT,
           }}>{f.label}</button>
@@ -396,7 +396,7 @@ export function UsersView({ onBack }: UsersViewProps) {
               borderBottom: `1px solid rgba(255,255,255,0.025)`,
               cursor: "pointer",
               borderLeft: isSel ? `2px solid ${C.orange}` : "2px solid transparent",
-              background: isSel ? "rgba(255,107,44,0.07)" : "transparent",
+              background: isSel ? "rgba(254,128,63,0.07)" : "transparent",
               transition: "background 0.1s",
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 2 }}>
@@ -414,8 +414,8 @@ export function UsersView({ onBack }: UsersViewProps) {
                 {(familyCounts.get(u.email) ?? 0) >= 2 && (
                   <span style={{
                     fontSize: 9, fontWeight: 700,
-                    color: C.orange, background: "rgba(255,107,44,0.12)",
-                    border: "1px solid rgba(255,107,44,0.25)",
+                    color: C.orange, background: "rgba(254,128,63,0.12)",
+                    border: "1px solid rgba(254,128,63,0.25)",
                     borderRadius: 4, padding: "1px 5px",
                   }}>
                     {familyCounts.get(u.email)}⬡
@@ -439,7 +439,7 @@ export function UsersView({ onBack }: UsersViewProps) {
 
       {/* Profile Header */}
       <div style={{
-        background: `linear-gradient(135deg, rgba(255,107,44,0.08) 0%, ${C.card} 55%)`,
+        background: `linear-gradient(135deg, rgba(254,128,63,0.08) 0%, ${C.card} 55%)`,
         border: `1px solid ${C.border}`,
         borderRadius: 14, padding: "18px 20px",
       }}>
@@ -567,8 +567,8 @@ export function UsersView({ onBack }: UsersViewProps) {
               <span style={{
                 fontSize: 10, fontWeight: 700,
                 color: f.count >= 2 ? C.orange : C.mutedMid,
-                background: f.count >= 2 ? "rgba(255,107,44,0.10)" : "transparent",
-                border: f.count >= 2 ? "1px solid rgba(255,107,44,0.25)" : "1px solid transparent",
+                background: f.count >= 2 ? "rgba(254,128,63,0.10)" : "transparent",
+                border: f.count >= 2 ? "1px solid rgba(254,128,63,0.25)" : "1px solid transparent",
                 borderRadius: 4, padding: "1px 7px",
               }}>
                 ×{f.count}
@@ -632,9 +632,9 @@ export function UsersView({ onBack }: UsersViewProps) {
         <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", color: C.label, textTransform: "uppercase", marginBottom: 8 }}>Lifetime Value</div>
         <div style={{
           background: C.gradFinance,
-          border: `1px solid rgba(255,107,44,0.45)`,
+          border: `1px solid rgba(254,128,63,0.45)`,
           borderRadius: 13, padding: "16px 14px", textAlign: "center",
-          boxShadow: "0 0 25px rgba(255,107,44,0.12), 0 8px 24px rgba(0,0,0,0.3)",
+          boxShadow: "0 0 25px rgba(254,128,63,0.12), 0 8px 24px rgba(0,0,0,0.3)",
         }}>
           <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.12em", color: C.orange, textTransform: "uppercase", marginBottom: 8 }}>LTV Acumulado</div>
           <div style={{ fontSize: 36, fontWeight: 900, color: C.orange, lineHeight: 1, letterSpacing: "-0.03em" }}>{fmtUSD(selected.ltv)}</div>
