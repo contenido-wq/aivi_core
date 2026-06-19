@@ -46,7 +46,13 @@ export default function App() {
   if (view === "admin") return <AdminPanel onBack={() => setView("dashboard")} />;
 
   // Vista Usuarios (trazabilidad)
-  if (view === "usuarios") return <UsersView onBack={() => setView("dashboard")} />;
+  if (view === "usuarios") return (
+    <UsersView
+      onBack={() => setView("dashboard")}
+      onDashboard={() => setView("dashboard")}
+      onTransactions={() => setView("transacciones")}
+    />
+  );
 
   // Vista Transacciones
   if (view === "transacciones") return (

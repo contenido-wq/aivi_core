@@ -4,8 +4,13 @@ import { C, FONT }                       from "../tokens";
 import { getUsersTraceability, getProductFamily } from "../services/dashboard";
 import type { UserProfile, ProductFilter } from "../services/dashboard";
 import { useResponsive }                  from "../hooks/useResponsive";
+import { MobileBottomNav }               from "../components/layout/MobileBottomNav";
 
-interface UsersViewProps { onBack: () => void; }
+interface UsersViewProps {
+  onBack:          () => void;
+  onDashboard?:    () => void;
+  onTransactions?: () => void;
+}
 
 const FLAGS: Record<string, string> = {
   "Colombia":"🇨🇴","México":"🇲🇽","Mexico":"🇲🇽","Argentina":"🇦🇷",
@@ -196,7 +201,7 @@ function cleanPhone(raw: string): string {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function UsersView({ onBack }: UsersViewProps) {
+export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProps) {
   const [users,         setUsers]         = useState<UserProfile[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [selected,      setSelected]      = useState<UserProfile | null>(null);
@@ -381,7 +386,7 @@ export function UsersView({ onBack }: UsersViewProps) {
       </div>
 
       {/* List */}
-      <div style={{ overflowY: "auto", flex: 1 }}>
+      <div style={{ overflowY: "auto", flex: 1, paddingBottom: isMobile ? 64 : 0 }}>
         {loading ? (
           <div style={{ textAlign: "center", padding: "40px 0", color: C.muted }}>
             <Loader2 size={18} style={{ animation: "spin 0.8s linear infinite" }} />
@@ -435,7 +440,7 @@ export function UsersView({ onBack }: UsersViewProps) {
       Selecciona un usuario
     </main>
   ) : (
-    <main style={{ overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 14, background: C.bg }}>
+    <main style={{ overflowY: "auto", padding: 20, paddingBottom: isMobile ? 84 : 20, display: "flex", flexDirection: "column", gap: 14, background: C.bg }}>
 
       {/* Profile Header */}
       <div style={{
@@ -784,6 +789,15 @@ export function UsersView({ onBack }: UsersViewProps) {
         </>
       )}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      {isMobile && (
+        <MobileBottomNav
+          activeView="usuarios"
+          onDashboard={onDashboard}
+          onTransactions={onTransactions}
+          filter={programFilter}
+          onFilter={setProgramFilter}
+        />
+      )}
     </div>
   );
 }
