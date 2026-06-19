@@ -60,7 +60,8 @@ async function syncDate(
   mcpToken: string,
   dashboardId: string,
   dateStr: string,
-): Promise<{ date: string; totalInvestment: number; impressions: number; clicks: number }> {
+  debug = false,
+): Promise<{ date: string; totalInvestment: number; impressions: number; clicks: number; rawData?: unknown }> {
   const data = await callMcp(mcpToken, "get_meta_ad_objects", {
     dashboardId,
     level:     "account",
@@ -83,7 +84,7 @@ async function syncDate(
   if (invErr) throw new Error(`investment_data upsert (${dateStr}): ${invErr.message}`);
 
   console.log(`✅ UTMify sync OK — ${dateStr} — $${totalSpend.toFixed(2)}`);
-  return { date: dateStr, totalInvestment: totalSpend, impressions: totalImpres, clicks: totalClicks };
+  return { date: dateStr, totalInvestment: totalSpend, impressions: totalImpres, clicks: totalClicks, ...(debug && { rawData: data }) };
 }
 
 // Sincroniza el día actual usando método delta:
@@ -94,7 +95,8 @@ async function syncToday(
   mcpToken: string,
   dashboardId: string,
   todayStr: string,
-): Promise<{ date: string; totalInvestment: number; impressions: number; clicks: number }> {
+  debug = false,
+): Promise<{ date: string; totalInvestment: number; impressions: number; clicks: number; rawData?: unknown }> {
   const monthStart = todayStr.slice(0, 8) + "01";
 
   // Consultar acumulado del mes hasta hoy
@@ -138,17 +140,17 @@ async function syncToday(
   if (upsertErr) throw new Error(`investment_data upsert today (${todayStr}): ${upsertErr.message}`);
 
   console.log(`✅ UTMify today delta — ${todayStr} — $${dailySpend.toFixed(2)} (MTD: $${mtdSpend.toFixed(2)}, previos: $${storedSpend.toFixed(2)})`);
-  return { date: todayStr, totalInvestment: dailySpend, impressions: dailyImpressions, clicks: dailyClicks };
+  return { date: todayStr, totalInvestment: dailySpend, impressions: dailyImpressions, clicks: dailyClicks, ...(debug && { rawData: mtdData }) };
 }
 
 // Sync completo: rellena los últimos 7 días (para cubrir huecos) y luego calcula hoy con delta
-async function runSync(): Promise<Response> {
+async function runSync(debug = false): Promise<Response> {
   const supabase    = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const mcpToken    = Deno.env.get("UTMIFY_MCP_TOKEN")!;
   const dashboardId = Deno.env.get("UTMIFY_DASHBOARD_ID")!;
   const today       = toColombiaDate(new Date());
 
-  const results: Array<{ date: string; totalInvestment: number }> = [];
+  const results: Array<{ date: string; totalInvestment: number; rawData?: unknown }> = [];
   const errors:  Array<{ date: string; error: string }> = [];
 
   // Sincronizar últimos 7 días completados (rellena huecos automáticamente)
@@ -157,8 +159,8 @@ async function runSync(): Promise<Response> {
     d.setDate(d.getDate() - i);
     const dateStr = toColombiaDate(d);
     try {
-      const r = await syncDate(supabase, mcpToken, dashboardId, dateStr);
-      results.push({ date: r.date, totalInvestment: r.totalInvestment });
+      const r = await syncDate(supabase, mcpToken, dashboardId, dateStr, debug);
+      results.push({ date: r.date, totalInvestment: r.totalInvestment, ...(debug && { rawData: r.rawData }) });
     } catch (e) {
       console.error(`Sync error for ${dateStr}:`, e);
       errors.push({ date: dateStr, error: String(e) });
@@ -167,8 +169,8 @@ async function runSync(): Promise<Response> {
 
   // Calcular hoy con método delta (evita el acumulado del mes)
   try {
-    const r = await syncToday(supabase, mcpToken, dashboardId, today);
-    results.push({ date: r.date, totalInvestment: r.totalInvestment });
+    const r = await syncToday(supabase, mcpToken, dashboardId, today, debug);
+    results.push({ date: r.date, totalInvestment: r.totalInvestment, ...(debug && { rawData: r.rawData }) });
   } catch (e) {
     console.error(`Sync error for today (${today}):`, e);
     errors.push({ date: today, error: String(e) });
@@ -178,6 +180,7 @@ async function runSync(): Promise<Response> {
     ok:      errors.length === 0,
     results,
     errors,
+    ...(debug && { debug: true }),
   }), { headers: { "Content-Type": "application/json" } });
 }
 
@@ -242,6 +245,7 @@ serve(async (req) => {
   const params = new URL(req.url).searchParams;
   const from   = params.get("from");
   const to     = params.get("to");
+  const debug  = params.has("debug");
   if (from && to) return runBackfill(from, to);
-  return runSync();
+  return runSync(debug);
 });
