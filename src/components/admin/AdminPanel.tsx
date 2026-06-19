@@ -318,7 +318,7 @@ function RequestRow({ req, loading, message, onApprove, onReject, fmtDate }: Req
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
-            {isApproved && <CheckCircle size={13} style={{ color: "#22C55E", flexShrink: 0 }} />}
+            {isApproved && <CheckCircle size={13} style={{ color: "#FE803F", flexShrink: 0 }} />}
             {isRejected && <XCircle     size={13} style={{ color: "#EF4444", flexShrink: 0 }} />}
             {isPending  && <Clock       size={13} style={{ color: "#FE803F", flexShrink: 0 }} />}
             <span style={{ fontSize: 13, fontWeight: 700, color: "#222", wordBreak: "break-all" }}>{req.email}</span>
@@ -336,7 +336,7 @@ function RequestRow({ req, loading, message, onApprove, onReject, fmtDate }: Req
               disabled={loading}
               style={{
                 padding: "6px 14px", borderRadius: 7, border: "none",
-                background: loading ? "#ccc" : "#22C55E",
+                background: loading ? "#ccc" : "#FE803F",
                 color: "#fff", fontSize: 11, fontWeight: 700,
                 cursor: loading ? "not-allowed" : "pointer",
                 display: "flex", alignItems: "center", gap: 4,

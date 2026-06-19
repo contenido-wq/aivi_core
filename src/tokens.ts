@@ -27,13 +27,13 @@ export const C = {
   orangeDark:  "#C04A18",
 
   yellow:      "#FFC252",
-  green:       "#7AC943",
-  greenSoft:   "rgba(122,201,67,0.12)",
-  blue:        "#3FA9F5",
+  green:       "#FE803F",
+  greenSoft:   "rgba(254,128,63,0.12)",
+  blue:        "#FE803F",
   red:         "#FF413B",
-  teal:        "#2DD4BF",
-  purple:      "#A78BFA",
-  pink:        "#F472B6",
+  teal:        "#FE803F",
+  purple:      "#FFC252",
+  pink:        "#FF413B",
 
   // ── Gradients (brand palette: yellow → orange → red) ─────
   grad:        "linear-gradient(135deg, #FFC252, #FE803F, #FF413B)",
@@ -46,7 +46,7 @@ export const C = {
   gradFinance: "linear-gradient(135deg, rgba(254,128,63,0.18) 0%, rgba(30,30,30,0.95) 100%)",
 
   /** Retention progress bar */
-  gradRetention: "linear-gradient(90deg, #7AC943, #B6E85C, #FFB84D)",
+  gradRetention: "linear-gradient(90deg, #FFC252, #FE803F, #FF413B)",
 } as const;
 
 export const FONT = "'Hanken Grotesk', sans-serif";

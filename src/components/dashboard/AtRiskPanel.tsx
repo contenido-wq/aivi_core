@@ -9,9 +9,9 @@ interface AtRiskPanelProps {
 }
 
 const RISK_CONFIG = {
-  alto:  { color: C.red,    bg: "rgba(255,65,59,0.08)", border: "rgba(255,65,59,0.2)",  icon: AlertTriangle, label: "Alto" },
+  alto:  { color: C.red,    bg: "rgba(255,65,59,0.08)",  border: "rgba(255,65,59,0.2)",  icon: AlertTriangle, label: "Alto" },
   medio: { color: C.yellow, bg: "rgba(255,194,82,0.08)", border: "rgba(255,194,82,0.2)", icon: Clock,         label: "Medio" },
-  bajo:  { color: C.green,  bg: "rgba(34,197,94,0.08)",  border: "rgba(34,197,94,0.2)",  icon: Shield,        label: "Bajo" },
+  bajo:  { color: C.orange, bg: "rgba(254,128,63,0.08)", border: "rgba(254,128,63,0.2)", icon: Shield,        label: "Bajo" },
 };
 
 function RiskBadge({ level }: { level: "alto" | "medio" | "bajo" }) {
@@ -35,7 +35,7 @@ function RiskBadge({ level }: { level: "alto" | "medio" | "bajo" }) {
 
 function DaysBar({ daysActive }: { daysActive: number }) {
   const pct = Math.min((daysActive / 7) * 100, 100);
-  const color = daysActive <= 2 ? C.red : daysActive <= 5 ? C.yellow : C.green;
+  const color = daysActive <= 2 ? C.red : daysActive <= 5 ? C.yellow : C.orange;
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
@@ -87,7 +87,7 @@ export function AtRiskPanel({ users, mobile }: AtRiskPanelProps) {
           {[
             { label: "Alto", count: altoCount, color: C.red },
             { label: "Medio", count: medioCount, color: C.yellow },
-            { label: "Bajo", count: bajoCount, color: C.green },
+            { label: "Bajo", count: bajoCount, color: C.orange },
           ].map(r => (
             <div key={r.label} style={{
               flex: 1, textAlign: "center",
@@ -143,7 +143,7 @@ export function AtRiskPanel({ users, mobile }: AtRiskPanelProps) {
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 9, color: C.muted }}>
                 <span>{u.planName.replace("AIVI — ", "").replace("Método V3 — ", "MV3 ")}</span>
-                <span style={{ color: C.green, fontWeight: 700 }}>${u.amountUsd.toFixed(2)} USD</span>
+                <span style={{ color: C.orange, fontWeight: 700 }}>${u.amountUsd.toFixed(2)} USD</span>
               </div>
 
               <DaysBar daysActive={u.daysActive} />

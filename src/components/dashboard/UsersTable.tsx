@@ -14,10 +14,10 @@ const PillBadge = ({ n, color }: { n: number; color: string }) =>
 
 const FAMILY_COLORS: Record<string, string> = {
   "AIVI":           "#FE803F",
-  "Método V3":      "#FFC247",
-  "Reto 15D":       "#2FB7FF",
-  "Reto 11D":       "#2FB7FF",
-  "Master Creator": "#A78BFA",
+  "Método V3":      "#FFC252",
+  "Reto 15D":       "#FF413B",
+  "Reto 11D":       "#FF413B",
+  "Master Creator": "#FAFAFA",
 };
 
 function familyColor(family: string): string {

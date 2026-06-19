@@ -12,8 +12,8 @@
   --orange:         #FE803F;
   --orange-light:   #FE803F;
   --orange-dark:    #8A2E14;
-  --green:          #7AC943;
-  --blue:           #3FA9F5;
+  --green:          #FE803F;
+  --blue:           #FE803F;
   --yellow:         #FFC252;
   --red:            #FF413B;
   --text:           #FAFAFA;
@@ -174,9 +174,9 @@ button, input, textarea, select {
 
 /* ── Status badge utilities ──────────────────────────────────────────────── */
 .badge-active {
-  background: rgba(122,201,67,0.12);
-  border: 1px solid rgba(122,201,67,0.35);
-  color: #7AC943;
+  background: rgba(254,128,63,0.12);
+  border: 1px solid rgba(254,128,63,0.35);
+  color: #FE803F;
 }
 .badge-cancelled {
   background: rgba(255,65,59,0.12);
@@ -189,9 +189,9 @@ button, input, textarea, select {
   color: #FFC252;
 }
 .badge-trial {
-  background: rgba(63,169,245,0.12);
-  border: 1px solid rgba(63,169,245,0.3);
-  color: #3FA9F5;
+  background: rgba(255,194,82,0.12);
+  border: 1px solid rgba(255,194,82,0.3);
+  color: #FFC252;
 }
 
 /* ── Input base ──────────────────────────────────────────────────────────── */
@@ -262,7 +262,7 @@ button, input, textarea, select {
 
 /* ── Retention bar ───────────────────────────────────────────────────────── */
 .aivi-retention-bar {
-  background: linear-gradient(90deg, #7AC943, #B6E85C, #FFB84D);
+  background: linear-gradient(90deg, #FFC252, #FE803F, #FF413B);
 }
 
 /* ── Responsive tweaks ───────────────────────────────────────────────────── */

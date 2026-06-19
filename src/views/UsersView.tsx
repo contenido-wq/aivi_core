@@ -43,10 +43,10 @@ function daysAgo(iso: string) {
 
 function statusBadge(s: UserProfile["status"]) {
   const map = {
-    active:    { label: "Activo",    bg: "rgba(34,197,94,0.12)",   border: "rgba(34,197,94,0.30)",  color: "#22C55E" },
+    active:    { label: "Activo",    bg: "rgba(254,128,63,0.12)",  border: "rgba(254,128,63,0.30)",  color: "#FE803F" },
     cancelled: { label: "Cancelado", bg: "rgba(255,65,59,0.12)",   border: "rgba(255,65,59,0.30)",  color: "#FF413B" },
-    delayed:   { label: "Retrasado", bg: "rgba(255,194,71,0.12)",  border: "rgba(255,194,71,0.30)", color: "#FFC247" },
-    trial:     { label: "Trial",     bg: "rgba(47,183,255,0.12)",  border: "rgba(47,183,255,0.30)", color: "#2FB7FF" },
+    delayed:   { label: "Retrasado", bg: "rgba(255,194,82,0.12)",  border: "rgba(255,194,82,0.30)", color: "#FFC252" },
+    trial:     { label: "Trial",     bg: "rgba(255,194,82,0.12)",  border: "rgba(255,194,82,0.30)", color: "#FFC252" },
   };
   const m = map[s] ?? map.cancelled;
   return (
@@ -657,10 +657,10 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
 
         {hasAIVI ? (
           /* Estado B: Ya es cliente AIVI — mostrar retención */
-          <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 11, padding: 13 }}>
+          <div style={{ background: "rgba(254,128,63,0.06)", border: "1px solid rgba(254,128,63,0.25)", borderRadius: 11, padding: 13 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
-              <span style={{ fontSize: 14, color: C.green }}>✓</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>Ya es cliente AIVI</span>
+              <span style={{ fontSize: 14, color: C.orange }}>✓</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.orange }}>Ya es cliente AIVI</span>
             </div>
             <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>
               Plan: <span style={{ color: C.mutedLight }}>{selected!.planName}</span>

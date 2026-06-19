@@ -277,10 +277,10 @@ export function LoginView() {
               <div style={{
                 display: "flex", alignItems: "flex-start", gap: 8,
                 padding: "10px 12px", borderRadius: 8,
-                background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)",
+                background: "rgba(254,128,63,0.10)", border: "1px solid rgba(254,128,63,0.25)",
               }}>
-                <CheckCircle size={14} style={{ color: C.green, flexShrink: 0, marginTop: 1 }} />
-                <span style={{ fontSize: 12, color: "#86EFAC" }}>{success}</span>
+                <CheckCircle size={14} style={{ color: C.orange, flexShrink: 0, marginTop: 1 }} />
+                <span style={{ fontSize: 12, color: C.orangeLight }}>{success}</span>
               </div>
             )}
 
