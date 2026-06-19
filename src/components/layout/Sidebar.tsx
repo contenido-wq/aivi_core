@@ -249,8 +249,20 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
 
       </nav>
 
+      {/* Atmospheric brand glow */}
+      <div style={{
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 180,
+        background: "radial-gradient(ellipse at 50% 100%, rgba(254,128,63,0.10) 0%, rgba(254,128,63,0.04) 45%, transparent 70%)",
+        pointerEvents: "none",
+        zIndex: 0,
+      }} />
+
       {/* Footer */}
-      <div style={{ padding: "14px 16px", borderTop: `1px solid ${C.border}` }}>
+      <div style={{ padding: "14px 16px", borderTop: `1px solid ${C.border}`, position: "relative", zIndex: 1 }}>
         <div style={{
           background: "rgba(255,255,255,0.05)",
           backdropFilter: "blur(10px)",
