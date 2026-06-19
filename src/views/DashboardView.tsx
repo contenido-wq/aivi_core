@@ -214,8 +214,8 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
             {/* Sección principal */}
             <div style={{ padding: `0 ${px}px`, display: "flex", flexDirection: "column", gap: 10 }}>
               <UsersTable plans={plans} kpis={kpis} />
-              <AtRiskPanel users={atRiskUsers} />
-              <DelayedPanel users={delayedUsers} />
+              <AtRiskPanel users={atRiskUsers} mobile={isMobile} />
+              <DelayedPanel users={delayedUsers} mobile={isMobile} />
             </div>
 
             {/* Sección inferior */}

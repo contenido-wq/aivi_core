@@ -5,6 +5,7 @@ import type { AtRiskUser } from "../../services/dashboard";
 
 interface AtRiskPanelProps {
   users: AtRiskUser[];
+  mobile?: boolean;
 }
 
 const RISK_CONFIG = {
@@ -54,13 +55,13 @@ function DaysBar({ daysActive }: { daysActive: number }) {
   );
 }
 
-export function AtRiskPanel({ users }: AtRiskPanelProps) {
+export function AtRiskPanel({ users, mobile }: AtRiskPanelProps) {
   const altoCount  = users.filter(u => u.riskLevel === "alto").length;
   const medioCount = users.filter(u => u.riskLevel === "medio").length;
   const bajoCount  = users.filter(u => u.riskLevel === "bajo").length;
 
   return (
-    <Card style={{ padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden", minHeight: 0 }}>
+    <Card style={{ padding: "16px 18px", display: "flex", flexDirection: "column", overflow: mobile ? "visible" : "hidden", minHeight: 0 }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -116,7 +117,7 @@ export function AtRiskPanel({ users }: AtRiskPanelProps) {
           <span style={{ color: C.muted, fontSize: 11 }}>Sin usuarios nuevos en riesgo</span>
         </div>
       ) : (
-        <div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
+        <div style={mobile ? {} : { overflow: "auto", flex: 1, minHeight: 0 }}>
           {users.map((u, i) => (
             <div key={u.email} className="aivi-row" style={{
               padding: "10px 0",

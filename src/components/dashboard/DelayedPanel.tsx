@@ -5,13 +5,14 @@ import type { DelayedUser } from "../../services/dashboard";
 
 interface DelayedPanelProps {
   users: DelayedUser[];
+  mobile?: boolean;
 }
 
-export function DelayedPanel({ users }: DelayedPanelProps) {
+export function DelayedPanel({ users, mobile }: DelayedPanelProps) {
   const totalUsd = users.reduce((s, u) => s + u.totalUsd, 0);
 
   return (
-    <Card style={{ padding: "16px 18px", display: "flex", flexDirection: "column", overflow: "hidden", minHeight: 0 }}>
+    <Card style={{ padding: "16px 18px", display: "flex", flexDirection: "column", overflow: mobile ? "visible" : "hidden", minHeight: 0 }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -45,7 +46,7 @@ export function DelayedPanel({ users }: DelayedPanelProps) {
           <span style={{ color: C.muted, fontSize: 11 }}>Sin pagos atrasados</span>
         </div>
       ) : (
-        <div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
+        <div style={mobile ? {} : { overflow: "auto", flex: 1, minHeight: 0 }}>
           {users.map((u, i) => (
             <div key={u.email} className="aivi-row" style={{
               padding: "9px 0",
