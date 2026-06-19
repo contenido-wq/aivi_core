@@ -1,6 +1,6 @@
 import { DollarSign, BarChart2, TrendingUp, Users, Clock } from "lucide-react";
 import type { ReactNode } from "react";
-import { C } from "../../tokens";
+import { C, FONT_DISPLAY } from "../../tokens";
 import type { KPIData, DailyData } from "../../services/dashboard";
 import { useResponsive } from "../../hooks/useResponsive";
 
@@ -40,6 +40,7 @@ function KPICard({ icon, label, value, valueColor, sub, hero, compact }: KPICard
         color: hero ? "#fff" : valueColor,
         lineHeight: 1, letterSpacing: "-0.03em",
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        fontFamily: FONT_DISPLAY,
       }}>{value}</div>
       {sub && <div style={{ fontSize: compact ? 9 : 10, color: hero ? "rgba(255,255,255,0.55)" : C.muted }}>{sub}</div>}
     </div>
