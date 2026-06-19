@@ -50,4 +50,3 @@ export const C = {
 } as const;
 
 export const FONT = "'Hanken Grotesk', sans-serif";
-export const FONT_DISPLAY = "'Exo 2', sans-serif";

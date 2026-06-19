@@ -1,6 +1,6 @@
 import { useState }            from "react";
 import { RefreshCw, BarChart2, Bell, Zap } from "lucide-react";
-import { C, FONT_DISPLAY }     from "../../tokens";
+import { C }     from "../../tokens";
 import { Toggle }              from "../ui/Toggle";
 
 interface TopNavProps {
@@ -110,7 +110,7 @@ export function TopNav({ time, adsOn, onAdsToggle, isMobile, onMenuOpen: _onMenu
         <button style={{ background: "none", border: "none", color: C.mutedLight, display: "flex", alignItems: "center" }}>
           <Bell size={13} />
         </button>
-        {!isMobile && <span style={{ color: C.mutedLight, fontVariantNumeric: "tabular-nums", fontFamily: FONT_DISPLAY, fontWeight: 700 }}>{time}</span>}
+        {!isMobile && <span style={{ color: C.mutedLight, fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>{time}</span>}
       </div>
     </nav>
   );

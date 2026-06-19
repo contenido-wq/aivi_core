@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight, X, LogOut, Pencil } from "lucide-react";
-import { C, FONT_DISPLAY } from "../../tokens";
+import { C } from "../../tokens";
 import type { ProductFilter, DailyData } from "../../services/dashboard";
 import { useDailyGoal } from "../../hooks/useDailyGoal";
 
@@ -93,7 +93,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
               fontSize: 17, fontWeight: 900, letterSpacing: "-0.04em",
               background: C.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
             }}>AIVI</div>
-            <div style={{ fontSize: 9, fontWeight: 800, color: C.orange, letterSpacing: "0.14em", marginTop: 1, fontFamily: FONT_DISPLAY }}>CORE</div>
+            <div style={{ fontSize: 9, fontWeight: 800, color: C.orange, letterSpacing: "0.14em", marginTop: 1 }}>CORE</div>
           </div>
         </div>
         {isMobile && (
@@ -265,7 +265,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
           {[["MRR", fmtK(mrr), C.green], ["ARR", fmtK(arr), C.green]].map(([k, v, col]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
               <span style={{ fontSize: 10, color: C.mutedLight }}>{k}</span>
-              <span style={{ fontSize: 14, fontWeight: 900, color: col, letterSpacing: "-.02em", fontFamily: FONT_DISPLAY }}>{v}</span>
+              <span style={{ fontSize: 14, fontWeight: 900, color: col as string, letterSpacing: "-.02em" }}>{v}</span>
             </div>
           ))}
         </div>
