@@ -52,31 +52,32 @@ export function DelayedPanel({ users, mobile }: DelayedPanelProps) {
               padding: "9px 0",
               borderBottom: i < users.length - 1 ? `1px solid ${C.border}` : "none",
             }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontSize: 11, fontWeight: 700, color: C.white,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  }}>
-                    {u.name}
-                  </div>
-                  <div style={{
-                    fontSize: 9, color: C.mutedMid, marginTop: 2,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  }}>
-                    {u.planName.replace("Método V3 — ", "MV3 ").replace("AIVI — ", "")}
-                  </div>
+              {/* Nombre — fila completa */}
+              <div style={{
+                fontSize: 13, fontWeight: 700, color: C.white,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                marginBottom: 3,
+              }}>
+                {u.name}
+              </div>
+              {/* Plan + monto + cuotas */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+                <div style={{
+                  fontSize: 9, color: C.mutedMid,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {u.planName.replace("Método V3 — ", "MV3 ").replace("AIVI — ", "")}
                 </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: C.yellow }}>
-                    ${u.totalUsd.toFixed(0)}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end", marginTop: 2 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                     <AlertCircle size={8} style={{ color: C.red }} />
                     <span style={{ fontSize: 9, color: C.red, fontWeight: 700 }}>
                       {u.cuotas} {u.cuotas === 1 ? "cuota" : "cuotas"}
                     </span>
                   </div>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: C.yellow }}>
+                    ${u.totalUsd.toFixed(0)}
+                  </span>
                 </div>
               </div>
             </div>
