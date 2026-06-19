@@ -136,7 +136,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
                 minHeight: 260,
               }}>
                 <UsersTable plans={plans} kpis={kpis} />
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, overflow: "hidden", maxHeight: 320 }}>
                   <AtRiskPanel users={atRiskUsers} />
                   <DelayedPanel users={delayedUsers} />
                 </div>
@@ -145,7 +145,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
               {/* Sección inferior: Ingresos + Países + Transacciones */}
               <div style={{
                 display: "grid", gridTemplateColumns: "1fr 260px 270px",
-                gap: 10, padding: `10px ${px}px 0`, flexShrink: 0,
+                gap: 10, padding: `20px ${px}px 0`, flexShrink: 0,
                 height: 360,
               }}>
                 <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
