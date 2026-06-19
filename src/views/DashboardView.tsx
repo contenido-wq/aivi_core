@@ -3,6 +3,7 @@ import { useClock }            from "../hooks/useClock";
 import { useDashboardData }    from "../hooks/useDashboardData";
 import { useResponsive }       from "../hooks/useResponsive";
 import { Sidebar }             from "../components/layout/Sidebar";
+import { MobileBottomNav }    from "../components/layout/MobileBottomNav";
 import { TopNav }              from "../components/dashboard/TopNav";
 import { KPIRow }              from "../components/dashboard/KPIRow";
 import { UsersTable }          from "../components/dashboard/UsersTable";
@@ -203,6 +204,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
             WebkitOverflowScrolling: "touch",
             display: "flex",
             flexDirection: "column",
+            paddingBottom: isMobile ? 64 : 0,
           }}>
             <KPIRow
               kpis={kpis}
@@ -243,6 +245,15 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
           </div>
         )}
       </div>
+      {isMobile && (
+        <MobileBottomNav
+          activeView={activeView}
+          onUsers={onUsers}
+          onTransactions={onTransactions}
+          filter={filter}
+          onFilter={setFilter}
+        />
+      )}
     </div>
   );
 }
