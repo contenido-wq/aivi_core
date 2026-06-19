@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { Download, Search, RefreshCw, Menu } from "lucide-react";
+import { Download, Search, RefreshCw } from "lucide-react";
 import { C, FONT } from "../tokens";
 import { Sidebar } from "../components/layout/Sidebar";
+import { MobileBottomNav } from "../components/layout/MobileBottomNav";
 import { useResponsive } from "../hooks/useResponsive";
 import {
   getFullTransactions,
@@ -151,14 +152,6 @@ export function TransactionsView({
           background: C.sidebar,
           flexShrink: 0,
         }}>
-          {isMobileLayout && (
-            <button
-              onClick={() => setSidebarOpen(true)}
-              style={{ background: "none", border: "none", cursor: "pointer", color: C.mutedMid, display: "flex", padding: 4 }}
-            >
-              <Menu size={20} />
-            </button>
-          )}
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.03em" }}>
               Transacciones
@@ -185,7 +178,7 @@ export function TransactionsView({
         </div>
 
         {/* Scrollable content */}
-        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", paddingBottom: isMobile ? 64 : 0 }}>
           {/* Tabs */}
           <div style={{
             display: "flex",
@@ -383,6 +376,15 @@ export function TransactionsView({
           })()}
         </div>
       </div>
+      {isMobile && (
+        <MobileBottomNav
+          activeView={activeView}
+          onDashboard={onDashboard}
+          onUsers={onUsers}
+          filter={filter}
+          onFilter={setFilter}
+        />
+      )}
     </div>
   );
 }
