@@ -224,13 +224,13 @@ button, input, textarea, select {
 
 /* ── Primary button ──────────────────────────────────────────────────────── */
 .aivi-btn-primary {
-  background: linear-gradient(135deg, #FE803F 0%, #8A2E14 100%);
+  background: linear-gradient(135deg, #FFC252 0%, #FE803F 50%, #FF413B 100%);
   border: none;
   border-radius: 999px;
   color: #fff;
   font-weight: 700;
   letter-spacing: 0.01em;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.12) inset;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset;
   transition: opacity 0.15s, transform 0.15s;
 }
 .aivi-btn-primary:hover  { opacity: 0.88; transform: translateY(-1px); }

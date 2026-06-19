@@ -37,7 +37,7 @@ export const C = {
 
   // ── Gradients (brand palette: yellow → orange → red) ─────
   grad:        "linear-gradient(135deg, #FFC252, #FE803F, #FF413B)",
-  gradBtn:     "linear-gradient(135deg, #FE803F 0%, #FF413B 100%)",
+  gradBtn:     "linear-gradient(135deg, #FFC252 0%, #FE803F 50%, #FF413B 100%)",
 
   /** Hero KPI card — bold orange fill */
   gradCard:    "linear-gradient(135deg, rgba(254,128,63,0.35) 0%, rgba(80,28,12,0.38) 60%, #1E1E1E 100%)",
