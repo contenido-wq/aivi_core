@@ -42,7 +42,7 @@ const FILTERS: { value: ProductFilter; label: string }[] = [
   { value: "Reto15D",  label: "Reto 15D" },
 ];
 
-export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, onUsers, onTransactions, activeView, mrr, arr, daily, open, onClose, isMobile, isAdmin = false, width }: SidebarProps) {
+export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, onUsers, onTransactions, activeView, mrr, arr, daily, open: _open, onClose, isMobile, isAdmin = false, width }: SidebarProps) {
   const fmtK = (n: number) => {
     const parts = n.toFixed(2).split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -62,7 +62,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
   const cancelEdit = () => setEditingGoal(false);
 
   // In mobile mode, don't render unless open
-  if (isMobile && !open) return null;
+  if (isMobile) return null;
 
   const sidebarContent = (
     <aside style={{

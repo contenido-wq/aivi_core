@@ -1,5 +1,5 @@
 import { useState }            from "react";
-import { RefreshCw, BarChart2, Bell, Zap, Menu } from "lucide-react";
+import { RefreshCw, BarChart2, Bell, Zap } from "lucide-react";
 import { C, FONT_DISPLAY }     from "../../tokens";
 import { Toggle }              from "../ui/Toggle";
 
@@ -13,7 +13,7 @@ interface TopNavProps {
   onSyncUtmify?:   () => Promise<{ ok: boolean; totalInvestment?: number; error?: string }>;
 }
 
-export function TopNav({ time, adsOn, onAdsToggle, isMobile, onMenuOpen, onSync, onSyncUtmify }: TopNavProps) {
+export function TopNav({ time, adsOn, onAdsToggle, isMobile, onMenuOpen: _onMenuOpen, onSync, onSyncUtmify }: TopNavProps) {
   const [syncing, setSyncing] = useState(false);
 
   type UtmStatus = "idle" | "loading" | "ok" | "error";
@@ -52,19 +52,6 @@ export function TopNav({ time, adsOn, onAdsToggle, isMobile, onMenuOpen, onSync,
       gap: 8,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, minWidth: 0 }}>
-        {isMobile && (
-          <button
-            onClick={onMenuOpen}
-            aria-label="Abrir menú"
-            style={{
-              background: "none", border: "none", color: C.white,
-              padding: 6, display: "flex", alignItems: "center",
-              justifyContent: "center", marginRight: 4,
-            }}
-          >
-            <Menu size={20} />
-          </button>
-        )}
         <span style={{ color: C.mutedLight, whiteSpace: "nowrap" }}>AIVI CORE</span>
         <span style={{ color: C.muted }}>›</span>
         <span style={{ color: C.orange, fontWeight: 700 }}>Dashboard</span>
