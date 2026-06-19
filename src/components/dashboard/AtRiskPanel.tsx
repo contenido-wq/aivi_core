@@ -123,27 +123,30 @@ export function AtRiskPanel({ users, mobile }: AtRiskPanelProps) {
               padding: "10px 0",
               borderBottom: i < users.length - 1 ? `1px solid ${C.border}` : "none",
             }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontSize: 11, fontWeight: 700, color: C.white,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  }}>
-                    {u.name}
-                  </div>
-                  <div style={{
-                    fontSize: 9, color: C.mutedMid, marginTop: 1,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  }}>
-                    {u.email}
-                  </div>
-                </div>
-                <RiskBadge level={u.riskLevel} />
+              {/* Nombre — fila completa sin competir con badge */}
+              <div style={{
+                fontSize: 13, fontWeight: 700, color: C.white,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                marginBottom: 2,
+              }}>
+                {u.name}
+              </div>
+              <div style={{
+                fontSize: 9, color: C.mutedMid, marginBottom: 5,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
+                {u.email}
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 9, color: C.muted }}>
-                <span>{u.planName.replace("AIVI — ", "").replace("Método V3 — ", "MV3 ")}</span>
-                <span style={{ color: C.orange, fontWeight: 700 }}>${u.amountUsd.toFixed(2)} USD</span>
+              {/* Plan + badge + monto en una sola fila */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+                  <RiskBadge level={u.riskLevel} />
+                  <span style={{ fontSize: 9, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {u.planName.replace("AIVI — ", "").replace("Método V3 — ", "MV3 ")}
+                  </span>
+                </div>
+                <span style={{ color: C.orange, fontWeight: 700, fontSize: 10, flexShrink: 0 }}>${u.amountUsd.toFixed(2)}</span>
               </div>
 
               <DaysBar daysActive={u.daysActive} />
