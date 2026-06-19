@@ -91,15 +91,21 @@ export function MobileBottomNav({
       )}
 
       <nav style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
-        height: 60,
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        background: C.sidebar,
-        borderTop: `1px solid ${C.border}`,
-        backdropFilter: "blur(12px)",
+        position: "fixed",
+        bottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
+        left: "50%",
+        transform: "translateX(-50%)",
         zIndex: 200,
-        display: "grid",
-        gridTemplateColumns: "repeat(4, 1fr)",
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "6px",
+        background: "rgba(20,20,20,0.65)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        borderRadius: 999,
+        border: "1px solid rgba(255,255,255,0.12)",
+        boxShadow: "0 1px 0 rgba(255,255,255,0.08) inset, 0 8px 32px rgba(0,0,0,0.45)",
         fontFamily: FONT,
       }}>
         {NAV.map(item => {
@@ -110,42 +116,43 @@ export function MobileBottomNav({
               key={item.view}
               onClick={() => handleNav(item.view)}
               style={{
-                background: "none", border: "none", cursor: "pointer",
-                display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center", gap: 3,
-                padding: "8px 0",
-                borderTop: isActive ? `2px solid ${C.orange}` : "2px solid transparent",
-                color: isActive ? C.orange : C.mutedLight,
+                background: isActive ? "rgba(30,30,30,0.90)" : "transparent",
+                border: "none",
+                borderRadius: 16,
+                cursor: "pointer",
+                width: 52,
+                height: 44,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: isActive ? C.orange : "rgba(255,255,255,0.45)",
+                transition: "all 0.2s cubic-bezier(.4,0,.2,1)",
+                boxShadow: isActive ? "0 2px 8px rgba(0,0,0,0.35)" : "none",
+                flexShrink: 0,
               }}
             >
-              <Icon size={18} />
-              <span style={{
-                fontSize: 9, fontWeight: 700,
-                letterSpacing: "0.04em", textTransform: "uppercase",
-              }}>
-                {item.label}
-              </span>
+              <Icon size={20} />
             </button>
           );
         })}
         <button
           onClick={() => setSheetOpen(true)}
           style={{
-            background: "none", border: "none", cursor: "pointer",
-            display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center", gap: 3,
-            padding: "8px 0",
-            borderTop: "2px solid transparent",
-            color: C.mutedLight,
+            background: "transparent",
+            border: "none",
+            borderRadius: 16,
+            cursor: "pointer",
+            width: 52,
+            height: 44,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "rgba(255,255,255,0.45)",
+            transition: "all 0.2s",
+            flexShrink: 0,
           }}
         >
-          <SlidersHorizontal size={18} />
-          <span style={{
-            fontSize: 9, fontWeight: 700,
-            letterSpacing: "0.04em", textTransform: "uppercase",
-          }}>
-            Filtro
-          </span>
+          <SlidersHorizontal size={20} />
         </button>
       </nav>
     </>
