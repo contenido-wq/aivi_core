@@ -9,7 +9,6 @@ import { KPIRow }              from "../components/dashboard/KPIRow";
 import { UsersTable }          from "../components/dashboard/UsersTable";
 import { ChartPanel }          from "../components/dashboard/ChartPanel";
 import { TransactionsPanel }   from "../components/dashboard/TransactionsPanel";
-import { CountriesPanel }      from "../components/dashboard/CountriesPanel";
 import { AtRiskPanel }         from "../components/dashboard/AtRiskPanel";
 import { DelayedPanel }        from "../components/dashboard/DelayedPanel";
 import { DashFooter }          from "../components/dashboard/DashFooter";
@@ -35,7 +34,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
 
   const { isMobile, isTablet, isDesktop, isShortScreen, isLarge, isXLarge } = useResponsive();
 
-  const { kpis, plans, daily, transactions, comparison, countries, chartData, atRiskUsers, delayedUsers, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
+  const { kpis, plans, daily, transactions, comparison, chartData, atRiskUsers, delayedUsers, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
     useDashboardData(date, filter);
 
   const handleSync = useCallback(async () => {
@@ -130,27 +129,24 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
                 filter={filter}
               />
 
-              {/* Sección principal: Usuarios + At Risk + Atrasados lado a lado */}
+              {/* Sección principal: Usuarios + Seguimiento */}
               <div style={{
                 display: "grid", gridTemplateColumns: "1fr 300px",
                 gap: 10, padding: `0 ${px}px`,
                 minHeight: 260,
               }}>
                 <UsersTable plans={plans} kpis={kpis} />
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, overflow: "hidden", maxHeight: 440 }}>
-                  <AtRiskPanel users={atRiskUsers} />
-                  <DelayedPanel users={delayedUsers} />
-                </div>
+                <AtRiskPanel users={atRiskUsers} />
               </div>
 
-              {/* Sección inferior: Ingresos + Países + Transacciones */}
+              {/* Sección inferior: Ingresos + Atrasados + Transacciones */}
               <div style={{
                 display: "grid", gridTemplateColumns: "1fr 260px 270px",
                 gap: 10, padding: `20px ${px}px 0`, flexShrink: 0,
                 height: 280,
               }}>
                 <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
-                <CountriesPanel countries={countries ?? []} />
+                <DelayedPanel users={delayedUsers} />
                 <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
               </div>
 
@@ -168,26 +164,23 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
               monthRevenue={comparison?.monthRevenue ?? 0}
             />
 
-            {/* Sección principal: Usuarios + At Risk + Atrasados */}
+            {/* Sección principal: Usuarios + Seguimiento */}
             <div style={{
               display: "grid", gridTemplateColumns: "1fr 300px",
               gap: 10, padding: `0 ${px}px`, flex: 1, minHeight: 0, overflow: "hidden",
             }}>
               <UsersTable plans={plans} kpis={kpis} />
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, overflow: "hidden" }}>
-                <AtRiskPanel users={atRiskUsers} />
-                <DelayedPanel users={delayedUsers} />
-              </div>
+              <AtRiskPanel users={atRiskUsers} />
             </div>
 
-            {/* Sección inferior: Ingresos + Países + Transacciones (altura automática) */}
+            {/* Sección inferior: Ingresos + Atrasados + Transacciones */}
             <div style={{
               display: "grid", gridTemplateColumns: "1fr 260px 270px",
               gap: 10, padding: `10px ${px}px 0`, flexShrink: 0,
               height: 300,
             }}>
               <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
-              <CountriesPanel countries={countries ?? []} />
+              <DelayedPanel users={delayedUsers} />
               <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
             </div>
 
@@ -217,7 +210,6 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
             <div style={{ padding: `0 ${px}px`, display: "flex", flexDirection: "column", gap: 10 }}>
               <UsersTable plans={plans} kpis={kpis} />
               <AtRiskPanel users={atRiskUsers} mobile={isMobile} />
-              <DelayedPanel users={delayedUsers} mobile={isMobile} />
             </div>
 
             {/* Sección inferior */}
@@ -225,9 +217,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
               <div style={{ padding: `10px ${px}px 0`, display: "flex", flexDirection: "column", gap: 10 }}>
                 <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  <div style={{ maxHeight: 360, overflow: "hidden" }}>
-                    <CountriesPanel countries={countries ?? []} />
-                  </div>
+                  <DelayedPanel users={delayedUsers} mobile />
                   <div style={{ maxHeight: 360, overflow: "hidden" }}>
                     <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
                   </div>
@@ -236,7 +226,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
             ) : (
               <div style={{ padding: `10px ${px}px 0`, display: "flex", flexDirection: "column", gap: 10 }}>
                 <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
-                <CountriesPanel countries={countries ?? []} />
+                <DelayedPanel users={delayedUsers} mobile />
                 <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
               </div>
             )}
