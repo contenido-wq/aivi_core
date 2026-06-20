@@ -14,8 +14,8 @@ export function DelayedPanel({ users, mobile }: DelayedPanelProps) {
   return (
     <Card className={users.length > 0 ? "aivi-card-glow-yellow" : undefined} style={{ padding: mobile ? "16px 18px" : "12px 14px", display: "flex", flexDirection: "column", overflow: mobile ? "visible" : "hidden", minHeight: 0, flex: mobile ? undefined : 1 }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ marginBottom: 8, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <Clock size={14} style={{ color: C.yellow }} />
           <span style={{ fontWeight: 800, fontSize: 13, color: C.white }}>Atrasados</span>
           <span style={{
@@ -26,18 +26,15 @@ export function DelayedPanel({ users, mobile }: DelayedPanelProps) {
             {users.length}
           </span>
         </div>
-        <span style={{ fontSize: 11, fontWeight: 800, color: C.yellow }}>
+        {/* Total USD — peso visual de KPI */}
+        <div style={{ fontSize: 28, fontWeight: 900, color: C.yellow, letterSpacing: "-0.04em", lineHeight: 1 }}>
           ${totalUsd.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-        </span>
+        </div>
+        <div style={{ fontSize: 9, color: C.mutedMid, marginTop: 2 }}>en cuotas pendientes</div>
       </div>
 
-      {/* Subtítulo */}
-      <div style={{
-        fontSize: 9, color: C.mutedMid, marginBottom: 8, flexShrink: 0,
-        padding: "6px 0", borderBottom: `1px solid ${C.border}`,
-      }}>
-        Compradores con cuotas sin pagar — ordenados por monto
-      </div>
+      {/* Separador */}
+      <div style={{ borderTop: `1px solid ${C.border}`, marginBottom: 8, flexShrink: 0 }} />
 
       {/* Lista */}
       {users.length === 0 ? (

@@ -1,4 +1,4 @@
-import { DollarSign, BarChart2, TrendingUp, Users, Clock } from "lucide-react";
+import { DollarSign, BarChart2, TrendingUp, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { C } from "../../tokens";
 import type { KPIData, DailyData } from "../../services/dashboard";
@@ -74,8 +74,8 @@ export function KPIRow({ kpis, daily, weekRevenue, monthRevenue, filter = "todos
   const gridCols = isMobile
     ? "repeat(2, 1fr)"
     : isTablet
-      ? "repeat(3, 1fr)"
-      : "1.4fr 1fr 1fr 1fr 1fr";
+      ? "repeat(2, 1fr)"
+      : "1.4fr 1fr 1fr 1fr";
 
   return (
     <div style={{
@@ -110,10 +110,6 @@ export function KPIRow({ kpis, daily, weekRevenue, monthRevenue, filter = "todos
         }
         compact={compact}
       />
-      {/* Última tarjeta: span 2 en móvil para no quedar sola a la izquierda */}
-      <div style={isMobile ? { gridColumn: "span 2" } : undefined}>
-        <KPICard icon={<Clock size={iconSize}/>} label="Atrasados" value={kpis?.delayed ?? 0} valueColor={C.yellow} sub="Pagos pendientes" compact={compact} />
-      </div>
     </div>
   );
 }
