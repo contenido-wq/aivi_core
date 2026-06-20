@@ -710,7 +710,7 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
                 href={`mailto:${selected!.email}`}
                 style={{
                   flex: 1, textAlign: "center" as const, padding: "7px 0",
-                  borderRadius: 7, background: C.orange, color: "#fff",
+                  borderRadius: 7, background: C.gradBtn, color: "#fff",
                   fontSize: 11, fontWeight: 700, textDecoration: "none",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                 }}

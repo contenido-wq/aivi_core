@@ -55,7 +55,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 14, color: C.red, marginBottom: 12 }}>Error conectando con Supabase</div>
           <div style={{ fontSize: 11, color: C.muted, maxWidth: 340 }}>{error}</div>
-          <button onClick={refresh} style={{ marginTop: 16, padding: "8px 20px", background: C.orange, border: "none", borderRadius: 8, color: "#fff", fontWeight: 700 }}>
+          <button onClick={refresh} style={{ marginTop: 16, padding: "8px 20px", background: C.gradBtn, border: "none", borderRadius: 8, color: "#fff", fontWeight: 700 }}>
             Reintentar
           </button>
         </div>

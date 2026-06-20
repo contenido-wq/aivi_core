@@ -168,7 +168,7 @@ export function TransactionsView({
             style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700,
-              background: rows.length > 0 ? C.orange : C.card,
+              background: rows.length > 0 ? C.gradBtn : C.card,
               border: "none", cursor: rows.length > 0 ? "pointer" : "not-allowed",
               color: rows.length > 0 ? "#fff" : C.muted,
             }}
@@ -345,7 +345,7 @@ export function TransactionsView({
                   disabled={currentPage === 1}
                   style={{
                     padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700,
-                    background: currentPage === 1 ? C.card : C.orange,
+                    background: currentPage === 1 ? C.card : C.gradBtn,
                     border: "none",
                     color: currentPage === 1 ? C.muted : "#fff",
                     cursor: currentPage === 1 ? "not-allowed" : "pointer",
@@ -363,7 +363,7 @@ export function TransactionsView({
                   disabled={currentPage >= totalPages}
                   style={{
                     padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700,
-                    background: currentPage >= totalPages ? C.card : C.orange,
+                    background: currentPage >= totalPages ? C.card : C.gradBtn,
                     border: "none",
                     color: currentPage >= totalPages ? C.muted : "#fff",
                     cursor: currentPage >= totalPages ? "not-allowed" : "pointer",

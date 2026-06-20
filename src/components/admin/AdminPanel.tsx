@@ -7,6 +7,7 @@ import { Toggle }       from "../ui/Toggle";
 import { useResponsive } from "../../hooks/useResponsive";
 import { AUDIO_SETTINGS } from "../../data/mock";
 import { supabase }     from "../../services/supabase";
+import { C }            from "../../tokens";
 
 interface AdminPanelProps { onBack: () => void; }
 
@@ -336,7 +337,7 @@ function RequestRow({ req, loading, message, onApprove, onReject, fmtDate }: Req
               disabled={loading}
               style={{
                 padding: "6px 14px", borderRadius: 7, border: "none",
-                background: loading ? "#ccc" : "#FE803F",
+                background: loading ? "rgba(254,128,63,0.4)" : C.gradBtn,
                 color: "#fff", fontSize: 11, fontWeight: 700,
                 cursor: loading ? "not-allowed" : "pointer",
                 display: "flex", alignItems: "center", gap: 4,
