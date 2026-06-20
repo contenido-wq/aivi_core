@@ -61,7 +61,7 @@ export function AtRiskPanel({ users, mobile }: AtRiskPanelProps) {
   const bajoCount  = users.filter(u => u.riskLevel === "bajo").length;
 
   return (
-    <Card className={users.length > 0 ? "aivi-card-glow-yellow" : undefined} style={{ padding: "16px 18px", display: "flex", flexDirection: "column", overflow: mobile ? "visible" : "hidden", minHeight: 0, flex: mobile ? undefined : 1 }}>
+    <Card className={users.length > 0 ? "aivi-card-glow-yellow" : undefined} style={{ padding: mobile ? "16px 18px" : "12px 14px", display: "flex", flexDirection: "column", overflow: mobile ? "visible" : "hidden", minHeight: 0, flex: mobile ? undefined : 1 }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -79,8 +79,8 @@ export function AtRiskPanel({ users, mobile }: AtRiskPanelProps) {
         </div>
       </div>
 
-      {/* Resumen de riesgo */}
-      {users.length > 0 && (
+      {/* Resumen de riesgo — solo en mobile (en desktop ocupa demasiado espacio) */}
+      {mobile && users.length > 0 && (
         <div style={{
           display: "flex", gap: 8, marginBottom: 10, flexShrink: 0,
         }}>

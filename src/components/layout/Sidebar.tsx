@@ -154,8 +154,8 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
         })}
 
         {/* Filtro */}
-        <div style={{ marginTop: 16, paddingLeft: 2 }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, paddingLeft: 10 }}>
+        <div style={{ marginTop: 10, paddingLeft: 2 }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, paddingLeft: 10 }}>
             Producto
           </div>
           {FILTERS.map(f => (
@@ -164,7 +164,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
               background: filter === f.value ? "rgba(254,128,63,0.12)" : "transparent",
               backdropFilter: filter === f.value ? "blur(10px)" : "none",
               border: `1px solid ${filter === f.value ? "rgba(254,128,63,0.28)" : "transparent"}`,
-              borderRadius: 8, padding: "8px 12px",
+              borderRadius: 8, padding: "5px 12px",
               color: filter === f.value ? C.orange : C.white,
               fontSize: 11, fontWeight: 700, textAlign: "left",
               marginBottom: 2, transition: "all 0.15s",
@@ -175,17 +175,17 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
         </div>
 
         {/* Resumen del día */}
-        <div style={{ marginTop: 16, paddingLeft: 2 }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, paddingLeft: 10 }}>
+        <div style={{ marginTop: 10, paddingLeft: 2 }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, paddingLeft: 10 }}>
             Resumen del día
           </div>
-          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, border: `1px solid ${C.border}`, padding: "10px 12px" }}>
+          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, border: `1px solid ${C.border}`, padding: "8px 10px" }}>
             {[
               { label: "Ingresos",  value: `$${(daily?.revenue    ?? 0).toFixed(2)}`, color: C.green  },
               { label: "Inversión", value: `$${(daily?.investment ?? 0).toFixed(2)}`, color: C.yellow },
               { label: "ROAS",      value: `${daily?.investment ? ((daily.revenue / daily.investment).toFixed(2)) : "0.00"}x`, color: C.yellow },
             ].map(({ label, value, color }) => (
-              <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: `1px solid rgba(255,255,255,0.05)` }}>
+              <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0", borderBottom: `1px solid rgba(255,255,255,0.05)` }}>
                 <span style={{ fontSize: 10, color: C.mutedLight }}>{label}</span>
                 <span style={{ fontSize: 13, fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
               </div>

@@ -12,7 +12,7 @@ export function DelayedPanel({ users, mobile }: DelayedPanelProps) {
   const totalUsd = users.reduce((s, u) => s + u.totalUsd, 0);
 
   return (
-    <Card className={users.length > 0 ? "aivi-card-glow-yellow" : undefined} style={{ padding: "16px 18px", display: "flex", flexDirection: "column", overflow: mobile ? "visible" : "hidden", minHeight: 0, flex: mobile ? undefined : 1 }}>
+    <Card className={users.length > 0 ? "aivi-card-glow-yellow" : undefined} style={{ padding: mobile ? "16px 18px" : "12px 14px", display: "flex", flexDirection: "column", overflow: mobile ? "visible" : "hidden", minHeight: 0, flex: mobile ? undefined : 1 }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
