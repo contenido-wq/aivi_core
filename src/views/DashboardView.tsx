@@ -143,7 +143,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
               <div style={{
                 display: "grid", gridTemplateColumns: "1fr 260px 270px",
                 gap: 10, padding: `20px ${px}px 0`, flexShrink: 0,
-                height: 280,
+                height: 340,
               }}>
                 <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
                 <DelayedPanel users={delayedUsers} />
@@ -177,7 +177,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
             <div style={{
               display: "grid", gridTemplateColumns: "1fr 260px 270px",
               gap: 10, padding: `10px ${px}px 0`, flexShrink: 0,
-              height: 300,
+              height: 360,
             }}>
               <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
               <DelayedPanel users={delayedUsers} />

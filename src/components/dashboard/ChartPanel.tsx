@@ -140,10 +140,10 @@ export function ChartPanel({ chartData, chartRange, onRangeChange }: ChartPanelP
         </div>
       )}
 
-      {/* Chart */}
+      {/* Chart — flex:1 para ocupar todo el espacio disponible en la card */}
       {!hasRealData ? (
         <div style={{
-          height: isMobile ? 160 : 220, display: "flex", flexDirection: "column",
+          flex: 1, minHeight: 80, display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
           color: C.muted, fontSize: 13, gap: 8,
         }}>
@@ -152,7 +152,8 @@ export function ChartPanel({ chartData, chartRange, onRangeChange }: ChartPanelP
           <span style={{ fontSize: 10 }}>Prueba con "Semana" o "Mes"</span>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={isMobile ? 180 : 220}>
+        <div style={{ flex: 1, minHeight: isMobile ? 120 : 160 }}>
+        <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={points} margin={{ top: 4, right: 8, left: isMobile ? -24 : -16, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
             <XAxis
@@ -206,6 +207,7 @@ export function ChartPanel({ chartData, chartRange, onRangeChange }: ChartPanelP
             />
           </ComposedChart>
         </ResponsiveContainer>
+        </div>
       )}
 
       {/* Legend */}
