@@ -281,15 +281,19 @@ export async function getDailyMetrics(date: Date, filter: ProductFilter = "todos
     newUsers   = salesEmails.length - recurring;
   }
 
-  const { data: activeSubs } = await supabase
-    .from("subscriptions")
-    .select("id")
-    .eq("status", "active");
+  const [{ data: activeSubs }, { data: invToday }] = await Promise.all([
+    supabase.from("subscriptions").select("id").eq("status", "active"),
+    supabase.from("investment_data").select("investment").eq("date", localDateStr(date)),
+  ]);
+
+  const todayInvestment = (invToday ?? []).reduce((s: number, r: any) => s + Number(r.investment ?? 0), 0);
+  const todayRevenue = Math.max(0, revenue);
+  const todayRoas = todayInvestment > 0 ? Math.round((todayRevenue / todayInvestment) * 100) / 100 : 0;
 
   return {
-    revenue:       Math.max(0, revenue),
-    investment:    0,
-    roas:          0,
+    revenue:       todayRevenue,
+    investment:    Math.round(todayInvestment * 100) / 100,
+    roas:          todayRoas,
     newUsers,
     recurring,
     trials,
@@ -545,12 +549,23 @@ export async function getChartData(
 
 async function getHourlyChartData(date: Date, filter: ProductFilter): Promise<ChartDataResult> {
   const { start, end } = localDayRange(date);
+  const todayStr = localDateStr(date);
 
-  const { data: txs } = await supabase
-    .from("transactions")
-    .select("amount, currency, status, plan_name, created_at")
-    .gte("created_at", start)
-    .lte("created_at", end);
+  const [{ data: txs }, { data: invToday }] = await Promise.all([
+    supabase
+      .from("transactions")
+      .select("amount, currency, status, plan_name, created_at")
+      .gte("created_at", start)
+      .lte("created_at", end),
+    supabase
+      .from("investment_data")
+      .select("investment")
+      .eq("date", todayStr),
+  ]);
+
+  // Inversión total del día (suma de todas las plataformas)
+  const todayInvestment = (invToday ?? []).reduce((s: number, r: any) => s + Number(r.investment ?? 0), 0);
+  const invPerHour = Math.round((todayInvestment / 24) * 100) / 100;
 
   // Agrupar ingresos por hora (convertidos a USD)
   const hourlyMap: Record<string, number> = {};
@@ -569,7 +584,7 @@ async function getHourlyChartData(date: Date, filter: ProductFilter): Promise<Ch
   const points: ChartPoint[] = Object.entries(hourlyMap).map(([h, ingresos]) => ({
     t: `${h}:00`,
     ingresos: Math.round(ingresos * 100) / 100,
-    inversion: 0, // No hay inversión por hora en las tablas actuales
+    inversion: invPerHour, // línea plana: gasto diario distribuido por hora
   }));
 
   // Calcular insights

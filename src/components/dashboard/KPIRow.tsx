@@ -93,7 +93,8 @@ export function KPIRow({ kpis, daily, weekRevenue, monthRevenue, filter = "todos
             : `${kpis?.monthsActive ?? 0} ${(kpis?.monthsActive ?? 0) === 1 ? "mes" : "meses"} activo`
         }
       />
-      <KPICard icon={<BarChart2 size={iconSize}/>}  label="Inversión Total"    value={fmt(kpis?.investment ?? 0)}   valueColor={C.yellow} compact={compact} sub={filter === "todos" ? "Pauta Meta Ads · total cuenta" : "Pauta Meta Ads · cuenta total"} />
+      <KPICard icon={<BarChart2 size={iconSize}/>}  label="Inversión Total"    value={fmt(kpis?.investment ?? 0)}   valueColor={C.yellow} compact={compact}
+        sub={(daily?.investment ?? 0) > 0 ? `hoy ${fmtShort(daily!.investment)} · Meta Ads acumulado` : "Pauta Meta Ads · acumulado"} />
       <KPICard icon={<TrendingUp size={iconSize}/>} label="ROAS"               value={`${roas.toFixed(2)}x`}        valueColor={C.yellow} sub={filter === "todos" ? "Ingresos / Inversión" : "Revenue producto / Pauta total"} compact={compact} />
       <KPICard
         icon={<Users size={iconSize}/>} label="Activos / Cancel"
