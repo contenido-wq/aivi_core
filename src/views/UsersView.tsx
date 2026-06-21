@@ -558,7 +558,7 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
             </span>
           </div>
         </div>
-        <div style={{ padding: "10px 16px", display: "flex", flexDirection: "column", gap: 6, maxHeight: 180, overflowY: "auto" }}>
+        <div style={{ padding: "10px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
           {familySummary.length === 0 ? (
             <div style={{ fontSize: 12, color: C.muted }}>Sin productos registrados.</div>
           ) : familySummary.map(f => (
