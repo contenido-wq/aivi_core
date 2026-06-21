@@ -79,24 +79,24 @@ export function AtRiskPanel({ users, mobile }: AtRiskPanelProps) {
         </div>
       </div>
 
-      {/* Resumen de riesgo — solo en mobile (en desktop ocupa demasiado espacio) */}
-      {mobile && users.length > 0 && (
+      {/* Resumen de riesgo — siempre visible, compacto en desktop */}
+      {users.length > 0 && (
         <div style={{
-          display: "flex", gap: 8, marginBottom: 10, flexShrink: 0,
+          display: "flex", gap: mobile ? 8 : 6, marginBottom: 10, flexShrink: 0,
         }}>
           {[
-            { label: "Alto", count: altoCount, color: C.red },
-            { label: "Medio", count: medioCount, color: C.yellow },
-            { label: "Bajo", count: bajoCount, color: C.orange },
+            { label: "Alto",  count: altoCount,  color: C.red    },
+            { label: "Medio", count: medioCount, color: C.yellow  },
+            { label: "Bajo",  count: bajoCount,  color: C.orange  },
           ].map(r => (
             <div key={r.label} style={{
               flex: 1, textAlign: "center",
-              padding: "7px 4px", borderRadius: 8,
+              padding: mobile ? "7px 4px" : "5px 4px", borderRadius: 8,
               background: r.count > 0 ? `${r.color}08` : "rgba(255,255,255,0.03)",
               border: `1px solid ${r.count > 0 ? `${r.color}30` : C.border}`,
             }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: r.count > 0 ? r.color : C.muted, lineHeight: 1 }}>{r.count}</div>
-              <div style={{ fontSize: 8, color: r.count > 0 ? r.color : C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 3, opacity: r.count > 0 ? 0.8 : 0.5 }}>{r.label}</div>
+              <div style={{ fontSize: mobile ? 18 : 15, fontWeight: 900, color: r.count > 0 ? r.color : C.muted, lineHeight: 1 }}>{r.count}</div>
+              <div style={{ fontSize: 8, color: r.count > 0 ? r.color : C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2, opacity: r.count > 0 ? 0.8 : 0.5 }}>{r.label}</div>
             </div>
           ))}
         </div>
