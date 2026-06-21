@@ -548,11 +548,17 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
           <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: C.label, textTransform: "uppercase" }}>
             Productos del ecosistema
           </span>
-          <span style={{ fontSize: 9, color: C.muted }}>
-            {familySummary.length} familia{familySummary.length !== 1 ? "s" : ""}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 9, color: C.mutedMid }}>
+              {familySummary.reduce((s, f) => s + f.count, 0)} registro{familySummary.reduce((s, f) => s + f.count, 0) !== 1 ? "s" : ""}
+            </span>
+            <span style={{ color: C.border, fontSize: 10 }}>·</span>
+            <span style={{ fontSize: 9, color: C.muted }}>
+              {familySummary.length} familia{familySummary.length !== 1 ? "s" : ""}
+            </span>
+          </div>
         </div>
-        <div style={{ padding: "10px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ padding: "10px 16px", display: "flex", flexDirection: "column", gap: 6, maxHeight: 180, overflowY: "auto" }}>
           {familySummary.length === 0 ? (
             <div style={{ fontSize: 12, color: C.muted }}>Sin productos registrados.</div>
           ) : familySummary.map(f => (
@@ -571,9 +577,9 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
               </div>
               <span style={{
                 fontSize: 10, fontWeight: 700,
-                color: f.count >= 2 ? C.orange : C.mutedMid,
-                background: f.count >= 2 ? "rgba(254,128,63,0.10)" : "transparent",
-                border: f.count >= 2 ? "1px solid rgba(254,128,63,0.25)" : "1px solid transparent",
+                color: f.count >= 2 ? C.orange : C.mutedLight,
+                background: f.count >= 2 ? "rgba(254,128,63,0.10)" : "rgba(255,255,255,0.05)",
+                border: f.count >= 2 ? "1px solid rgba(254,128,63,0.25)" : `1px solid ${C.border}`,
                 borderRadius: 4, padding: "1px 7px",
               }}>
                 ×{f.count}
