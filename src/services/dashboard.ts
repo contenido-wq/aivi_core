@@ -1115,3 +1115,46 @@ export async function getDelayedUsers(filter: ProductFilter = "todos"): Promise<
 
   return Object.values(map).sort((a, b) => b.totalUsd - a.totalUsd);
 }
+
+// ─── Usuarios cancelados (recientes) ─────────────────────────────────
+export interface CancelledUser {
+  email:     string;
+  name:      string;
+  planName:  string;
+  amountUsd: number;
+  cancelledAt: string;
+}
+
+export async function getCancelledUsers(filter: ProductFilter = "todos"): Promise<CancelledUser[]> {
+  let query = supabase
+    .from("transactions")
+    .select("buyer_email, buyer_name, plan_name, amount, currency, created_at")
+    .eq("status", "cancelled")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (filter === "AIVI")         query = query.ilike("plan_name", "AIVI%");
+  else if (filter === "MV3")     query = query.or('plan_name.ilike.Método V3%,plan_name.ilike.MV3%');
+  else if (filter === "Reto15D") query = query.or('plan_name.ilike.Reto 15D%,plan_name.ilike.Reto15D%');
+
+  const { data } = await query;
+  if (!data) return [];
+
+  // Un registro por email — el más reciente
+  const seen = new Set<string>();
+  const result: CancelledUser[] = [];
+  for (const t of data) {
+    const email = t.buyer_email ?? "";
+    if (!email || seen.has(email)) continue;
+    if (!matchesPlan(t.plan_name, filter)) continue;
+    seen.add(email);
+    result.push({
+      email,
+      name:        t.buyer_name  ?? "—",
+      planName:    t.plan_name   ?? "—",
+      amountUsd:   toUSD(Number(t.amount), t.currency),
+      cancelledAt: t.created_at,
+    });
+  }
+  return result;
+}

@@ -34,7 +34,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
 
   const { isMobile, isTablet, isDesktop, isShortScreen, isLarge, isXLarge } = useResponsive();
 
-  const { kpis, plans, daily, transactions, comparison, chartData, atRiskUsers, delayedUsers, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
+  const { kpis, plans, daily, transactions, comparison, chartData, atRiskUsers, delayedUsers, cancelledUsers, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
     useDashboardData(date, filter);
 
   const handleSync = useCallback(async () => {
@@ -146,7 +146,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
                 height: 340,
               }}>
                 <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
-                <DelayedPanel users={delayedUsers} />
+                <DelayedPanel users={delayedUsers} cancelledUsers={cancelledUsers} />
                 <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
               </div>
 
@@ -180,7 +180,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
               height: 360,
             }}>
               <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
-              <DelayedPanel users={delayedUsers} />
+              <DelayedPanel users={delayedUsers} cancelledUsers={cancelledUsers} />
               <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
             </div>
 
@@ -217,7 +217,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
               <div style={{ padding: `10px ${px}px 0`, display: "flex", flexDirection: "column", gap: 10 }}>
                 <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  <DelayedPanel users={delayedUsers} mobile />
+                  <DelayedPanel users={delayedUsers} cancelledUsers={cancelledUsers} mobile />
                   <div style={{ maxHeight: 360, overflow: "hidden" }}>
                     <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
                   </div>
@@ -226,7 +226,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
             ) : (
               <div style={{ padding: `10px ${px}px 0`, display: "flex", flexDirection: "column", gap: 10 }}>
                 <ChartPanel chartData={chartData} chartRange={chartRange} onRangeChange={loadChart} />
-                <DelayedPanel users={delayedUsers} mobile />
+                <DelayedPanel users={delayedUsers} cancelledUsers={cancelledUsers} mobile />
                 <TransactionsPanel transactions={transactions} onDateRangeChange={loadTransactionsByRange} />
               </div>
             )}
