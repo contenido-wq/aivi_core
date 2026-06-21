@@ -564,8 +564,9 @@ async function getHourlyChartData(date: Date, filter: ProductFilter): Promise<Ch
   ]);
 
   // Inversión total del día (suma de todas las plataformas)
-  const todayInvestment = (invToday ?? []).reduce((s: number, r: any) => s + Number(r.investment ?? 0), 0);
-  const invPerHour = Math.round((todayInvestment / 24) * 100) / 100;
+  const todayInvestment = Math.round(
+    (invToday ?? []).reduce((s: number, r: any) => s + Number(r.investment ?? 0), 0) * 100
+  ) / 100;
 
   // Agrupar ingresos por hora (convertidos a USD)
   const hourlyMap: Record<string, number> = {};
@@ -581,17 +582,18 @@ async function getHourlyChartData(date: Date, filter: ProductFilter): Promise<Ch
     hourlyMap[key] += toUSD(Number(tx.amount), tx.currency);
   }
 
+  // La línea de inversión es plana al total diario — no se divide por hora
+  // para que el tooltip muestre el valor real y la línea sea visible en el eje Y
   const points: ChartPoint[] = Object.entries(hourlyMap).map(([h, ingresos]) => ({
     t: `${h}:00`,
     ingresos: Math.round(ingresos * 100) / 100,
-    inversion: invPerHour, // línea plana: gasto diario distribuido por hora
+    inversion: todayInvestment,
   }));
 
-  // Calcular insights
+  // Margen calculado con el total real, no con la suma de los puntos (que sería 24× el gasto)
   const peakEntry = points.reduce((max, p) => p.ingresos > max.ingresos ? p : max, points[0]);
   const totalIngresos = points.reduce((s, p) => s + p.ingresos, 0);
-  const totalInversion = points.reduce((s, p) => s + p.inversion, 0);
-  const margin = totalIngresos > 0 ? ((totalIngresos - totalInversion) / totalIngresos) * 100 : 0;
+  const margin = totalIngresos > 0 ? ((totalIngresos - todayInvestment) / totalIngresos) * 100 : 0;
 
   return {
     points,
