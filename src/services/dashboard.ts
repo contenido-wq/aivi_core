@@ -651,11 +651,14 @@ async function getDailyChartData(date: Date, range: ChartTimeRange, filter: Prod
       dailyMap[dayKey] = (dailyMap[dayKey] ?? 0) + toUSD(Number(tx.amount), tx.currency);
     }
 
-    points = Object.entries(dailyMap)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([d, ingresos]) => ({
-        t: d.slice(5), // "05-10" formato corto
-        ingresos: Math.round(ingresos * 100) / 100,
+    // Generar todos los días del rango para que la inversión aparezca
+    // incluso en días sin transacciones
+    const allDays = new Set([...Object.keys(dailyMap), ...Object.keys(investmentMap)]);
+    points = Array.from(allDays)
+      .sort()
+      .map(d => ({
+        t: d.slice(5),
+        ingresos: Math.round((dailyMap[d] ?? 0) * 100) / 100,
         inversion: investmentMap[d] ?? 0,
       }));
   } else {

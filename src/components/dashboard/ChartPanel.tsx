@@ -209,23 +209,29 @@ export function ChartPanel({ chartData, chartRange, onRangeChange }: ChartPanelP
       )}
 
       {/* Legend */}
-      <div style={{ display: "flex", gap: isMobile ? 12 : 20, marginTop: 12, justifyContent: "center", flexWrap: "wrap" }}>
-        {[
-          { color: C.blue,     label: "Ingresos", type: "bar" },
-          { color: C.purple,   label: "Inversión", type: "line" },
-          { color: C.mutedMid, label: "Meta", type: "dash" },
-        ].map(l => (
-          <span key={l.label} style={{ fontSize: 11, color: C.mutedLight, display: "flex", alignItems: "center", gap: 6 }}>
-            {l.type === "bar" ? (
-              <span style={{ width: 10, height: 10, borderRadius: 2, background: l.color, display: "inline-block" }} />
-            ) : l.type === "dash" ? (
-              <span style={{ width: 16, height: 0, borderTop: `2px dashed ${l.color}`, display: "inline-block" }} />
-            ) : (
-              <span style={{ width: 16, height: 2, background: l.color, borderRadius: 1, display: "inline-block" }} />
-            )}
-            {l.label}
+      <div style={{ display: "flex", gap: isMobile ? 10 : 18, marginTop: 12, justifyContent: "center", flexWrap: "wrap" }}>
+        {/* Ingresos — barra */}
+        <span style={{ fontSize: 11, color: C.mutedLight, display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 14 }}>
+            <span style={{ width: 5, height: 8,  borderRadius: "2px 2px 0 0", background: C.blue, display: "inline-block", opacity: 0.5 }} />
+            <span style={{ width: 5, height: 14, borderRadius: "2px 2px 0 0", background: C.blue, display: "inline-block", opacity: 0.85 }} />
+            <span style={{ width: 5, height: 10, borderRadius: "2px 2px 0 0", background: C.blue, display: "inline-block", opacity: 0.5 }} />
           </span>
-        ))}
+          Ingresos
+        </span>
+        {/* Inversión — línea */}
+        <span style={{ fontSize: 11, color: C.mutedLight, display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ position: "relative", width: 22, height: 14, display: "inline-flex", alignItems: "center" }}>
+            <span style={{ width: "100%", height: 2, background: C.purple, borderRadius: 1, display: "inline-block" }} />
+            <span style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 6, height: 6, borderRadius: "50%", background: C.purple, border: `2px solid #18181B` }} />
+          </span>
+          Inversión
+        </span>
+        {/* Meta — dashed */}
+        <span style={{ fontSize: 11, color: C.mutedLight, display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 18, height: 0, borderTop: `2px dashed ${C.mutedMid}`, display: "inline-block" }} />
+          Meta
+        </span>
       </div>
     </Card>
   );
