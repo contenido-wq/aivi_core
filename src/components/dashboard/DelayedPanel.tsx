@@ -139,10 +139,15 @@ export function DelayedPanel({ users, cancelledUsers, cancelledByDay, mobile }: 
                   padding: "7px 0",
                   borderBottom: i < cancelledUsers.length - 1 ? `1px solid rgba(255,65,59,0.1)` : "none",
                 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 1 }}>
-                    <XCircle size={8} style={{ color: C.red, flexShrink: 0 }} />
-                    <span style={{ fontSize: 8, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                      Cancelado
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <XCircle size={8} style={{ color: C.red, flexShrink: 0 }} />
+                      <span style={{ fontSize: 8, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                        Cancelado
+                      </span>
+                    </div>
+                    <span style={{ fontSize: 8, color: "rgba(255,65,59,0.55)", fontWeight: 600 }}>
+                      {new Date(u.cancelledAt).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}
                     </span>
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.red, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 1 }}>
