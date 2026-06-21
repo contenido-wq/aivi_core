@@ -446,7 +446,7 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
       <div style={{
         background: `linear-gradient(135deg, rgba(254,128,63,0.08) 0%, ${C.card} 55%)`,
         border: `1px solid ${C.border}`,
-        borderRadius: 14, padding: "18px 20px",
+        borderRadius: 14, padding: "18px 20px", flexShrink: 0,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -507,7 +507,7 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
       </div>
 
       {/* Stats Row — 4 métricas únicas, ninguna se repite en otro panel */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, flexShrink: 0 }}>
         {[
           {
             label: "LTV Total",
@@ -543,7 +543,7 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
       </div>
 
       {/* Productos del Ecosistema */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", flexShrink: 0 }}>
         <div style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: C.label, textTransform: "uppercase" }}>
             Productos del ecosistema
@@ -590,7 +590,7 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
       </div>
 
       {/* Historial de pagos */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", flexShrink: 0 }}>
         <div style={{ padding: "11px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: C.mutedMid, textTransform: "uppercase" }}>
             Historial de pagos
