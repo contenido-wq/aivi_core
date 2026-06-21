@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../services/supabase";
 import { ensureRatesLoaded } from "../services/currency";
 import {
-  getKPIs, getPlansBreakdown, getDailyMetrics, getDayTransactions, getComparisonData, getTopCountries, getChartData, getTransactionsByDateRange, getAtRiskUsers, getDelayedUsers, getCancelledUsers,
+  getKPIs, getPlansBreakdown, getDailyMetrics, getDayTransactions, getComparisonData, getTopCountries, getChartData, getTransactionsByDateRange, getAtRiskUsers, getDelayedUsers, getCancelledUsers, getCancelledByDay,
 } from "../services/dashboard";
-import type { KPIData, PlanRow, DailyData, Transaction, ProductFilter, ComparisonData, CountryRow, ChartDataResult, ChartTimeRange, AtRiskUser, DelayedUser, CancelledUser } from "../services/dashboard";
+import type { KPIData, PlanRow, DailyData, Transaction, ProductFilter, ComparisonData, CountryRow, ChartDataResult, ChartTimeRange, AtRiskUser, DelayedUser, CancelledUser, CancelledByDay } from "../services/dashboard";
 
 export interface DashboardState {
   kpis:          KPIData        | null;
@@ -14,17 +14,18 @@ export interface DashboardState {
   comparison:    ComparisonData | null;
   countries:     CountryRow[];
   chartData:     ChartDataResult | null;
-  atRiskUsers:    AtRiskUser[];
-  delayedUsers:   DelayedUser[];
-  cancelledUsers: CancelledUser[];
-  loading:        boolean;
+  atRiskUsers:     AtRiskUser[];
+  delayedUsers:    DelayedUser[];
+  cancelledUsers:  CancelledUser[];
+  cancelledByDay:  CancelledByDay[];
+  loading:         boolean;
   error:         string | null;
   lastRefresh:   Date | null;
 }
 
 const EMPTY: DashboardState = {
   kpis: null, plans: [], daily: null, transactions: [], comparison: null, countries: [],
-  chartData: null, atRiskUsers: [], delayedUsers: [], cancelledUsers: [], loading: true, error: null, lastRefresh: null,
+  chartData: null, atRiskUsers: [], delayedUsers: [], cancelledUsers: [], cancelledByDay: [], loading: true, error: null, lastRefresh: null,
 };
 
 export function useDashboardData(date: Date, filter: ProductFilter = "todos") {
@@ -36,7 +37,7 @@ export function useDashboardData(date: Date, filter: ProductFilter = "todos") {
     try {
       // Esperar a que las tasas de cambio estén cargadas antes de convertir
       await ensureRatesLoaded();
-      const [kpis, plans, daily, transactions, comparison, countries, chartData, atRiskUsers, delayedUsers, cancelledUsers] = await Promise.all([
+      const [kpis, plans, daily, transactions, comparison, countries, chartData, atRiskUsers, delayedUsers, cancelledUsers, cancelledByDay] = await Promise.all([
         getKPIs(filter),
         getPlansBreakdown(filter),
         getDailyMetrics(date, filter),
@@ -47,8 +48,9 @@ export function useDashboardData(date: Date, filter: ProductFilter = "todos") {
         getAtRiskUsers(filter),
         getDelayedUsers(filter),
         getCancelledUsers(filter),
+        getCancelledByDay(filter),
       ]);
-      setState({ kpis, plans, daily, transactions, comparison, countries, chartData, atRiskUsers, delayedUsers, cancelledUsers, loading: false, error: null, lastRefresh: new Date() });
+      setState({ kpis, plans, daily, transactions, comparison, countries, chartData, atRiskUsers, delayedUsers, cancelledUsers, cancelledByDay, loading: false, error: null, lastRefresh: new Date() });
     } catch (e) {
       setState(s => ({ ...s, loading: false, error: String(e) }));
     }

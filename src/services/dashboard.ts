@@ -1116,6 +1116,44 @@ export async function getDelayedUsers(filter: ProductFilter = "todos"): Promise<
   return Object.values(map).sort((a, b) => b.totalUsd - a.totalUsd);
 }
 
+// ─── Cancelaciones por día (últimos 14 días) ─────────────────────────
+export interface CancelledByDay {
+  date:  string; // "YYYY-MM-DD"
+  count: number;
+}
+
+export async function getCancelledByDay(filter: ProductFilter = "todos", days = 14): Promise<CancelledByDay[]> {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  const { start } = localDayRange(startDate);
+  const { end }   = localDayRange(new Date());
+
+  let query = supabase
+    .from("transactions")
+    .select("created_at, plan_name")
+    .eq("status", "cancelled")
+    .gte("created_at", start)
+    .lte("created_at", end);
+
+  if (filter === "AIVI")         query = query.ilike("plan_name", "AIVI%");
+  else if (filter === "MV3")     query = query.or('plan_name.ilike.Método V3%,plan_name.ilike.MV3%');
+  else if (filter === "Reto15D") query = query.or('plan_name.ilike.Reto 15D%,plan_name.ilike.Reto15D%');
+
+  const { data } = await query.limit(2000);
+  if (!data) return [];
+
+  const map: Record<string, number> = {};
+  for (const t of data) {
+    if (!matchesPlan(t.plan_name, filter)) continue;
+    const day = localDateStr(new Date(t.created_at));
+    map[day] = (map[day] ?? 0) + 1;
+  }
+
+  return Object.entries(map)
+    .sort(([a], [b]) => b.localeCompare(a)) // más reciente primero
+    .map(([date, count]) => ({ date, count }));
+}
+
 // ─── Usuarios cancelados (recientes) ─────────────────────────────────
 export interface CancelledUser {
   email:     string;
