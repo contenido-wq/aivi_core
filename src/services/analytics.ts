@@ -1,4 +1,5 @@
-import { supabase } from "./supabase";
+import { supabase }  from "./supabase";
+import { toUSD }     from "./currency";
 
 // ── Períodos ──────────────────────────────────────────────────────────────────
 
@@ -124,12 +125,12 @@ export interface VSLMapping { campaignName: string; videoId: string; videoName: 
 export async function getAnalyticsSummary(r: DateRange): Promise<AnalyticsSummary> {
   const [invRes, txRes, playsRes] = await Promise.all([
     supabase.from("campaign_investment_data").select("investment").gte("date", r.from).lte("date", r.to),
-    supabase.from("transactions").select("amount, currency").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("event_type", "PURCHASE_COMPLETE"),
+    supabase.from("transactions").select("amount, currency").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("status", "active"),
     supabase.from("vturb_analytics").select("plays, views, button_clicks").gte("date", r.from).lte("date", r.to),
   ]);
 
   const investment = (invRes.data ?? []).reduce((s: number, x: any) => s + Number(x.investment), 0);
-  const revenue    = (txRes.data ?? []).reduce((s: number, x: any) => s + Number(x.amount), 0);
+  const revenue    = (txRes.data ?? []).reduce((s: number, x: any) => s + toUSD(Number(x.amount), x.currency), 0);
   const sales      = (txRes.data ?? []).length;
   const plays      = (playsRes.data ?? []).reduce((s: number, x: any) => s + Number(x.plays), 0);
   const views      = (playsRes.data ?? []).reduce((s: number, x: any) => s + Number(x.views), 0);
@@ -150,7 +151,7 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
   const [campRes, txRes, mappingRes, analyticsRes] = await Promise.all([
     supabase.from("campaign_investment_data").select("campaign_name, investment, impressions, clicks").gte("date", r.from).lte("date", r.to),
     // traffic_source es el campo donde Hotmart guarda el UTM (src/sck)
-    supabase.from("transactions").select("traffic_source, amount, created_at").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("event_type", "PURCHASE_COMPLETE"),
+    supabase.from("transactions").select("traffic_source, amount, currency, created_at").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("status", "active"),
     supabase.from("campaign_vsl_mapping").select("*"),
     supabase.from("vturb_analytics").select("video_id, plays, button_clicks").gte("date", r.from).lte("date", r.to),
   ]);
@@ -169,7 +170,7 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
     const k = tx.traffic_source ?? "Sin UTM";
     if (!salesMap[k]) salesMap[k] = { count: 0, revenue: 0, hours: [] };
     salesMap[k].count++;
-    salesMap[k].revenue += Number(tx.amount);
+    salesMap[k].revenue += toUSD(Number(tx.amount), tx.currency);
     salesMap[k].hours.push(new Date(tx.created_at).getHours());
   }
 
