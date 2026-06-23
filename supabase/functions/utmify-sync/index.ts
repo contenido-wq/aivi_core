@@ -54,6 +54,40 @@ async function callMcp(
   return JSON.parse(json.result.content[0].text);
 }
 
+// Sincroniza gasto a nivel de campaña para un día
+async function syncCampaigns(
+  supabase: ReturnType<typeof createClient>,
+  mcpToken: string,
+  dashboardId: string,
+  dateStr: string,
+): Promise<void> {
+  const data = await callMcp(mcpToken, "get_meta_ad_objects", {
+    dashboardId,
+    level:     "campaign",
+    dateRange: { from: dateStr, to: dateStr },
+  }) as { results: Array<{ campaignId: string; campaignName: string; spend: number; impressions: number; inlineLinkClicks: number; accountId: string }> };
+
+  const campaigns = (data.results ?? []).filter((r: any) => r.accountId === META_ACCOUNT_ID);
+  if (campaigns.length === 0) { console.log(`UTMify campaigns: sin datos para ${dateStr}`); return; }
+
+  const rows = campaigns.map((c) => ({
+    campaign_id:   c.campaignId,
+    campaign_name: c.campaignName ?? c.campaignId,
+    date:          dateStr,
+    platform:      "facebook",
+    investment:    (c.spend ?? 0) / 100,
+    impressions:   c.impressions ?? 0,
+    clicks:        c.inlineLinkClicks ?? 0,
+    synced_at:     new Date().toISOString(),
+  }));
+
+  const { error } = await supabase
+    .from("campaign_investment_data")
+    .upsert(rows, { onConflict: "campaign_id,date,platform" });
+  if (error) throw new Error(`campaign_investment_data upsert (${dateStr}): ${error.message}`);
+  console.log(`✅ UTMify campaigns — ${rows.length} campañas — ${dateStr}`);
+}
+
 // Sincroniza un día pasado (completado) — Meta devuelve gasto diario exacto
 async function syncDate(
   supabase: ReturnType<typeof createClient>,
@@ -165,6 +199,12 @@ async function runSync(debug = false): Promise<Response> {
       console.error(`Sync error for ${dateStr}:`, e);
       errors.push({ date: dateStr, error: String(e) });
     }
+    try {
+      await syncCampaigns(supabase, mcpToken, dashboardId, dateStr);
+    } catch (e) {
+      console.error(`Campaign sync error for ${dateStr}:`, e);
+      errors.push({ date: dateStr, error: String(e) });
+    }
   }
 
   // Calcular hoy con método delta (evita el acumulado del mes)
@@ -173,6 +213,12 @@ async function runSync(debug = false): Promise<Response> {
     results.push({ date: r.date, totalInvestment: r.totalInvestment, ...(debug && { rawData: r.rawData }) });
   } catch (e) {
     console.error(`Sync error for today (${today}):`, e);
+    errors.push({ date: today, error: String(e) });
+  }
+  try {
+    await syncCampaigns(supabase, mcpToken, dashboardId, today);
+  } catch (e) {
+    console.error(`Campaign sync error for today (${today}):`, e);
     errors.push({ date: today, error: String(e) });
   }
 
@@ -218,6 +264,11 @@ async function runBackfill(from: string, to: string): Promise<Response> {
       results.push({ date: r.date, totalInvestment: r.totalInvestment });
     } catch (e) {
       console.error(`Backfill error for ${dateStr}:`, e);
+      errors.push({ date: dateStr, error: String(e) });
+    }
+    try {
+      await syncCampaigns(supabase, mcpToken, dashboardId, dateStr);
+    } catch (e) {
       errors.push({ date: dateStr, error: String(e) });
     }
   }
