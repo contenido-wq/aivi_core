@@ -447,6 +447,25 @@ export async function getVSLMappings(): Promise<VSLMapping[]> {
   return (data ?? []).map((r: any) => ({ campaignName: r.campaign_name, videoId: r.video_id, videoName: r.video_name ?? r.video_id }));
 }
 
+export interface VTurbVideo { videoId: string; videoName: string }
+
+export async function getAvailableVideos(): Promise<VTurbVideo[]> {
+  const { data } = await supabase
+    .from("vturb_analytics")
+    .select("video_id, video_name")
+    .not("video_id", "is", null);
+
+  const seen = new Set<string>();
+  const result: VTurbVideo[] = [];
+  for (const row of (data ?? [])) {
+    if (!seen.has(row.video_id)) {
+      seen.add(row.video_id);
+      result.push({ videoId: row.video_id, videoName: row.video_name ?? row.video_id });
+    }
+  }
+  return result.sort((a, b) => a.videoName.localeCompare(b.videoName));
+}
+
 export async function saveVSLMapping(m: VSLMapping): Promise<void> {
   const { error } = await supabase.from("campaign_vsl_mapping").upsert(
     { campaign_name: m.campaignName, video_id: m.videoId, video_name: m.videoName },
