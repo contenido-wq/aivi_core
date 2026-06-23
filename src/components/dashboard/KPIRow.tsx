@@ -27,7 +27,7 @@ function KPICard({ icon, label, value, valueColor, sub, hero, compact }: KPICard
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <span style={{
-          fontSize: compact ? 8 : 9, fontWeight: 800,
+          fontSize: compact ? 10 : 10, fontWeight: 800,
           color: hero ? "rgba(255,255,255,0.65)" : C.mutedLight,
           letterSpacing: "0.1em", textTransform: "uppercase",
         }}>{label}</span>

@@ -114,8 +114,8 @@ export function DelayedPanel({ users, cancelledUsers, cancelledByDay, mobile }: 
                     ? `1px solid rgba(255,65,59,0.1)` : "none",
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 1 }}>
-                    <AlertCircle size={8} style={{ color: C.red, flexShrink: 0 }} />
-                    <span style={{ fontSize: 8, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    <AlertCircle size={9} style={{ color: C.red, flexShrink: 0 }} />
+                    <span style={{ fontSize: 10, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                       Atrasado · {u.cuotas} {u.cuotas === 1 ? "cuota" : "cuotas"}
                     </span>
                   </div>
@@ -123,7 +123,7 @@ export function DelayedPanel({ users, cancelledUsers, cancelledByDay, mobile }: 
                     {u.name}
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ fontSize: 9, color: "rgba(255,65,59,0.55)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: 10, color: "rgba(255,65,59,0.65)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {shortPlan(u.planName)}
                     </div>
                     <span style={{ fontSize: 11, fontWeight: 800, color: C.red, flexShrink: 0, marginLeft: 6 }}>
@@ -140,12 +140,12 @@ export function DelayedPanel({ users, cancelledUsers, cancelledByDay, mobile }: 
                 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <XCircle size={8} style={{ color: C.red, flexShrink: 0 }} />
-                      <span style={{ fontSize: 8, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      <XCircle size={9} style={{ color: C.red, flexShrink: 0 }} />
+                      <span style={{ fontSize: 10, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                         Cancelado
                       </span>
                     </div>
-                    <span style={{ fontSize: 8, color: "rgba(255,65,59,0.55)", fontWeight: 600 }}>
+                    <span style={{ fontSize: 10, color: "rgba(255,65,59,0.65)", fontWeight: 600 }}>
                       {new Date(u.cancelledAt).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}
                     </span>
                   </div>
@@ -153,7 +153,7 @@ export function DelayedPanel({ users, cancelledUsers, cancelledByDay, mobile }: 
                     {u.name}
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ fontSize: 9, color: "rgba(255,65,59,0.55)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: 10, color: "rgba(255,65,59,0.65)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {shortPlan(u.planName)}
                     </div>
                     {u.amountUsd > 0 && (
@@ -190,7 +190,7 @@ export function DelayedPanel({ users, cancelledUsers, cancelledByDay, mobile }: 
                   minWidth: 34, flexShrink: 0,
                 }}>
                   {fmtDay(d.date)}
-                  {d.date === todayStr && <span style={{ fontSize: 7, marginLeft: 2, color: C.red }}>HOY</span>}
+                  {d.date === todayStr && <span style={{ fontSize: 9, marginLeft: 2, color: C.red }}>HOY</span>}
                 </span>
 
                 {/* Barra proporcional */}

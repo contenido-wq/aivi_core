@@ -157,7 +157,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
 
         {/* Filtro */}
         <div style={{ marginTop: 10, paddingLeft: 2 }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, paddingLeft: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, paddingLeft: 10 }}>
             Producto
           </div>
           {FILTERS.map(f => (
@@ -178,7 +178,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
 
         {/* Resumen del día */}
         <div style={{ marginTop: 10, paddingLeft: 2 }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, paddingLeft: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, paddingLeft: 10 }}>
             Resumen del día
           </div>
           <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, border: `1px solid ${C.border}`, padding: "8px 10px" }}>
@@ -275,7 +275,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
           padding: "12px 14px",
           marginBottom: 8,
         }}>
-          <div style={{ fontSize: 9, color: C.muted, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+          <div style={{ fontSize: 10, color: C.muted, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
             Métricas Recurrentes
           </div>
           {[["MRR", fmtK(mrr), C.green], ["ARR", fmtK(arr), C.green]].map(([k, v, col]) => (
