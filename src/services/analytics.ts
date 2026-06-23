@@ -423,22 +423,11 @@ Responde exactamente con este formato:
 ## ¿Qué replicar?
 [Patrones concretos del contenido ganador: tipo de hook, estructura, momento del CTA]`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type":      "application/json",
-      "x-api-key":         import.meta.env.VITE_ANTHROPIC_API_KEY ?? "",
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model:      "claude-sonnet-4-6",
-      max_tokens: 1024,
-      messages:   [{ role: "user", content: prompt }],
-    }),
+  const { data, error } = await supabase.functions.invoke("ai-analyst", {
+    body: { prompt },
   });
-  if (!res.ok) throw new Error(`Anthropic API error ${res.status}`);
-  const data = await res.json();
-  return (data.content[0].text as string);
+  if (error) throw new Error(error.message);
+  return data.text as string;
 }
 
 export async function getVSLMappings(): Promise<VSLMapping[]> {
