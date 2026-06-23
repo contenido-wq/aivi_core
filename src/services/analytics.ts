@@ -96,6 +96,7 @@ export interface AdRankRow {
   sales:        number;
   cac:          number;
   roas:         number;
+  videoId:      string | null;
   videoName:    string | null;
   score:        number;
 }
@@ -290,6 +291,7 @@ export async function getAdsRanking(r: DateRange): Promise<AdRankRow[]> {
     sales:        f.sales,
     cac:          f.cac,
     roas:         f.roas,
+    videoId:      f.videoId,
     videoName:    f.videoName,
     score:        f.score,
   }));
