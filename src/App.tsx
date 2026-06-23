@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { AppView }        from "./types";
 import { DashboardView }       from "./views/DashboardView";
+import { AnalyticsView }       from "./views/AnalyticsView";
 import { LoginView }           from "./views/LoginView";
 import { AdminPanel }          from "./components/admin/AdminPanel";
 import { UsersView }           from "./views/UsersView";
@@ -54,6 +55,19 @@ export default function App() {
     />
   );
 
+  // Vista Analytics Command Center
+  if (view === "analytics") return (
+    <AnalyticsView
+      onDashboard={() => setView("dashboard")}
+      onUsers={() => setView("usuarios")}
+      onTransactions={() => setView("transacciones")}
+      onSettings={() => setView("admin")}
+      onSignOut={signOut}
+      activeView={view}
+      isAdmin={isAdmin}
+    />
+  );
+
   // Vista Transacciones
   if (view === "transacciones") return (
     <TransactionsView
@@ -72,6 +86,7 @@ export default function App() {
       onSignOut={signOut}
       onUsers={() => setView("usuarios")}
       onTransactions={() => setView("transacciones")}
+      onAnalytics={() => setView("analytics")}
       activeView={view}
       isAdmin={isAdmin}
     />

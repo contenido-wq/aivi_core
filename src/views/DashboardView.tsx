@@ -21,11 +21,12 @@ interface DashboardViewProps {
   onSignOut?:       () => void;
   onUsers?:         () => void;
   onTransactions?:  () => void;
+  onAnalytics?:     () => void;
   activeView?:      string;
   isAdmin?:         boolean;
 }
 
-export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, activeView = "dashboard", isAdmin = false }: DashboardViewProps) {
+export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, onAnalytics, activeView = "dashboard", isAdmin = false }: DashboardViewProps) {
   const time                  = useClock();
   const [adsOn, setAdsOn]     = useState(false);
   const [date]                = useState(() => new Date());
@@ -77,6 +78,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
         onSignOut={onSignOut}
         onUsers={onUsers}
         onTransactions={onTransactions}
+        onAnalytics={onAnalytics}
         activeView={activeView}
         mrr={kpis?.mrr ?? 0}
         arr={kpis?.arr ?? 0}
