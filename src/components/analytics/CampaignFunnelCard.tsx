@@ -2,7 +2,7 @@ import { C } from "../../tokens";
 import type { FunnelCampaign } from "../../services/analytics";
 
 function pct(a: number, b: number) { return b > 0 ? `${((a / b) * 100).toFixed(1)}%` : "—"; }
-function scoreColor(s: number) { return s >= 80 ? "#4ADE80" : s >= 50 ? "#FFC252" : "#FF413B"; }
+function scoreColor(s: number) { return s >= 80 ? "#FE803F" : s >= 50 ? "#FFC252" : "#FF413B"; }
 
 interface Props { campaign: FunnelCampaign }
 
@@ -52,7 +52,7 @@ export function CampaignFunnelCard({ campaign: c }: Props) {
         </div>
         <div>
           <div style={{ fontSize: 10, color: C.mutedMid }}>ROAS</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: c.roas >= 2 ? "#4ADE80" : "#FFC252" }}>{c.roas.toFixed(2)}x</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: c.roas >= 2 ? "#FE803F" : "#FFC252" }}>{c.roas.toFixed(2)}x</div>
         </div>
         <div>
           <div style={{ fontSize: 10, color: C.mutedMid }}>Inversión</div>

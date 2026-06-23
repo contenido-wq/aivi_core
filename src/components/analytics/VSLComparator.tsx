@@ -2,7 +2,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Re
 import { C } from "../../tokens";
 import type { VSLData } from "../../services/analytics";
 
-const COLORS = [C.orange, "#60A5FA", "#4ADE80", "#F472B6", "#A78BFA", "#FB923C"];
+const COLORS = [C.orange, C.yellow, C.red, C.white, "rgba(254,128,63,0.55)", "rgba(255,194,82,0.55)"];
 
 interface Props { vsls: VSLData[] }
 

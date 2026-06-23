@@ -3,19 +3,19 @@ import type { AdRankRow } from "../../services/analytics";
 
 function rowBg(cac: number, target: number) {
   if (cac === 0 || target === 0) return "transparent";
-  if (cac <= target)       return "rgba(74,222,128,0.06)";
+  if (cac <= target)       return "rgba(254,128,63,0.06)";
   if (cac <= target * 1.5) return "rgba(255,194,82,0.06)";
   return "rgba(255,65,59,0.06)";
 }
 
 function cacColor(cac: number, target: number) {
   if (cac === 0 || target === 0) return C.mutedMid;
-  if (cac <= target)       return "#4ADE80";
+  if (cac <= target)       return "#FE803F";
   if (cac <= target * 1.5) return "#FFC252";
   return "#FF413B";
 }
 
-function scoreColor(s: number) { return s >= 80 ? "#4ADE80" : s >= 50 ? "#FFC252" : "#FF413B"; }
+function scoreColor(s: number) { return s >= 80 ? "#FE803F" : s >= 50 ? "#FFC252" : "#FF413B"; }
 
 interface Props {
   rows:              AdRankRow[];
@@ -62,7 +62,7 @@ export function AdsRankingTable({ rows, cacTarget, onCacTargetChange, onOpenMapp
                 <td style={{ padding: "9px 10px", color: C.mutedLight }}>{r.playRate.toFixed(1)}%</td>
                 <td style={{ padding: "9px 10px", color: C.mutedLight }}>{r.sales}</td>
                 <td style={{ padding: "9px 10px", color: cacColor(r.cac, cacTarget), fontWeight: 700 }}>{r.cac > 0 ? `$${r.cac.toFixed(0)}` : "—"}</td>
-                <td style={{ padding: "9px 10px", color: r.roas >= 2 ? "#4ADE80" : "#FFC252", fontWeight: 600 }}>{r.roas > 0 ? `${r.roas.toFixed(2)}x` : "—"}</td>
+                <td style={{ padding: "9px 10px", color: r.roas >= 2 ? "#FE803F" : "#FFC252", fontWeight: 600 }}>{r.roas > 0 ? `${r.roas.toFixed(2)}x` : "—"}</td>
                 <td style={{ padding: "9px 10px", color: C.mutedMid, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.videoName ?? "—"}</td>
                 <td style={{ padding: "9px 10px" }}>
                   <span style={{ background: `${scoreColor(r.score)}20`, color: scoreColor(r.score), borderRadius: 12, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>{r.score}</span>

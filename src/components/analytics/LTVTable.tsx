@@ -27,7 +27,7 @@ export function LTVTable({ rows }: Props) {
               <td style={{ padding: "9px 10px", color: C.mutedLight }}>${r.totalRevenue.toFixed(0)}</td>
               <td style={{ padding: "9px 10px", color: C.mutedLight }}>${r.cac.toFixed(0)}</td>
               <td style={{ padding: "9px 10px" }}>
-                <span style={{ color: r.roiReal >= 5 ? "#4ADE80" : r.roiReal >= 2 ? "#FFC252" : "#FF413B", fontWeight: 700, fontSize: 13 }}>
+                <span style={{ color: r.roiReal >= 5 ? "#FE803F" : r.roiReal >= 2 ? "#FFC252" : "#FF413B", fontWeight: 700, fontSize: 13 }}>
                   {r.roiReal.toFixed(1)}x
                 </span>
               </td>

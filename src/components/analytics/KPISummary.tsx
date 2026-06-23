@@ -36,8 +36,8 @@ export function KPISummary({ summary, loading }: Props) {
         const isPositive = d ? !d.startsWith("-") : false;
         const dColor = d
           ? (kpi.inverseColor
-              ? (isPositive ? "#FF413B" : "#4ADE80")
-              : (isPositive ? "#4ADE80" : "#FF413B"))
+              ? (isPositive ? "#FF413B" : "#FE803F")
+              : (isPositive ? "#FE803F" : "#FF413B"))
           : C.mutedMid;
         return (
           <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px" }}>

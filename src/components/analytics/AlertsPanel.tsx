@@ -4,7 +4,7 @@ import type { Alert } from "../../services/analytics";
 const STYLE: Record<Alert["level"], { bg: string; border: string; icon: string }> = {
   rojo:     { bg: "rgba(255,65,59,0.12)",  border: "#FF413B", icon: "🔴" },
   amarillo: { bg: "rgba(255,194,82,0.12)", border: "#FFC252", icon: "🟡" },
-  verde:    { bg: "rgba(74,222,128,0.12)", border: "#4ADE80", icon: "🟢" },
+  verde:    { bg: "rgba(254,128,63,0.12)",  border: "#FE803F", icon: "🟠" },
 };
 
 interface Props { alerts: Alert[] }

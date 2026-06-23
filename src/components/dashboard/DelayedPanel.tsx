@@ -35,12 +35,11 @@ export function DelayedPanel({ users, cancelledUsers, cancelledByDay, mobile }: 
   const maxCount    = Math.max(...cancelledByDay.map(d => d.count), 1);
 
   return (
-    <Card style={{
+    <Card className={totalCount > 0 ? "aivi-card-glow-yellow" : undefined} style={{
       padding: mobile ? "16px 18px" : "12px 14px",
       display: "flex", flexDirection: "column",
       overflow: mobile ? "visible" : "hidden",
       minHeight: 0, flex: mobile ? undefined : 1,
-      borderColor: totalCount > 0 ? "rgba(255,65,59,0.25)" : C.border,
     }}>
       {/* Header */}
       <div style={{ marginBottom: 6, flexShrink: 0 }}>
