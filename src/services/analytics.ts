@@ -247,17 +247,31 @@ export async function getVSLRetention(r: DateRange): Promise<VSLData[]> {
     analyticsMap[k].ctaClicks += Number(row.button_clicks);
   }
 
-  const retMap: Record<string, VSLRetentionPoint[]> = {};
+  // Promedia los puntos de retención por segundo cuando hay múltiples fechas en el rango
+  const retAccum: Record<string, Record<number, { sum: number; count: number }>> = {};
   for (const row of (retentionRes.data ?? [])) {
-    if (!retMap[row.video_id]) retMap[row.video_id] = [];
-    retMap[row.video_id].push({ second: row.second, percentage: Number(row.percentage) });
+    if (!retAccum[row.video_id]) retAccum[row.video_id] = {};
+    const sec = Number(row.second);
+    if (!retAccum[row.video_id][sec]) retAccum[row.video_id][sec] = { sum: 0, count: 0 };
+    retAccum[row.video_id][sec].sum   += Number(row.percentage);
+    retAccum[row.video_id][sec].count += 1;
+  }
+  const retMap: Record<string, VSLRetentionPoint[]> = {};
+  for (const [vid, secMap] of Object.entries(retAccum)) {
+    retMap[vid] = Object.entries(secMap)
+      .map(([s, { sum, count }]) => ({ second: Number(s), percentage: sum / count }))
+      .sort((a, b) => a.second - b.second);
   }
 
   return Object.entries(analyticsMap).map(([videoId, a]) => {
     const retention = retMap[videoId] ?? [];
+    // Busca el porcentaje en el segundo que corresponde al pct% de la duración total
     const getAt = (pct: number) => {
-      const idx = Math.floor((pct / 100) * retention.length);
-      return retention[Math.min(idx, retention.length - 1)]?.percentage ?? 0;
+      if (retention.length === 0) return 0;
+      const totalSec  = retention[retention.length - 1].second;
+      const targetSec = (pct / 100) * totalSec;
+      const pt = retention.find(p => p.second >= targetSec) ?? retention[retention.length - 1];
+      return pt.percentage;
     };
 
     let dropSecond: number | null = null;
