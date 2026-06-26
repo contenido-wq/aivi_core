@@ -286,8 +286,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
           ))}
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          {isAdmin && (
-            <button onClick={() => { onSettings(); if (isMobile) onClose?.(); }} style={{
+          <button onClick={() => { onSettings(); if (isMobile) onClose?.(); }} style={{
               flex: 1, padding: "8px", borderRadius: 8,
               background: "transparent",
               border: `1px solid ${C.border}`,
@@ -298,7 +297,6 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
             }}>
               <Settings size={13} /> Ajustes
             </button>
-          )}
           {onSignOut && (
             <button onClick={onSignOut} title="Cerrar sesión" style={{
               padding: "8px 10px", borderRadius: 8,

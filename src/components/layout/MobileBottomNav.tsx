@@ -156,7 +156,7 @@ export function MobileBottomNav({
         >
           <SlidersHorizontal size={20} />
         </button>
-        {isAdmin && onSettings && (
+        {onSettings && (
           <button
             onClick={onSettings}
             style={{
