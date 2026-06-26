@@ -52,6 +52,8 @@ export default function App() {
       onBack={() => setView("dashboard")}
       onDashboard={() => setView("dashboard")}
       onTransactions={() => setView("transacciones")}
+      onSettings={() => setView("admin")}
+      isAdmin={isAdmin}
     />
   );
 

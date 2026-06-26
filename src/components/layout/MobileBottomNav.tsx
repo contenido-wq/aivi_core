@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, SlidersHorizontal } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, SlidersHorizontal, Settings } from "lucide-react";
 import { C, FONT } from "../../tokens";
 import type { ProductFilter } from "../../services/dashboard";
 
@@ -8,6 +8,8 @@ interface MobileBottomNavProps {
   onDashboard?:    () => void;
   onUsers?:        () => void;
   onTransactions?: () => void;
+  onSettings?:     () => void;
+  isAdmin?:        boolean;
   filter:          ProductFilter;
   onFilter:        (f: ProductFilter) => void;
 }
@@ -26,7 +28,7 @@ const NAV = [
 ] as const;
 
 export function MobileBottomNav({
-  activeView, onDashboard, onUsers, onTransactions, filter, onFilter,
+  activeView, onDashboard, onUsers, onTransactions, onSettings, isAdmin = false, filter, onFilter,
 }: MobileBottomNavProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -154,6 +156,27 @@ export function MobileBottomNav({
         >
           <SlidersHorizontal size={20} />
         </button>
+        {isAdmin && onSettings && (
+          <button
+            onClick={onSettings}
+            style={{
+              background: "transparent",
+              border: "none",
+              borderRadius: 16,
+              cursor: "pointer",
+              width: 52,
+              height: 44,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "rgba(255,255,255,0.45)",
+              transition: "all 0.2s",
+              flexShrink: 0,
+            }}
+          >
+            <Settings size={20} />
+          </button>
+        )}
       </nav>
     </>
   );

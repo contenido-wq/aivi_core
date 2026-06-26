@@ -381,6 +381,8 @@ export function TransactionsView({
           activeView={activeView}
           onDashboard={onDashboard}
           onUsers={onUsers}
+          onSettings={onSettings}
+          isAdmin={isAdmin}
           filter={filter}
           onFilter={setFilter}
         />
