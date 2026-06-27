@@ -69,7 +69,17 @@ interface Props {
 }
 
 export function VSLIntelligencePanel({ primary, compare }: Props) {
-  if (!primary) return null;
+  if (!primary) return (
+    <div style={{
+      background: C.card, border: `1px solid ${C.border}`,
+      borderRadius: 14, padding: 32,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      flexDirection: "column", gap: 8, minHeight: 120,
+    }}>
+      <div style={{ fontSize: 13, color: C.mutedMid }}>Sin datos de retención para este período</div>
+      <div style={{ fontSize: 11, color: C.muted }}>Selecciona un VSL o espera a que lleguen datos de VTurb</div>
+    </div>
+  );
 
   const chartData  = buildChartData(primary, compare);
   const dropPt     = primary.dropSecond != null

@@ -14,12 +14,16 @@ interface Props {
 export function CampaignMappingModal({ open, onClose, mappings, campaigns, onSaved }: Props) {
   const [newCampaign, setNewCampaign] = useState("");
   const [newVideoId,  setNewVideoId]  = useState("");
-  const [saving,      setSaving]      = useState(false);
-  const [videos,      setVideos]      = useState<VTurbVideo[]>([]);
+  const [saving,       setSaving]      = useState(false);
+  const [videos,       setVideos]      = useState<VTurbVideo[]>([]);
+  const [videosState,  setVideosState] = useState<"idle" | "loading" | "ready" | "error">("idle");
 
   useEffect(() => {
     if (open) {
-      getAvailableVideos().then(setVideos).catch(() => setVideos([]));
+      setVideosState("loading");
+      getAvailableVideos()
+        .then(v => { setVideos(v); setVideosState("ready"); })
+        .catch(() => { setVideos([]); setVideosState("error"); });
     }
   }, [open]);
 
@@ -82,8 +86,14 @@ export function CampaignMappingModal({ open, onClose, mappings, campaigns, onSav
                 <option key={v.videoId} value={v.videoId}>{v.videoName}</option>
               ))}
             </select>
-            {videos.length === 0 && (
+            {videosState === "loading" && (
               <div style={{ fontSize: 11, color: C.mutedMid }}>Cargando videos disponibles…</div>
+            )}
+            {videosState === "error" && (
+              <div style={{ fontSize: 11, color: C.red }}>No se pudieron cargar los videos de VTurb</div>
+            )}
+            {videosState === "ready" && videos.length === 0 && (
+              <div style={{ fontSize: 11, color: C.mutedMid }}>Sin videos registrados en VTurb aún</div>
             )}
 
             <button onClick={handleSave} disabled={saving || !newCampaign || !newVideoId}
