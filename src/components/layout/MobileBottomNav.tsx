@@ -28,7 +28,7 @@ const NAV = [
 ] as const;
 
 export function MobileBottomNav({
-  activeView, onDashboard, onUsers, onTransactions, onSettings, isAdmin = false, filter, onFilter,
+  activeView, onDashboard, onUsers, onTransactions, onSettings, isAdmin: _isAdmin = false, filter, onFilter,
 }: MobileBottomNavProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
