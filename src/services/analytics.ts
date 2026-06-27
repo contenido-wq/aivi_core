@@ -467,3 +467,175 @@ export async function deleteVSLMapping(campaignName: string): Promise<void> {
   const { error } = await supabase.from("campaign_vsl_mapping").delete().eq("campaign_name", campaignName);
   if (error) throw new Error(error.message);
 }
+
+// ── Dimensiones ───────────────────────────────────────────────────────────────
+
+export interface DimensionRow {
+  label:       string;
+  code?:       string;
+  plays:       number;
+  views:       number;
+  pct:         number;
+  conversions: number;
+}
+
+function toDimensionRows(
+  rows:    { label: string; code?: string; plays: number; views: number }[],
+  convMap: Record<string, number> = {},
+): DimensionRow[] {
+  const sorted = [...rows].sort((a, b) => b.plays - a.plays);
+  const top    = sorted.slice(0, 8);
+  const rest   = sorted.slice(8);
+  const total  = sorted.reduce((s, r) => s + r.plays, 0) || 1;
+
+  const result: DimensionRow[] = top.map(r => ({
+    ...r,
+    pct:         Math.round((r.plays / total) * 1000) / 10,
+    conversions: convMap[r.code ?? r.label] ?? 0,
+  }));
+
+  if (rest.length > 0) {
+    const otherPlays = rest.reduce((s, r) => s + r.plays, 0);
+    const otherViews = rest.reduce((s, r) => s + r.views, 0);
+    result.push({
+      label: "Otros", plays: otherPlays, views: otherViews,
+      pct: Math.round((otherPlays / total) * 1000) / 10,
+      conversions: 0,
+    });
+  }
+
+  return result;
+}
+
+export async function getVSLByCountry(r: DateRange, videoId: string): Promise<DimensionRow[]> {
+  const [vturbRes, txRes] = await Promise.all([
+    supabase
+      .from("vturb_by_country")
+      .select("country_code, country_name, plays, views")
+      .eq("video_id", videoId)
+      .gte("date", r.from)
+      .lte("date", r.to),
+    supabase
+      .from("transactions")
+      .select("buyer_country")
+      .gte("created_at", r.fromTs)
+      .lte("created_at", r.toTs)
+      .eq("status", "active")
+      .not("buyer_country", "is", null),
+  ]);
+
+  const convMap: Record<string, number> = {};
+  for (const tx of (txRes.data ?? [])) {
+    const k = tx.buyer_country as string;
+    convMap[k] = (convMap[k] ?? 0) + 1;
+  }
+
+  const agg: Record<string, { country_name: string; plays: number; views: number }> = {};
+  for (const row of (vturbRes.data ?? [])) {
+    if (!agg[row.country_code]) {
+      agg[row.country_code] = { country_name: row.country_name ?? row.country_code, plays: 0, views: 0 };
+    }
+    agg[row.country_code].plays += Number(row.plays);
+    agg[row.country_code].views += Number(row.views);
+  }
+
+  return toDimensionRows(
+    Object.entries(agg).map(([code, v]) => ({ label: v.country_name, code, plays: v.plays, views: v.views })),
+    convMap,
+  );
+}
+
+export async function getVSLByDevice(r: DateRange, videoId: string): Promise<DimensionRow[]> {
+  const { data } = await supabase
+    .from("vturb_by_device")
+    .select("device_type, plays, views")
+    .eq("video_id", videoId)
+    .gte("date", r.from)
+    .lte("date", r.to);
+
+  const agg: Record<string, { plays: number; views: number }> = {};
+  for (const row of (data ?? [])) {
+    if (!agg[row.device_type]) agg[row.device_type] = { plays: 0, views: 0 };
+    agg[row.device_type].plays += Number(row.plays);
+    agg[row.device_type].views += Number(row.views);
+  }
+
+  return toDimensionRows(
+    Object.entries(agg).map(([label, v]) => ({ label, plays: v.plays, views: v.views })),
+  );
+}
+
+export async function getVSLByOS(r: DateRange, videoId: string): Promise<DimensionRow[]> {
+  const { data } = await supabase
+    .from("vturb_by_os")
+    .select("os_name, plays, views")
+    .eq("video_id", videoId)
+    .gte("date", r.from)
+    .lte("date", r.to);
+
+  const agg: Record<string, { plays: number; views: number }> = {};
+  for (const row of (data ?? [])) {
+    if (!agg[row.os_name]) agg[row.os_name] = { plays: 0, views: 0 };
+    agg[row.os_name].plays += Number(row.plays);
+    agg[row.os_name].views += Number(row.views);
+  }
+
+  return toDimensionRows(
+    Object.entries(agg).map(([label, v]) => ({ label, plays: v.plays, views: v.views })),
+  );
+}
+
+export async function getVSLByBrowser(r: DateRange, videoId: string): Promise<DimensionRow[]> {
+  const { data } = await supabase
+    .from("vturb_by_browser")
+    .select("browser_name, plays, views")
+    .eq("video_id", videoId)
+    .gte("date", r.from)
+    .lte("date", r.to);
+
+  const agg: Record<string, { plays: number; views: number }> = {};
+  for (const row of (data ?? [])) {
+    if (!agg[row.browser_name]) agg[row.browser_name] = { plays: 0, views: 0 };
+    agg[row.browser_name].plays += Number(row.plays);
+    agg[row.browser_name].views += Number(row.views);
+  }
+
+  return toDimensionRows(
+    Object.entries(agg).map(([label, v]) => ({ label, plays: v.plays, views: v.views })),
+  );
+}
+
+export async function getVSLBySource(r: DateRange, videoId: string): Promise<DimensionRow[]> {
+  const [mappingRes, txRes] = await Promise.all([
+    supabase
+      .from("campaign_vsl_mapping")
+      .select("campaign_name")
+      .eq("video_id", videoId),
+    supabase
+      .from("transactions")
+      .select("traffic_source")
+      .gte("created_at", r.fromTs)
+      .lte("created_at", r.toTs)
+      .eq("status", "active"),
+  ]);
+
+  const mapped = new Set((mappingRes.data ?? []).map((m: any) => m.campaign_name as string));
+
+  const convMap: Record<string, number> = {};
+  for (const tx of (txRes.data ?? [])) {
+    const src = (tx.traffic_source ?? "Sin UTM") as string;
+    if (mapped.has(src)) convMap[src] = (convMap[src] ?? 0) + 1;
+  }
+
+  const totalConv = Object.values(convMap).reduce((s, n) => s + n, 0) || 1;
+
+  return Object.entries(convMap)
+    .map(([label, conversions]) => ({
+      label,
+      plays: 0,
+      views: 0,
+      pct:   Math.round((conversions / totalConv) * 1000) / 10,
+      conversions,
+    }))
+    .sort((a, b) => b.conversions - a.conversions);
+}
