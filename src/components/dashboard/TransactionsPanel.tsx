@@ -149,16 +149,16 @@ export function TransactionsPanel({ transactions, onDateRangeChange }: Transacti
         marginBottom: 8, flexShrink: 0,
       }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 8, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Total</div>
+          <div style={{ fontSize: 10, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Total</div>
           <div style={{ fontSize: 13, fontWeight: 900, color: totalUsd >= 0 ? C.green : C.red }}>${Math.abs(totalUsd).toFixed(2)}</div>
-          <div style={{ fontSize: 7, color: C.muted }}>USD</div>
+          <div style={{ fontSize: 10, color: C.muted }}>USD</div>
         </div>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 8, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Ventas</div>
+          <div style={{ fontSize: 10, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Ventas</div>
           <div style={{ fontSize: 13, fontWeight: 900, color: C.green }}>{ventas}</div>
         </div>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 8, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Reemb.</div>
+          <div style={{ fontSize: 10, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Reemb.</div>
           <div style={{ fontSize: 13, fontWeight: 900, color: reembolsos > 0 ? C.red : C.muted }}>{reembolsos}</div>
         </div>
       </div>
@@ -168,7 +168,7 @@ export function TransactionsPanel({ transactions, onDateRangeChange }: Transacti
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 20, gap: 8 }}>
           <div style={{ fontSize: 28, opacity: 0.15 }}>💳</div>
           <span style={{ color: C.muted, fontSize: 11 }}>Sin transacciones</span>
-          <span style={{ color: C.muted, fontSize: 9 }}>{formatDateLabel()}</span>
+          <span style={{ color: C.muted, fontSize: 10 }}>{formatDateLabel()}</span>
         </div>
       ) : (
         <div style={{ overflow: "auto", flex: 1 }}>
@@ -181,11 +181,11 @@ export function TransactionsPanel({ transactions, onDateRangeChange }: Transacti
                 <div style={{ fontSize: 11, fontWeight: 600, color: C.white, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {t.buyerName}
                 </div>
-                <div style={{ fontSize: 9, color: C.muted, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: 10, color: C.muted, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {t.planName.replace("AIVI — ", "").replace("Método V3 — ", "MV3 ")}
                 </div>
                 {viewMode === "mes" && (
-                  <div style={{ fontSize: 8, color: C.mutedMid, marginTop: 1 }}>
+                  <div style={{ fontSize: 10, color: C.mutedMid, marginTop: 1 }}>
                     {new Date(t.createdAt).toLocaleDateString("es-CO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </div>
                 )}
@@ -196,13 +196,13 @@ export function TransactionsPanel({ transactions, onDateRangeChange }: Transacti
                   color: isNegative(t.eventType) ? C.red : isCancel(t.eventType) ? C.yellow : C.green,
                 }}>
                   {isNegative(t.eventType) ? "-" : "+"}${t.amountUsd.toFixed(2)}
-                  <span style={{ fontSize: 7, color: C.muted, marginLeft: 2, fontWeight: 500 }}>USD</span>
+                  <span style={{ fontSize: 10, color: C.muted, marginLeft: 2, fontWeight: 500 }}>USD</span>
                 </div>
-                <div style={{ fontSize: 9, color: C.muted, marginTop: 1 }}>
+                <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
                   {EVENT_LABEL[t.eventType] ?? t.eventType}
                 </div>
                 {t.currency !== "USD" && (
-                  <div style={{ fontSize: 8, color: C.mutedMid }}>
+                  <div style={{ fontSize: 10, color: C.mutedMid }}>
                     (orig: ${t.amount.toFixed(2)} {t.currency})
                   </div>
                 )}

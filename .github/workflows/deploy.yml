@@ -45,6 +45,9 @@ jobs:
           build-args: |
             VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
             VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
+            VITE_PORTAL_EMAIL=${{ secrets.VITE_PORTAL_EMAIL }}
+            VITE_PORTAL_PASSWORD=${{ secrets.VITE_PORTAL_PASSWORD }}
+            VITE_ADMIN_EMAIL=${{ secrets.VITE_ADMIN_EMAIL }}
 
       - name: Notificar a Easypanel
         env:

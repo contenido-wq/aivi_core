@@ -1,4 +1,5 @@
-import { supabase } from "./supabase";
+import { supabase }  from "./supabase";
+import { toUSD }     from "./currency";
 
 // ── Períodos ──────────────────────────────────────────────────────────────────
 
@@ -8,7 +9,7 @@ export interface DateRange { from: string; to: string; fromTs: string; toTs: str
 
 export function buildRange(key: PeriodKey, custom?: { from: string; to: string }): DateRange {
   const now    = new Date();
-  const colMs  = now.getTime() + (-5 * 60 - now.getTimezoneOffset()) * 60000;
+  const colMs  = now.getTime() - 5 * 60 * 60 * 1000; // UTC → Colombia (UTC-5), sin depender del timezone del browser
   const col    = new Date(colMs);
   const pad    = (n: number) => String(n).padStart(2, "0");
   const ymd    = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -96,6 +97,7 @@ export interface AdRankRow {
   sales:        number;
   cac:          number;
   roas:         number;
+  videoId:      string | null;
   videoName:    string | null;
   score:        number;
 }
@@ -123,12 +125,12 @@ export interface VSLMapping { campaignName: string; videoId: string; videoName: 
 export async function getAnalyticsSummary(r: DateRange): Promise<AnalyticsSummary> {
   const [invRes, txRes, playsRes] = await Promise.all([
     supabase.from("campaign_investment_data").select("investment").gte("date", r.from).lte("date", r.to),
-    supabase.from("transactions").select("amount, currency").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("event_type", "PURCHASE_COMPLETE"),
+    supabase.from("transactions").select("amount, currency").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("status", "active"),
     supabase.from("vturb_analytics").select("plays, views, button_clicks").gte("date", r.from).lte("date", r.to),
   ]);
 
   const investment = (invRes.data ?? []).reduce((s: number, x: any) => s + Number(x.investment), 0);
-  const revenue    = (txRes.data ?? []).reduce((s: number, x: any) => s + Number(x.amount), 0);
+  const revenue    = (txRes.data ?? []).reduce((s: number, x: any) => s + toUSD(Number(x.amount), x.currency), 0);
   const sales      = (txRes.data ?? []).length;
   const plays      = (playsRes.data ?? []).reduce((s: number, x: any) => s + Number(x.plays), 0);
   const views      = (playsRes.data ?? []).reduce((s: number, x: any) => s + Number(x.views), 0);
@@ -149,7 +151,7 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
   const [campRes, txRes, mappingRes, analyticsRes] = await Promise.all([
     supabase.from("campaign_investment_data").select("campaign_name, investment, impressions, clicks").gte("date", r.from).lte("date", r.to),
     // traffic_source es el campo donde Hotmart guarda el UTM (src/sck)
-    supabase.from("transactions").select("traffic_source, amount, created_at").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("event_type", "PURCHASE_COMPLETE"),
+    supabase.from("transactions").select("traffic_source, amount, currency, created_at").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("status", "active"),
     supabase.from("campaign_vsl_mapping").select("*"),
     supabase.from("vturb_analytics").select("video_id, plays, button_clicks").gte("date", r.from).lte("date", r.to),
   ]);
@@ -168,7 +170,7 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
     const k = tx.traffic_source ?? "Sin UTM";
     if (!salesMap[k]) salesMap[k] = { count: 0, revenue: 0, hours: [] };
     salesMap[k].count++;
-    salesMap[k].revenue += Number(tx.amount);
+    salesMap[k].revenue += toUSD(Number(tx.amount), tx.currency);
     salesMap[k].hours.push(new Date(tx.created_at).getHours());
   }
 
@@ -225,7 +227,7 @@ export async function getVSLRetention(r: DateRange): Promise<VSLData[]> {
   const [analyticsRes, retentionRes, txRes, mappingRes] = await Promise.all([
     supabase.from("vturb_analytics").select("video_id, video_name, plays, button_clicks").gte("date", r.from).lte("date", r.to),
     supabase.from("vturb_retention").select("video_id, second, percentage").gte("date", r.from).lte("date", r.to).order("second", { ascending: true }),
-    supabase.from("transactions").select("traffic_source").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("event_type", "PURCHASE_COMPLETE"),
+    supabase.from("transactions").select("traffic_source").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("status", "active"),
     supabase.from("campaign_vsl_mapping").select("*"),
   ]);
 
@@ -245,17 +247,31 @@ export async function getVSLRetention(r: DateRange): Promise<VSLData[]> {
     analyticsMap[k].ctaClicks += Number(row.button_clicks);
   }
 
-  const retMap: Record<string, VSLRetentionPoint[]> = {};
+  // Promedia los puntos de retención por segundo cuando hay múltiples fechas en el rango
+  const retAccum: Record<string, Record<number, { sum: number; count: number }>> = {};
   for (const row of (retentionRes.data ?? [])) {
-    if (!retMap[row.video_id]) retMap[row.video_id] = [];
-    retMap[row.video_id].push({ second: row.second, percentage: Number(row.percentage) });
+    if (!retAccum[row.video_id]) retAccum[row.video_id] = {};
+    const sec = Number(row.second);
+    if (!retAccum[row.video_id][sec]) retAccum[row.video_id][sec] = { sum: 0, count: 0 };
+    retAccum[row.video_id][sec].sum   += Number(row.percentage);
+    retAccum[row.video_id][sec].count += 1;
+  }
+  const retMap: Record<string, VSLRetentionPoint[]> = {};
+  for (const [vid, secMap] of Object.entries(retAccum)) {
+    retMap[vid] = Object.entries(secMap)
+      .map(([s, { sum, count }]) => ({ second: Number(s), percentage: sum / count }))
+      .sort((a, b) => a.second - b.second);
   }
 
   return Object.entries(analyticsMap).map(([videoId, a]) => {
     const retention = retMap[videoId] ?? [];
+    // Busca el porcentaje en el segundo que corresponde al pct% de la duración total
     const getAt = (pct: number) => {
-      const idx = Math.floor((pct / 100) * retention.length);
-      return retention[Math.min(idx, retention.length - 1)]?.percentage ?? 0;
+      if (retention.length === 0) return 0;
+      const totalSec  = retention[retention.length - 1].second;
+      const targetSec = (pct / 100) * totalSec;
+      const pt = retention.find(p => p.second >= targetSec) ?? retention[retention.length - 1];
+      return pt.percentage;
     };
 
     let dropSecond: number | null = null;
@@ -290,6 +306,7 @@ export async function getAdsRanking(r: DateRange): Promise<AdRankRow[]> {
     sales:        f.sales,
     cac:          f.cac,
     roas:         f.roas,
+    videoId:      f.videoId,
     videoName:    f.videoName,
     score:        f.score,
   }));
@@ -300,7 +317,7 @@ export async function getHourlyHeatmap(r: DateRange): Promise<HeatmapCell[]> {
     .from("transactions")
     .select("created_at")
     .gte("created_at", r.fromTs).lte("created_at", r.toTs)
-    .eq("event_type", "PURCHASE_COMPLETE");
+    .eq("status", "active");
 
   const cells: Record<string, number> = {};
   for (const tx of (data ?? [])) {
@@ -328,7 +345,7 @@ export async function getLTVBySource(): Promise<LTVRow[]> {
 
   const revenueMap: Record<string, number> = {};
   const customersMap: Record<string, Set<string>> = {};
-  for (const tx of (txRes.data ?? []).filter((t: any) => t.event_type === "PURCHASE_COMPLETE")) {
+  for (const tx of (txRes.data ?? []).filter((t: any) => t.status === "active")) {
     const k = tx.traffic_source ?? "Sin UTM";
     revenueMap[k] = (revenueMap[k] ?? 0) + Number(tx.amount);
     if (!customersMap[k]) customersMap[k] = new Set();
@@ -406,28 +423,36 @@ Responde exactamente con este formato:
 ## ¿Qué replicar?
 [Patrones concretos del contenido ganador: tipo de hook, estructura, momento del CTA]`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type":      "application/json",
-      "x-api-key":         import.meta.env.VITE_ANTHROPIC_API_KEY ?? "",
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model:      "claude-sonnet-4-6",
-      max_tokens: 1024,
-      messages:   [{ role: "user", content: prompt }],
-    }),
+  const { data, error } = await supabase.functions.invoke("ai-analyst", {
+    body: { prompt },
   });
-  if (!res.ok) throw new Error(`Anthropic API error ${res.status}`);
-  const data = await res.json();
-  return (data.content[0].text as string);
+  if (error) throw new Error(error.message);
+  return data.text as string;
 }
 
 export async function getVSLMappings(): Promise<VSLMapping[]> {
   const { data, error } = await supabase.from("campaign_vsl_mapping").select("*");
   if (error) throw new Error(error.message);
   return (data ?? []).map((r: any) => ({ campaignName: r.campaign_name, videoId: r.video_id, videoName: r.video_name ?? r.video_id }));
+}
+
+export interface VTurbVideo { videoId: string; videoName: string }
+
+export async function getAvailableVideos(): Promise<VTurbVideo[]> {
+  const { data } = await supabase
+    .from("vturb_analytics")
+    .select("video_id, video_name")
+    .not("video_id", "is", null);
+
+  const seen = new Set<string>();
+  const result: VTurbVideo[] = [];
+  for (const row of (data ?? [])) {
+    if (!seen.has(row.video_id)) {
+      seen.add(row.video_id);
+      result.push({ videoId: row.video_id, videoName: row.video_name ?? row.video_id });
+    }
+  }
+  return result.sort((a, b) => a.videoName.localeCompare(b.videoName));
 }
 
 export async function saveVSLMapping(m: VSLMapping): Promise<void> {
@@ -441,4 +466,176 @@ export async function saveVSLMapping(m: VSLMapping): Promise<void> {
 export async function deleteVSLMapping(campaignName: string): Promise<void> {
   const { error } = await supabase.from("campaign_vsl_mapping").delete().eq("campaign_name", campaignName);
   if (error) throw new Error(error.message);
+}
+
+// ── Dimensiones ───────────────────────────────────────────────────────────────
+
+export interface DimensionRow {
+  label:       string;
+  code?:       string;
+  plays:       number;
+  views:       number;
+  pct:         number;
+  conversions: number;
+}
+
+function toDimensionRows(
+  rows:    { label: string; code?: string; plays: number; views: number }[],
+  convMap: Record<string, number> = {},
+): DimensionRow[] {
+  const sorted = [...rows].sort((a, b) => b.plays - a.plays);
+  const top    = sorted.slice(0, 8);
+  const rest   = sorted.slice(8);
+  const total  = sorted.reduce((s, r) => s + r.plays, 0) || 1;
+
+  const result: DimensionRow[] = top.map(r => ({
+    ...r,
+    pct:         Math.round((r.plays / total) * 1000) / 10,
+    conversions: convMap[r.code ?? r.label] ?? 0,
+  }));
+
+  if (rest.length > 0) {
+    const otherPlays = rest.reduce((s, r) => s + r.plays, 0);
+    const otherViews = rest.reduce((s, r) => s + r.views, 0);
+    result.push({
+      label: "Otros", plays: otherPlays, views: otherViews,
+      pct: Math.round((otherPlays / total) * 1000) / 10,
+      conversions: 0,
+    });
+  }
+
+  return result;
+}
+
+export async function getVSLByCountry(r: DateRange, videoId: string): Promise<DimensionRow[]> {
+  const [vturbRes, txRes] = await Promise.all([
+    supabase
+      .from("vturb_by_country")
+      .select("country_code, country_name, plays, views")
+      .eq("video_id", videoId)
+      .gte("date", r.from)
+      .lte("date", r.to),
+    supabase
+      .from("transactions")
+      .select("buyer_country")
+      .gte("created_at", r.fromTs)
+      .lte("created_at", r.toTs)
+      .eq("status", "active")
+      .not("buyer_country", "is", null),
+  ]);
+
+  const convMap: Record<string, number> = {};
+  for (const tx of (txRes.data ?? [])) {
+    const k = tx.buyer_country as string;
+    convMap[k] = (convMap[k] ?? 0) + 1;
+  }
+
+  const agg: Record<string, { country_name: string; plays: number; views: number }> = {};
+  for (const row of (vturbRes.data ?? [])) {
+    if (!agg[row.country_code]) {
+      agg[row.country_code] = { country_name: row.country_name ?? row.country_code, plays: 0, views: 0 };
+    }
+    agg[row.country_code].plays += Number(row.plays);
+    agg[row.country_code].views += Number(row.views);
+  }
+
+  return toDimensionRows(
+    Object.entries(agg).map(([code, v]) => ({ label: v.country_name, code, plays: v.plays, views: v.views })),
+    convMap,
+  );
+}
+
+export async function getVSLByDevice(r: DateRange, videoId: string): Promise<DimensionRow[]> {
+  const { data } = await supabase
+    .from("vturb_by_device")
+    .select("device_type, plays, views")
+    .eq("video_id", videoId)
+    .gte("date", r.from)
+    .lte("date", r.to);
+
+  const agg: Record<string, { plays: number; views: number }> = {};
+  for (const row of (data ?? [])) {
+    if (!agg[row.device_type]) agg[row.device_type] = { plays: 0, views: 0 };
+    agg[row.device_type].plays += Number(row.plays);
+    agg[row.device_type].views += Number(row.views);
+  }
+
+  return toDimensionRows(
+    Object.entries(agg).map(([label, v]) => ({ label, plays: v.plays, views: v.views })),
+  );
+}
+
+export async function getVSLByOS(r: DateRange, videoId: string): Promise<DimensionRow[]> {
+  const { data } = await supabase
+    .from("vturb_by_os")
+    .select("os_name, plays, views")
+    .eq("video_id", videoId)
+    .gte("date", r.from)
+    .lte("date", r.to);
+
+  const agg: Record<string, { plays: number; views: number }> = {};
+  for (const row of (data ?? [])) {
+    if (!agg[row.os_name]) agg[row.os_name] = { plays: 0, views: 0 };
+    agg[row.os_name].plays += Number(row.plays);
+    agg[row.os_name].views += Number(row.views);
+  }
+
+  return toDimensionRows(
+    Object.entries(agg).map(([label, v]) => ({ label, plays: v.plays, views: v.views })),
+  );
+}
+
+export async function getVSLByBrowser(r: DateRange, videoId: string): Promise<DimensionRow[]> {
+  const { data } = await supabase
+    .from("vturb_by_browser")
+    .select("browser_name, plays, views")
+    .eq("video_id", videoId)
+    .gte("date", r.from)
+    .lte("date", r.to);
+
+  const agg: Record<string, { plays: number; views: number }> = {};
+  for (const row of (data ?? [])) {
+    if (!agg[row.browser_name]) agg[row.browser_name] = { plays: 0, views: 0 };
+    agg[row.browser_name].plays += Number(row.plays);
+    agg[row.browser_name].views += Number(row.views);
+  }
+
+  return toDimensionRows(
+    Object.entries(agg).map(([label, v]) => ({ label, plays: v.plays, views: v.views })),
+  );
+}
+
+export async function getVSLBySource(r: DateRange, videoId: string): Promise<DimensionRow[]> {
+  const [mappingRes, txRes] = await Promise.all([
+    supabase
+      .from("campaign_vsl_mapping")
+      .select("campaign_name")
+      .eq("video_id", videoId),
+    supabase
+      .from("transactions")
+      .select("traffic_source")
+      .gte("created_at", r.fromTs)
+      .lte("created_at", r.toTs)
+      .eq("status", "active"),
+  ]);
+
+  const mapped = new Set((mappingRes.data ?? []).map((m: any) => m.campaign_name as string));
+
+  const convMap: Record<string, number> = {};
+  for (const tx of (txRes.data ?? [])) {
+    const src = (tx.traffic_source ?? "Sin UTM") as string;
+    if (mapped.has(src)) convMap[src] = (convMap[src] ?? 0) + 1;
+  }
+
+  const totalConv = Object.values(convMap).reduce((s, n) => s + n, 0) || 1;
+
+  return Object.entries(convMap)
+    .map(([label, conversions]) => ({
+      label,
+      plays: 0,
+      views: 0,
+      pct:   Math.round((conversions / totalConv) * 1000) / 10,
+      conversions,
+    }))
+    .sort((a, b) => b.conversions - a.conversions);
 }

@@ -10,6 +10,8 @@ interface UsersViewProps {
   onBack:          () => void;
   onDashboard?:    () => void;
   onTransactions?: () => void;
+  onSettings?:     () => void;
+  isAdmin?:        boolean;
 }
 
 const FLAGS: Record<string, string> = {
@@ -201,7 +203,7 @@ function cleanPhone(raw: string): string {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProps) {
+export function UsersView({ onBack, onDashboard, onTransactions, onSettings, isAdmin = false }: UsersViewProps) {
   const [users,         setUsers]         = useState<UserProfile[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [selected,      setSelected]      = useState<UserProfile | null>(null);
@@ -800,6 +802,8 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
           activeView="usuarios"
           onDashboard={onDashboard}
           onTransactions={onTransactions}
+          onSettings={onSettings}
+          isAdmin={isAdmin}
           filter={programFilter}
           onFilter={setProgramFilter}
         />

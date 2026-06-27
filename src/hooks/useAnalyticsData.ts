@@ -33,8 +33,10 @@ export function useAnalyticsData() {
   const [period,    setPeriodKey] = useState<PeriodKey>("hoy");
   const [custom,    setCustom]   = useState<{ from: string; to: string } | undefined>();
   const [state,     setState]    = useState<AnalyticsState>(EMPTY);
-  const [aiResult,  setAiResult] = useState<string | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult,     setAiResult]    = useState<string | null>(null);
+  const [aiLoading,    setAiLoading]   = useState(false);
+  const [selectedVslId, setSelectedVslId] = useState<string | null>(null);
+  const [compareVslId,  setCompareVslId]  = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setState(s => ({ ...s, loading: true, error: null }));
@@ -57,6 +59,7 @@ export function useAnalyticsData() {
       const alerts = generateAlerts(summaryWithPrev, funnel, vsls);
 
       setState({ summary: summaryWithPrev, funnel, vsls, ranking, heatmap, ltv, alerts, mappings, loading: false, error: null, range: r });
+      setSelectedVslId(prev => prev ?? (vsls[0]?.videoId ?? null));
     } catch (e) {
       setState(s => ({ ...s, loading: false, error: String(e) }));
     }
@@ -87,5 +90,12 @@ export function useAnalyticsData() {
     }
   }, [state.summary, state.funnel, state.vsls, period]);
 
-  return { ...state, period, setPeriod, refresh: load, aiResult, aiLoading, runAIAnalysis };
+  return {
+    ...state,
+    period, setPeriod, refresh: load,
+    aiResult, aiLoading, runAIAnalysis,
+    selectedVslId, compareVslId,
+    setSelectedVsl: setSelectedVslId,
+    setCompareVsl:  setCompareVslId,
+  };
 }

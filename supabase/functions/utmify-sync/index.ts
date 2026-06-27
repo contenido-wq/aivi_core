@@ -72,7 +72,7 @@ async function syncCampaigns(
 
   const rows = campaigns.map((c) => ({
     campaign_id:   c.campaignId,
-    campaign_name: c.campaignName ?? c.campaignId,
+    campaign_name: c.name ?? c.campaignName ?? c.campaignId,
     date:          dateStr,
     platform:      "facebook",
     investment:    (c.spend ?? 0) / 100,
@@ -297,6 +297,19 @@ serve(async (req) => {
   const from   = params.get("from");
   const to     = params.get("to");
   const debug  = params.has("debug");
+
+  // Debug: retorna raw de UTMify a nivel campaña para inspección
+  if (params.has("debug-campaigns")) {
+    const mcpToken    = Deno.env.get("UTMIFY_MCP_TOKEN")!;
+    const dashboardId = Deno.env.get("UTMIFY_DASHBOARD_ID")!;
+    const today       = toColombiaDate(new Date());
+    const raw = await callMcp(mcpToken, "get_meta_ad_objects", {
+      dashboardId, level: "campaign",
+      dateRange: { from: today, to: today },
+    });
+    return new Response(JSON.stringify(raw, null, 2), { headers: { "Content-Type": "application/json" } });
+  }
+
   if (from && to) return runBackfill(from, to);
   return runSync(debug);
 });

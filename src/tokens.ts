@@ -16,10 +16,10 @@ export const C = {
 
   // ── Text ──────────────────────────────────────────────────
   white:       "#FAFAFA",
-  muted:       "#5E5E70",
-  mutedMid:    "#8E8EA0",
-  mutedLight:  "#A0A0B4",
-  label:       "#6F6F85",
+  muted:       "#707087",
+  mutedMid:    "#9898AA",
+  mutedLight:  "#ABABBE",
+  label:       "#7878A0",
 
   // ── Accents (brand guide: #FFC252 → #FE803F → #FF413B) ───
   orange:      "#FE803F",
@@ -27,12 +27,12 @@ export const C = {
   orangeDark:  "#C04A18",
 
   yellow:      "#FFC252",
-  green:       "#FE803F",
-  greenSoft:   "rgba(254,128,63,0.12)",
-  blue:        "#FE803F",
+  green:       "#30D158",   // real semantic green — positive states
+  greenSoft:   "rgba(48,209,88,0.12)",
+  blue:        "#FE803F",   // chart revenue bars = brand orange
   red:         "#FF413B",
-  teal:        "#FE803F",
-  purple:      "#FFC252",
+  teal:        "#2DD4BF",
+  purple:      "#A78BFA",   // chart investment line — distinct from orange/yellow
   pink:        "#FF413B",
 
   // ── Gradients (brand palette: yellow → orange → red) ─────

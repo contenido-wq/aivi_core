@@ -1,18 +1,20 @@
-import { useState } from "react";
-import { C, FONT } from "../tokens";
-import { useAnalyticsData } from "../hooks/useAnalyticsData";
-import { Sidebar }              from "../components/layout/Sidebar";
-import { AlertsPanel }          from "../components/analytics/AlertsPanel";
-import { KPISummary }           from "../components/analytics/KPISummary";
-import { CampaignFunnelCard }   from "../components/analytics/CampaignFunnelCard";
-import { VSLComparator }        from "../components/analytics/VSLComparator";
-import { AdsRankingTable }      from "../components/analytics/AdsRankingTable";
-import { HourlyHeatmap }        from "../components/analytics/HourlyHeatmap";
-import { LTVTable }             from "../components/analytics/LTVTable";
-import { CampaignMappingModal } from "../components/analytics/CampaignMappingModal";
-import { AIAnalyst }            from "../components/analytics/AIAnalyst";
-import type { AppView }         from "../types";
-import type { PeriodKey }       from "../services/analytics";
+import { useState, useMemo }          from "react";
+import { C, FONT }                    from "../tokens";
+import { useAnalyticsData }           from "../hooks/useAnalyticsData";
+import { Sidebar }                    from "../components/layout/Sidebar";
+import { AlertsPanel }                from "../components/analytics/AlertsPanel";
+import { KPISummary }                 from "../components/analytics/KPISummary";
+import { CampaignFunnelCard }         from "../components/analytics/CampaignFunnelCard";
+import { VSLSelectorBar }             from "../components/analytics/VSLSelectorBar";
+import { VSLIntelligencePanel }       from "../components/analytics/VSLIntelligencePanel";
+import { ScaleRadar }                 from "../components/analytics/ScaleRadar";
+import { AdsRankingTable }            from "../components/analytics/AdsRankingTable";
+import { HourlyHeatmap }              from "../components/analytics/HourlyHeatmap";
+import { LTVTable }                   from "../components/analytics/LTVTable";
+import { CampaignMappingModal }       from "../components/analytics/CampaignMappingModal";
+import { AIAnalyst }                  from "../components/analytics/AIAnalyst";
+import type { AppView }               from "../types";
+import type { PeriodKey, AnalyticsSummary } from "../services/analytics";
 
 interface Props {
   onDashboard:    () => void;
@@ -37,12 +39,52 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
   const {
     summary, funnel, vsls, ranking, heatmap, ltv, alerts, mappings,
     loading, error, period, setPeriod, refresh, aiResult, aiLoading, runAIAnalysis,
+    selectedVslId, compareVslId, setSelectedVsl, setCompareVsl, range,
   } = useAnalyticsData();
 
-  const [cacTarget,   setCacTarget]   = useState(50);
-  const [mappingOpen, setMappingOpen] = useState(false);
+  const [cacTarget,    setCacTarget]    = useState(50);
+  const [ticketMin,    setTicketMin]    = useState(0);
+  const [mappingOpen,  setMappingOpen]  = useState(false);
 
   const SIDEBAR_W = 220;
+
+  const filteredFunnel  = useMemo(
+    () => selectedVslId ? funnel.filter(f => f.videoId === selectedVslId) : funnel,
+    [funnel, selectedVslId],
+  );
+
+  const filteredRanking = useMemo(
+    () => selectedVslId ? ranking.filter(r => r.videoId === selectedVslId) : ranking,
+    [ranking, selectedVslId],
+  );
+
+  const selectedVsl = useMemo(
+    () => vsls.find(v => v.videoId === selectedVslId) ?? null,
+    [vsls, selectedVslId],
+  );
+
+  const compareVsl = useMemo(
+    () => compareVslId ? vsls.find(v => v.videoId === compareVslId) ?? null : null,
+    [vsls, compareVslId],
+  );
+
+  const filteredSummary = useMemo((): AnalyticsSummary | null => {
+    if (!selectedVslId || !summary || filteredFunnel.length === 0) return summary;
+    const investment = filteredFunnel.reduce((s, f) => s + f.investment, 0);
+    const revenue    = filteredFunnel.reduce((s, f) => s + f.investment * f.roas, 0);
+    const salesCount = filteredFunnel.reduce((s, f) => s + f.sales, 0);
+    const plays      = filteredFunnel.reduce((s, f) => s + f.plays, 0);
+    return {
+      investment,
+      revenue,
+      roas:        investment > 0 ? revenue / investment : 0,
+      cac:         salesCount > 0 ? investment / salesCount : 0,
+      sales:       salesCount,
+      plays,
+      playRate:    summary.playRate,
+      costPerPlay: plays > 0 ? investment / plays : 0,
+    };
+  }, [selectedVslId, filteredFunnel, summary]);
 
   return (
     <div style={{ display: "flex", height: "100vh", background: C.bg, fontFamily: FONT, color: C.white, overflow: "hidden" }}>
@@ -56,14 +98,13 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
         onTransactions={onTransactions}
         onAnalytics={() => {}}
         activeView={activeView}
-        mrr={0}
-        arr={0}
+        mrr={0} arr={0}
         isAdmin={isAdmin}
         width={SIDEBAR_W}
       />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", marginLeft: SIDEBAR_W }}>
-        {/* Header simple */}
+
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "0 24px", height: 56, borderBottom: `1px solid ${C.border}`,
@@ -71,7 +112,6 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
         }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: C.white }}>Analytics Command Center</div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {/* Selector de período */}
             {(["noche", "dia", "hoy", "ayer", "7dias"] as PeriodKey[]).map(key => (
               <button key={key} onClick={() => setPeriod(key)} style={{
                 background: period === key ? C.orange : "transparent",
@@ -90,7 +130,16 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
           </div>
         </div>
 
-        {/* Contenido principal */}
+        {vsls.length > 0 && (
+          <VSLSelectorBar
+            vsls={vsls}
+            selectedId={selectedVslId}
+            compareId={compareVslId}
+            onSelect={setSelectedVsl}
+            onCompare={setCompareVsl}
+          />
+        )}
+
         <main style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
 
           {error && (
@@ -99,44 +148,54 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
             </div>
           )}
 
-          {/* Bloque 8 — Alertas (primero para verlas de inmediato) */}
           {alerts.length > 0 && <AlertsPanel alerts={alerts} />}
 
-          {/* Bloque 2 — KPIs */}
-          <KPISummary summary={summary} loading={loading} />
+          <div>
+            {selectedVslId && selectedVsl && (
+              <div style={{ fontSize: 11, color: C.mutedMid, marginBottom: 8 }}>
+                Filtrando por: <span style={{ color: C.orange, fontWeight: 700 }}>{selectedVsl.videoName}</span>
+              </div>
+            )}
+            <KPISummary summary={filteredSummary} loading={loading} />
+          </div>
 
-          {/* Bloque 3 — Funnels por campaña */}
-          {(loading || funnel.length > 0) && (
+          <VSLIntelligencePanel primary={selectedVsl} compare={compareVsl} range={range} />
+
+          <ScaleRadar campaigns={filteredRanking} cacTarget={cacTarget} ticketMin={ticketMin} />
+
+          {(loading || filteredFunnel.length > 0) && (
             <section>
-              <div style={{ fontSize: 13, fontWeight: 600, color: C.white, marginBottom: 12 }}>Funnels por Campaña</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.white, marginBottom: 12 }}>
+                Funnels por Campaña
+                {selectedVslId && selectedVsl && (
+                  <span style={{ fontSize: 11, color: C.mutedMid, fontWeight: 400, marginLeft: 8 }}>
+                    · {selectedVsl.videoName}
+                  </span>
+                )}
+              </div>
               {loading ? (
                 <div style={{ height: 180, background: C.card, border: `1px solid ${C.border}`, borderRadius: 14 }} />
               ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
-                  {funnel.map(f => <CampaignFunnelCard key={f.campaignName} campaign={f} />)}
+                  {filteredFunnel.map(f => <CampaignFunnelCard key={f.campaignName} campaign={f} />)}
                 </div>
               )}
             </section>
           )}
 
-          {/* Bloque 4 — Comparador de VSLs */}
-          <VSLComparator vsls={vsls} />
-
-          {/* Bloque 5 — Tabla de anuncios */}
           <AdsRankingTable
-            rows={ranking}
+            rows={filteredRanking}
             cacTarget={cacTarget}
+            ticketMin={ticketMin}
             onCacTargetChange={setCacTarget}
+            onTicketMinChange={setTicketMin}
             onOpenMapping={() => setMappingOpen(true)}
           />
 
-          {/* Bloque 6 — Heatmap horario */}
           <HourlyHeatmap cells={heatmap} />
 
-          {/* Bloque 7 — LTV por fuente */}
           <LTVTable rows={ltv} />
 
-          {/* Bloque 9 — IA Analyst */}
           <AIAnalyst result={aiResult} loading={aiLoading} onAnalyze={runAIAnalysis} />
 
         </main>

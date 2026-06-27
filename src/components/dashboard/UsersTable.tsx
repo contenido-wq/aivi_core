@@ -60,7 +60,7 @@ export function UsersTable({ plans, kpis }: UsersTableProps) {
   const ticket = totalActive > 0 ? (mrr / totalActive).toFixed(2) : "0.00";
 
   const th: React.CSSProperties = {
-    fontSize: 9, fontWeight: 800, color: C.muted,
+    fontSize: 10, fontWeight: 800, color: C.muted,
     textAlign: "right", padding: "6px 8px",
     letterSpacing: "0.06em", textTransform: "uppercase",
     borderBottom: `1px solid ${C.border}`,
@@ -157,7 +157,7 @@ export function UsersTable({ plans, kpis }: UsersTableProps) {
           ["Atrasados",   String(totalDelayed),      C.yellow],
         ].map(([lbl, val, col]) => (
           <div key={lbl as string}>
-            <div style={{ fontSize: 9, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 2 }}>{lbl}</div>
+            <div style={{ fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 2 }}>{lbl}</div>
             <div style={{ fontSize: isMobile ? 14 : 16, fontWeight: 900, color: col as string }}>{val}</div>
           </div>
         ))}

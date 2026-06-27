@@ -7,12 +7,13 @@ import { AdminPanel }          from "./components/admin/AdminPanel";
 import { UsersView }           from "./views/UsersView";
 import { TransactionsView }    from "./views/TransactionsView";
 import { useAuth }             from "./hooks/useAuth";
+import { ADMIN_EMAIL }         from "./lib/authConfig";
 import { C, FONT }             from "./tokens";
 
 export default function App() {
   const { user, loading, signOut, teamEmail } = useAuth();
   const [view, setView]                       = useState<AppView>("dashboard");
-  const isAdmin = teamEmail === import.meta.env.VITE_ADMIN_EMAIL;
+  const isAdmin = teamEmail === ADMIN_EMAIL;
 
   // Spinner mientras Supabase restaura la sesión
   if (loading) {
@@ -52,6 +53,8 @@ export default function App() {
       onBack={() => setView("dashboard")}
       onDashboard={() => setView("dashboard")}
       onTransactions={() => setView("transacciones")}
+      onSettings={() => setView("admin")}
+      isAdmin={isAdmin}
     />
   );
 
