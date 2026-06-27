@@ -14,33 +14,34 @@ export function HourlyHeatmap({ cells }: Props) {
   return (
     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 20 }}>
       <div style={{ fontSize: 14, fontWeight: 600, color: C.white, marginBottom: 16 }}>Conversiones por Hora y Día</div>
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ borderCollapse: "collapse", fontSize: 10 }}>
+      <div>
+        <table style={{ borderCollapse: "collapse", fontSize: 10, width: "100%", tableLayout: "fixed" }}>
           <thead>
             <tr>
-              <th style={{ width: 28, color: C.mutedMid, fontWeight: 400, textAlign: "right", paddingRight: 6 }} />
+              <th style={{ width: 32, color: C.mutedMid, fontWeight: 400, textAlign: "right", paddingRight: 8 }} />
               {DAYS.map(d => (
-                <th key={d} style={{ width: 36, color: C.mutedMid, fontWeight: 400, textAlign: "center", paddingBottom: 6 }}>{d}</th>
+                <th key={d} style={{ color: C.mutedMid, fontWeight: 600, textAlign: "center", paddingBottom: 8, letterSpacing: "0.04em" }}>{d}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {HOURS.map(h => (
               <tr key={h}>
-                <td style={{ color: C.mutedMid, textAlign: "right", paddingRight: 6, whiteSpace: "nowrap" }}>{h}h</td>
+                <td style={{ color: C.mutedMid, textAlign: "right", paddingRight: 8, whiteSpace: "nowrap", fontSize: 9 }}>{h}h</td>
                 {Array.from({ length: 7 }, (_, dow) => {
                   const val   = lookup[`${h}-${dow}`] ?? 0;
                   const alpha = val > 0 ? 0.15 + (val / maxVal) * 0.85 : 0;
                   return (
                     <td key={dow} title={`${val} conversiones`} style={{
-                      width: 36, height: 24,
-                      background: val > 0 ? `rgba(254,128,63,${alpha.toFixed(2)})` : C.bgSecondary,
+                      height: 22,
+                      background: val > 0 ? `rgba(254,128,63,${alpha.toFixed(2)})` : "rgba(255,255,255,0.03)",
                       border: `1px solid ${C.bg}`,
                       borderRadius: 3,
                       textAlign: "center",
                       color: alpha > 0.5 ? C.white : "transparent",
-                      fontWeight: 600,
+                      fontWeight: 700,
                       cursor: "default",
+                      fontSize: 10,
                     }}>
                       {val > 0 ? val : ""}
                     </td>
