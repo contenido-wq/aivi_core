@@ -303,6 +303,7 @@ async function syncDimensions(
 
     console.log(`✅ VTurb dimensions — ${pid}`);
   }
+  return diag;
 }
 
 // ── Runner ─────────────────────────────────────────────────────────────────────
