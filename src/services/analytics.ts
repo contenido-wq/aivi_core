@@ -227,7 +227,7 @@ export async function getVSLRetention(r: DateRange): Promise<VSLData[]> {
   const [analyticsRes, retentionRes, txRes, mappingRes] = await Promise.all([
     supabase.from("vturb_analytics").select("video_id, video_name, plays, button_clicks").gte("date", r.from).lte("date", r.to),
     supabase.from("vturb_retention").select("video_id, second, percentage").gte("date", r.from).lte("date", r.to).order("second", { ascending: true }),
-    supabase.from("transactions").select("traffic_source").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("event_type", "PURCHASE_COMPLETE"),
+    supabase.from("transactions").select("traffic_source").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("status", "active"),
     supabase.from("campaign_vsl_mapping").select("*"),
   ]);
 
@@ -317,7 +317,7 @@ export async function getHourlyHeatmap(r: DateRange): Promise<HeatmapCell[]> {
     .from("transactions")
     .select("created_at")
     .gte("created_at", r.fromTs).lte("created_at", r.toTs)
-    .eq("event_type", "PURCHASE_COMPLETE");
+    .eq("status", "active");
 
   const cells: Record<string, number> = {};
   for (const tx of (data ?? [])) {
@@ -345,7 +345,7 @@ export async function getLTVBySource(): Promise<LTVRow[]> {
 
   const revenueMap: Record<string, number> = {};
   const customersMap: Record<string, Set<string>> = {};
-  for (const tx of (txRes.data ?? []).filter((t: any) => t.event_type === "PURCHASE_COMPLETE")) {
+  for (const tx of (txRes.data ?? []).filter((t: any) => t.status === "active")) {
     const k = tx.traffic_source ?? "Sin UTM";
     revenueMap[k] = (revenueMap[k] ?? 0) + Number(tx.amount);
     if (!customersMap[k]) customersMap[k] = new Set();
