@@ -207,14 +207,23 @@ async function syncRetention(
 
 // ── Sync dimensiones ──────────────────────────────────────────────────────────
 
+interface DimDiagnostic {
+  players:   number;
+  device:    string;
+  country:   string;
+  browser:   string;
+  os:        string;
+}
+
 async function syncDimensions(
   supabase: ReturnType<typeof createClient>,
   apiKey:   string,
   from:     string,
   to:       string,
-): Promise<void> {
+): Promise<DimDiagnostic> {
   const startDt = `${from} 00:00:00`;
   const endDt   = `${to} 23:59:59`;
+  const diag: DimDiagnostic = { players: 0, device: "skip", country: "skip", browser: "skip", os: "skip" };
 
   // Solo players activos en el período (mismo patrón que syncRetention)
   const events = await vturb(apiKey, "/events/total_by_company_players", {
@@ -224,7 +233,8 @@ async function syncDimensions(
   }) as Array<{ player_id: string; total: number }>;
 
   const activeIds = [...new Set((events ?? []).map((e) => e.player_id))];
-  if (activeIds.length === 0) return;
+  diag.players = activeIds.length;
+  if (activeIds.length === 0) return diag;
 
   for (const pid of activeIds) {
     const body = { player_id: pid, start_date: startDt, end_date: endDt };
@@ -315,10 +325,11 @@ async function runSync(from?: string, to?: string): Promise<Response> {
   try { await syncRetention(supabase, apiKey, dateFrom, dateTo); }
   catch (e) { console.error("syncRetention:", e); errors.push(String(e)); }
 
-  try { await syncDimensions(supabase, apiKey, dateFrom, dateTo); }
+  let dimDiag: DimDiagnostic | null = null;
+  try { dimDiag = await syncDimensions(supabase, apiKey, dateFrom, dateTo); }
   catch (e) { console.error("syncDimensions:", e); errors.push(String(e)); }
 
-  return new Response(JSON.stringify({ ok: errors.length === 0, errors, from: dateFrom, to: dateTo }), {
+  return new Response(JSON.stringify({ ok: errors.length === 0, errors, from: dateFrom, to: dateTo, dimensions: dimDiag }), {
     headers: { "Content-Type": "application/json" },
   });
 }
