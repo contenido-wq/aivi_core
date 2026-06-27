@@ -56,6 +56,11 @@ interface ClicksByDay {
 
 interface EngagementPoint { timed: number; total_users: number }
 
+interface DeviceEvent  { device: string; total: number }
+interface CountryEvent { country_code: string; country_name: string; total: number }
+interface BrowserEvent { browser: string; total: number }
+interface OSEvent      { os: string; total: number }
+
 // ── Sync analytics diario ──────────────────────────────────────────────────────
 // Estrategia: por cada día, 1 llamada para todos los players (events/total_by_company_players)
 // + 1 llamada por player ACTIVO para clicks. Muy eficiente con muchos players.
@@ -200,6 +205,96 @@ async function syncRetention(
   }
 }
 
+// ── Sync dimensiones ──────────────────────────────────────────────────────────
+
+async function syncDimensions(
+  supabase: ReturnType<typeof createClient>,
+  apiKey:   string,
+  from:     string,
+  to:       string,
+): Promise<void> {
+  const startDt = `${from} 00:00:00`;
+  const endDt   = `${to} 23:59:59`;
+
+  // Solo players activos en el período (mismo patrón que syncRetention)
+  const events = await vturb(apiKey, "/events/total_by_company_players", {
+    start_date: startDt,
+    end_date:   endDt,
+    events:     ["started"],
+  }) as Array<{ player_id: string; total: number }>;
+
+  const activeIds = [...new Set((events ?? []).map((e) => e.player_id))];
+  if (activeIds.length === 0) return;
+
+  for (const pid of activeIds) {
+    const body = { player_id: pid, start_date: startDt, end_date: endDt };
+
+    // 4 dimensiones en paralelo — fallo en una no bloquea las otras
+    const [devicesRes, countriesRes, browsersRes, osRes] = await Promise.allSettled([
+      vturb(apiKey, "/events/total_by_device",  body) as Promise<DeviceEvent[]>,
+      vturb(apiKey, "/events/total_by_country", body) as Promise<CountryEvent[]>,
+      vturb(apiKey, "/events/total_by_browser", body) as Promise<BrowserEvent[]>,
+      vturb(apiKey, "/events/total_by_os",      body) as Promise<OSEvent[]>,
+    ]);
+
+    if (devicesRes.status === "fulfilled" && devicesRes.value?.length) {
+      const rows = devicesRes.value.map((d) => ({
+        video_id: pid, date: from, device_type: d.device ?? "unknown",
+        plays: Number(d.total) || 0, views: 0,
+      }));
+      const { error } = await supabase
+        .from("vturb_by_device")
+        .upsert(rows, { onConflict: "video_id,date,device_type" });
+      if (error) console.error(`vturb_by_device upsert ${pid}:`, error.message);
+    } else if (devicesRes.status === "rejected") {
+      console.error(`VTurb device ${pid}:`, devicesRes.reason);
+    }
+
+    if (countriesRes.status === "fulfilled" && countriesRes.value?.length) {
+      const rows = countriesRes.value.map((c) => ({
+        video_id: pid, date: from,
+        country_code: c.country_code ?? "XX",
+        country_name: c.country_name ?? c.country_code ?? "Desconocido",
+        plays: Number(c.total) || 0, views: 0,
+      }));
+      const { error } = await supabase
+        .from("vturb_by_country")
+        .upsert(rows, { onConflict: "video_id,date,country_code" });
+      if (error) console.error(`vturb_by_country upsert ${pid}:`, error.message);
+    } else if (countriesRes.status === "rejected") {
+      console.error(`VTurb country ${pid}:`, countriesRes.reason);
+    }
+
+    if (browsersRes.status === "fulfilled" && browsersRes.value?.length) {
+      const rows = browsersRes.value.map((b) => ({
+        video_id: pid, date: from, browser_name: b.browser ?? "unknown",
+        plays: Number(b.total) || 0, views: 0,
+      }));
+      const { error } = await supabase
+        .from("vturb_by_browser")
+        .upsert(rows, { onConflict: "video_id,date,browser_name" });
+      if (error) console.error(`vturb_by_browser upsert ${pid}:`, error.message);
+    } else if (browsersRes.status === "rejected") {
+      console.error(`VTurb browser ${pid}:`, browsersRes.reason);
+    }
+
+    if (osRes.status === "fulfilled" && osRes.value?.length) {
+      const rows = osRes.value.map((o) => ({
+        video_id: pid, date: from, os_name: o.os ?? "unknown",
+        plays: Number(o.total) || 0, views: 0,
+      }));
+      const { error } = await supabase
+        .from("vturb_by_os")
+        .upsert(rows, { onConflict: "video_id,date,os_name" });
+      if (error) console.error(`vturb_by_os upsert ${pid}:`, error.message);
+    } else if (osRes.status === "rejected") {
+      console.error(`VTurb os ${pid}:`, osRes.reason);
+    }
+
+    console.log(`✅ VTurb dimensions — ${pid}`);
+  }
+}
+
 // ── Runner ─────────────────────────────────────────────────────────────────────
 
 async function runSync(from?: string, to?: string): Promise<Response> {
@@ -219,6 +314,9 @@ async function runSync(from?: string, to?: string): Promise<Response> {
 
   try { await syncRetention(supabase, apiKey, dateFrom, dateTo); }
   catch (e) { console.error("syncRetention:", e); errors.push(String(e)); }
+
+  try { await syncDimensions(supabase, apiKey, dateFrom, dateTo); }
+  catch (e) { console.error("syncDimensions:", e); errors.push(String(e)); }
 
   return new Response(JSON.stringify({ ok: errors.length === 0, errors, from: dateFrom, to: dateTo }), {
     headers: { "Content-Type": "application/json" },
