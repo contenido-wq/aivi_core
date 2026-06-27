@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   ArrowLeft, ShieldCheck, Volume2, Upload,
-  CheckCircle, XCircle, Clock, RefreshCw, Loader2,
+  CheckCircle, XCircle, Clock, RefreshCw, Loader2, Trash2,
 } from "lucide-react";
 import { Toggle }       from "../ui/Toggle";
 import { useResponsive } from "../../hooks/useResponsive";
@@ -73,6 +73,24 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
       await loadRequests();
     }
 
+    setActionId(null);
+  };
+
+  // ── Quitar usuario aprobado ───────────────────────────
+  const handleRemove = async (req: AccessRequest) => {
+    setActionId(req.id);
+    setActionMsg(null);
+    const { error } = await supabase
+      .from("access_requests")
+      .delete()
+      .eq("id", req.id);
+
+    if (error) {
+      setActionMsg({ id: req.id, msg: error.message, ok: false });
+    } else {
+      setActionMsg({ id: req.id, msg: "Acceso eliminado.", ok: true });
+      await loadRequests();
+    }
     setActionId(null);
   };
 
@@ -218,8 +236,10 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                   {approved.map(r => (
                     <RequestRow
                       key={r.id} req={r}
-                      loading={false} message={null}
+                      loading={actionId === r.id}
+                      message={actionMsg?.id === r.id ? actionMsg : null}
                       onApprove={() => {}} onReject={() => {}}
+                      onRemove={() => handleRemove(r)}
                       fmtDate={fmtDate}
                     />
                   ))}
@@ -300,10 +320,11 @@ interface RequestRowProps {
   message:   { msg: string; ok: boolean } | null;
   onApprove: () => void;
   onReject:  () => void;
+  onRemove?: () => void;
   fmtDate:   (iso: string) => string;
 }
 
-function RequestRow({ req, loading, message, onApprove, onReject, fmtDate }: RequestRowProps) {
+function RequestRow({ req, loading, message, onApprove, onReject, onRemove, fmtDate }: RequestRowProps) {
   const isPending  = req.status === "pending";
   const isApproved = req.status === "approved";
   const isRejected = req.status === "rejected";
@@ -360,6 +381,24 @@ function RequestRow({ req, loading, message, onApprove, onReject, fmtDate }: Req
               <XCircle size={11} /> Rechazar
             </button>
           </div>
+        )}
+
+        {isApproved && onRemove && (
+          <button
+            onClick={onRemove}
+            disabled={loading}
+            title="Quitar acceso"
+            style={{
+              padding: "6px 12px", borderRadius: 7, border: "1px solid #FECACA",
+              background: "transparent",
+              color: "#EF4444", fontSize: 11, fontWeight: 700,
+              cursor: loading ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
+            }}
+          >
+            {loading ? <Loader2 size={11} style={{ animation: "spin 0.8s linear infinite" }} /> : <Trash2 size={11} />}
+            Quitar
+          </button>
         )}
       </div>
 
