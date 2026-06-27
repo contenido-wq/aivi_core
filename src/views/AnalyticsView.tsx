@@ -39,7 +39,7 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
   const {
     summary, funnel, vsls, ranking, heatmap, ltv, alerts, mappings,
     loading, error, period, setPeriod, refresh, aiResult, aiLoading, runAIAnalysis,
-    selectedVslId, compareVslId, setSelectedVsl, setCompareVsl,
+    selectedVslId, compareVslId, setSelectedVsl, setCompareVsl, range,
   } = useAnalyticsData();
 
   const [cacTarget,    setCacTarget]    = useState(50);
@@ -159,7 +159,7 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
             <KPISummary summary={filteredSummary} loading={loading} />
           </div>
 
-          <VSLIntelligencePanel primary={selectedVsl} compare={compareVsl} />
+          <VSLIntelligencePanel primary={selectedVsl} compare={compareVsl} range={range} />
 
           <ScaleRadar campaigns={filteredRanking} cacTarget={cacTarget} ticketMin={ticketMin} />
 
