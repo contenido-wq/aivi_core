@@ -81,6 +81,7 @@ export function VSLIntelligencePanel({ primary, compare }: Props) {
     </div>
   );
 
+  const hasRetention = primary.retention.length > 2;
   const chartData  = buildChartData(primary, compare);
   const dropPt     = primary.dropSecond != null
     ? primary.retention.find(p => p.second >= primary.dropSecond!)
@@ -108,7 +109,17 @@ export function VSLIntelligencePanel({ primary, compare }: Props) {
             Audiencia abandona en {fmtSec(primary.dropSecond)}
           </div>
         )}
-        <ResponsiveContainer width="100%" height={200}>
+        {!hasRetention && (
+          <div style={{
+            height: 200, display: "flex", alignItems: "center", justifyContent: "center",
+            flexDirection: "column", gap: 6,
+            background: "rgba(255,255,255,0.02)", borderRadius: 8, border: `1px dashed ${C.border}`,
+          }}>
+            <div style={{ fontSize: 12, color: C.mutedMid }}>Sin suficientes datos de retención</div>
+            <div style={{ fontSize: 11, color: C.muted }}>El sync de VTurb necesita más historial</div>
+          </div>
+        )}
+        {hasRetention && <ResponsiveContainer width="100%" height={200}>
           <LineChart data={chartData}>
             <XAxis
               dataKey="s"
@@ -148,8 +159,8 @@ export function VSLIntelligencePanel({ primary, compare }: Props) {
               />
             )}
           </LineChart>
-        </ResponsiveContainer>
-        {compare && (
+        </ResponsiveContainer>}
+        {hasRetention && compare && (
           <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
             <span style={{ fontSize: 11, color: C.mutedLight, display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 18, height: 2, background: C.orange, display: "inline-block", borderRadius: 1 }} />

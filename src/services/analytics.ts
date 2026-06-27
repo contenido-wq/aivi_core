@@ -9,7 +9,7 @@ export interface DateRange { from: string; to: string; fromTs: string; toTs: str
 
 export function buildRange(key: PeriodKey, custom?: { from: string; to: string }): DateRange {
   const now    = new Date();
-  const colMs  = now.getTime() + (-5 * 60 - now.getTimezoneOffset()) * 60000;
+  const colMs  = now.getTime() - 5 * 60 * 60 * 1000; // UTC → Colombia (UTC-5), sin depender del timezone del browser
   const col    = new Date(colMs);
   const pad    = (n: number) => String(n).padStart(2, "0");
   const ymd    = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
