@@ -174,7 +174,7 @@ function HBarView({ rows, label }: { rows: DimensionRow[]; label: string }) {
 
 // Vista: Fuente de tráfico (anuncios que trajeron tráfico a este VSL + veredicto)
 const AD_ACTION_STYLE: Record<AdAction, { color: string; bg: string; border: string }> = {
-  ESCALAR:    { color: C.green,  bg: "rgba(48,209,88,0.12)",  border: "rgba(48,209,88,0.3)"  },
+  ESCALAR:    { color: C.green,  bg: C.greenSoft,             border: "rgba(48,209,88,0.3)"  },
   PAUSAR:     { color: C.red,    bg: "rgba(255,65,59,0.12)",  border: "rgba(255,65,59,0.3)"  },
   MONITOREAR: { color: C.yellow, bg: "rgba(255,194,82,0.12)", border: "rgba(255,194,82,0.3)" },
 };
