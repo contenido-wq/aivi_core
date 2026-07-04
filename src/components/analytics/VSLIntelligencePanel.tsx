@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip,
   ReferenceLine, ReferenceDot, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell,
 } from "recharts";
 import { C, FONT } from "../../tokens";
-import type { VSLData, DateRange, DimensionRow } from "../../services/analytics";
+import type { VSLData, DateRange, DimensionRow, AdRankRow, AdAction } from "../../services/analytics";
 import {
   getVSLByCountry, getVSLByDevice, getVSLByOS,
-  getVSLByBrowser, getVSLBySource,
+  getVSLByBrowser, classifyAd,
 } from "../../services/analytics";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -172,24 +172,72 @@ function HBarView({ rows, label }: { rows: DimensionRow[]; label: string }) {
   );
 }
 
-// Vista: Fuente de tráfico (conversiones por campaña/UTM)
-function SourceView({ rows }: { rows: DimensionRow[] }) {
+// Vista: Fuente de tráfico (anuncios que trajeron tráfico a este VSL + veredicto)
+const AD_ACTION_STYLE: Record<AdAction, { color: string; bg: string; border: string }> = {
+  ESCALAR:    { color: C.green,  bg: "rgba(48,209,88,0.12)",  border: "rgba(48,209,88,0.3)"  },
+  PAUSAR:     { color: C.red,    bg: "rgba(255,65,59,0.12)",  border: "rgba(255,65,59,0.3)"  },
+  MONITOREAR: { color: C.yellow, bg: "rgba(255,194,82,0.12)", border: "rgba(255,194,82,0.3)" },
+};
+
+function adCacColor(cac: number, target: number) {
+  if (cac === 0 || target === 0) return C.mutedMid;
+  if (cac <= target)       return C.green;
+  if (cac <= target * 1.5) return C.yellow;
+  return C.red;
+}
+
+function adScoreColor(s: number) {
+  return s >= 80 ? C.green : s >= 50 ? C.yellow : C.red;
+}
+
+function AdSourceView({ rows, cacTarget, ticketMin }: { rows: AdRankRow[]; cacTarget: number; ticketMin: number }) {
   if (rows.length === 0) return (
-    <DimEmpty msg="Sin ventas atribuidas a este VSL en el período" />
+    <DimEmpty msg="Sin anuncios atribuidos a este VSL en el período. Verifica el mapeo campaña→VSL arriba." />
   );
   return (
-    <div style={{ padding: "8px 20px 12px", display: "flex", flexDirection: "column", gap: 7 }}>
-      {rows.map(r => (
-        <div key={r.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ fontSize: 12, color: C.mutedLight, width: 160, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.label}</div>
-          <div style={{ flex: 1, height: 5, background: "rgba(255,255,255,0.07)", borderRadius: 3, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${r.pct}%`, background: "#22c55e", borderRadius: 3, transition: "width 0.4s ease" }} />
-          </div>
-          <div style={{ fontSize: 11, color: "#22c55e", width: 64, textAlign: "right", flexShrink: 0 }}>
-            {r.conversions} {r.conversions === 1 ? "venta" : "ventas"}
-          </div>
-        </div>
-      ))}
+    <div style={{ padding: "8px 16px 12px", overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+        <thead>
+          <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+            {["Campaña", "Inv.", "Ventas", "CAC", "ROAS", "Score", "Acción"].map(h => (
+              <th key={h} style={{ padding: "6px 8px", color: C.mutedMid, fontWeight: 500, textAlign: "left", whiteSpace: "nowrap" }}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => {
+            const action  = classifyAd(r, cacTarget, ticketMin);
+            const acStyle = AD_ACTION_STYLE[action];
+            return (
+              <tr key={`${r.campaignName}-${i}`} style={{ borderBottom: `1px solid ${C.border}` }}>
+                <td style={{ padding: "9px 8px", color: C.white, fontWeight: 500, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {r.campaignName}
+                </td>
+                <td style={{ padding: "9px 8px", color: C.mutedLight }}>${r.investment.toFixed(0)}</td>
+                <td style={{ padding: "9px 8px", color: C.mutedLight }}>{r.sales}</td>
+                <td style={{ padding: "9px 8px", color: adCacColor(r.cac, cacTarget), fontWeight: 700 }}>
+                  {r.cac > 0 ? `$${r.cac.toFixed(0)}` : "—"}
+                </td>
+                <td style={{ padding: "9px 8px", color: r.roas >= 2 ? C.green : r.roas >= 1 ? C.yellow : C.red, fontWeight: 600 }}>
+                  {r.roas > 0 ? `${r.roas.toFixed(2)}x` : "—"}
+                </td>
+                <td style={{ padding: "9px 8px" }}>
+                  <span style={{ background: `${adScoreColor(r.score)}20`, color: adScoreColor(r.score), borderRadius: 12, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
+                    {r.score}
+                  </span>
+                </td>
+                <td style={{ padding: "9px 8px" }}>
+                  <span style={{ background: acStyle.bg, border: `1px solid ${acStyle.border}`, color: acStyle.color, borderRadius: 12, padding: "2px 10px", fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" }}>
+                    {action}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -208,18 +256,26 @@ const TABS: { key: DimensionTab; label: string }[] = [
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface Props {
-  primary:  VSLData | null;
-  compare?: VSLData | null;
-  range:    DateRange | null;
+  primary:   VSLData | null;
+  compare?:  VSLData | null;
+  range:     DateRange | null;
+  ranking:   AdRankRow[];
+  cacTarget: number;
+  ticketMin: number;
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export function VSLIntelligencePanel({ primary, compare, range }: Props) {
+export function VSLIntelligencePanel({ primary, compare, range, ranking, cacTarget, ticketMin }: Props) {
   const [activeTab,       setActiveTabState] = useState<DimensionTab>("general");
   const [dimCache,        setDimCache]       = useState<Partial<Record<DimensionTab, DimensionRow[]>>>({});
   const [dimLoading,      setDimLoading]     = useState(false);
   const [showConversions, setShowConversions] = useState(false);
+
+  const adsForThisVsl = useMemo(
+    () => ranking.filter(r => r.videoId === primary?.videoId),
+    [ranking, primary?.videoId],
+  );
 
   // Invalida caché al cambiar rango o video
   useEffect(() => {
@@ -228,17 +284,16 @@ export function VSLIntelligencePanel({ primary, compare, range }: Props) {
   }, [range?.from, range?.to, primary?.videoId]);
 
   const fetchTab = useCallback(async (tab: DimensionTab) => {
-    if (!primary || !range || tab === "general" || dimCache[tab] !== undefined) return;
+    if (!primary || !range || tab === "general" || tab === "source" || dimCache[tab] !== undefined) return;
     setDimLoading(true);
     try {
-      const fetchers: Record<Exclude<DimensionTab, "general">, () => Promise<DimensionRow[]>> = {
+      const fetchers: Record<Exclude<DimensionTab, "general" | "source">, () => Promise<DimensionRow[]>> = {
         country: () => getVSLByCountry(range, primary.videoId),
         device:  () => getVSLByDevice(range, primary.videoId),
         os:      () => getVSLByOS(range, primary.videoId),
         browser: () => getVSLByBrowser(range, primary.videoId),
-        source:  () => getVSLBySource(range, primary.videoId),
       };
-      const data = await fetchers[tab as Exclude<DimensionTab, "general">]();
+      const data = await fetchers[tab as Exclude<DimensionTab, "general" | "source">]();
       setDimCache(prev => ({ ...prev, [tab]: data }));
     } catch (e) {
       console.error(`fetchTab ${tab}:`, e);
@@ -441,12 +496,12 @@ export function VSLIntelligencePanel({ primary, compare, range }: Props) {
         )}
 
         {/* Tabs de dimensiones */}
-        {activeTab !== "general" && dimLoading && <DimSkeleton />}
+        {activeTab !== "general" && activeTab !== "source" && dimLoading && <DimSkeleton />}
         {activeTab === "country" && !dimLoading && <CountryView rows={dimCache.country ?? []} showConversions={showConversions} />}
         {activeTab === "device"  && !dimLoading && <DeviceView  rows={dimCache.device  ?? []} />}
         {activeTab === "os"      && !dimLoading && <HBarView    rows={dimCache.os      ?? []} label="S. Operativo" />}
         {activeTab === "browser" && !dimLoading && <HBarView    rows={dimCache.browser ?? []} label="Navegadores"  />}
-        {activeTab === "source"  && !dimLoading && <SourceView  rows={dimCache.source  ?? []} />}
+        {activeTab === "source"  && <AdSourceView rows={adsForThisVsl} cacTarget={cacTarget} ticketMin={ticketMin} />}
       </div>
 
       {/* KPIs — siempre visibles */}
