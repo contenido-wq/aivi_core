@@ -3,7 +3,7 @@ import { toUSD }     from "./currency";
 
 // ── Períodos ──────────────────────────────────────────────────────────────────
 
-export type PeriodKey = "noche" | "dia" | "hoy" | "ayer" | "7dias" | "custom";
+export type PeriodKey = "hoy" | "ayer" | "7dias" | "mes" | "3meses" | "total" | "custom";
 
 export interface DateRange { from: string; to: string; fromTs: string; toTs: string }
 
@@ -20,13 +20,23 @@ export function buildRange(key: PeriodKey, custom?: { from: string; to: string }
   if (key === "custom" && custom) {
     return { from: custom.from, to: custom.to, fromTs: `${custom.from}T00:00:00`, toTs: `${custom.to}T23:59:59` };
   }
-  if (key === "noche")  return { from: yesterday, to: today,     fromTs: `${yesterday}T22:00:00`, toTs: `${today}T08:00:00` };
-  if (key === "dia")    return { from: today,     to: today,     fromTs: `${today}T08:00:00`,     toTs: `${today}T22:00:00` };
   if (key === "ayer")   return { from: yesterday, to: yesterday, fromTs: `${yesterday}T00:00:00`, toTs: `${yesterday}T23:59:59` };
   if (key === "7dias") {
     const from7 = ymd(new Date(col.getTime() - 6 * 86400000));
     return { from: from7, to: today, fromTs: `${from7}T00:00:00`, toTs: `${today}T23:59:59` };
   }
+  if (key === "mes") {
+    const from30 = ymd(new Date(col.getTime() - 29 * 86400000));
+    return { from: from30, to: today, fromTs: `${from30}T00:00:00`, toTs: `${today}T23:59:59` };
+  }
+  if (key === "3meses") {
+    const from90 = ymd(new Date(col.getTime() - 89 * 86400000));
+    return { from: from90, to: today, fromTs: `${from90}T00:00:00`, toTs: `${today}T23:59:59` };
+  }
+  if (key === "total") {
+    return { from: "2020-01-01", to: today, fromTs: "2020-01-01T00:00:00", toTs: `${today}T23:59:59` };
+  }
+  // default: "hoy"
   return { from: today, to: today, fromTs: `${today}T00:00:00`, toTs: `${today}T23:59:59` };
 }
 

@@ -79,7 +79,7 @@ export function useAnalyticsData() {
     try {
       const { getAIAnalysis } = await import("../services/analytics");
       const labels: Record<PeriodKey, string> = {
-        noche: "Noche", dia: "Día", hoy: "Hoy", ayer: "Ayer", "7dias": "Últimos 7 días", custom: "Rango personalizado",
+        hoy: "Hoy", ayer: "Ayer", "7dias": "Últimos 7 días", mes: "Último mes", "3meses": "Últimos 3 meses", total: "Total", custom: "Rango personalizado",
       };
       const result = await getAIAnalysis({ summary: state.summary, funnel: state.funnel, vsls: state.vsls, period: labels[period] });
       setAiResult(result);
