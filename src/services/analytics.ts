@@ -102,6 +102,16 @@ export interface AdRankRow {
   score:        number;
 }
 
+export type AdAction = "ESCALAR" | "PAUSAR" | "MONITOREAR";
+
+export function classifyAd(r: AdRankRow, cacTarget: number, ticketMin: number): AdAction {
+  const avgTicket = r.sales > 0 && r.investment > 0 ? (r.investment * r.roas) / r.sales : 0;
+  const ticketOk  = ticketMin === 0 || avgTicket >= ticketMin;
+  if (r.sales >= 1 && r.cac > 0 && r.cac <= cacTarget && r.roas >= 2.0 && ticketOk) return "ESCALAR";
+  if ((r.cac > 0 && r.cac > cacTarget * 1.5) || (r.roas < 1.0 && r.investment > 0)) return "PAUSAR";
+  return "MONITOREAR";
+}
+
 export interface HeatmapCell { hour: number; dow: number; value: number }
 
 export interface LTVRow {
@@ -603,39 +613,4 @@ export async function getVSLByBrowser(r: DateRange, videoId: string): Promise<Di
   return toDimensionRows(
     Object.entries(agg).map(([label, v]) => ({ label, plays: v.plays, views: v.views })),
   );
-}
-
-export async function getVSLBySource(r: DateRange, videoId: string): Promise<DimensionRow[]> {
-  const [mappingRes, txRes] = await Promise.all([
-    supabase
-      .from("campaign_vsl_mapping")
-      .select("campaign_name")
-      .eq("video_id", videoId),
-    supabase
-      .from("transactions")
-      .select("traffic_source")
-      .gte("created_at", r.fromTs)
-      .lte("created_at", r.toTs)
-      .eq("status", "active"),
-  ]);
-
-  const mapped = new Set((mappingRes.data ?? []).map((m: any) => m.campaign_name as string));
-
-  const convMap: Record<string, number> = {};
-  for (const tx of (txRes.data ?? [])) {
-    const src = (tx.traffic_source ?? "Sin UTM") as string;
-    if (mapped.has(src)) convMap[src] = (convMap[src] ?? 0) + 1;
-  }
-
-  const totalConv = Object.values(convMap).reduce((s, n) => s + n, 0) || 1;
-
-  return Object.entries(convMap)
-    .map(([label, conversions]) => ({
-      label,
-      plays: 0,
-      views: 0,
-      pct:   Math.round((conversions / totalConv) * 1000) / 10,
-      conversions,
-    }))
-    .sort((a, b) => b.conversions - a.conversions);
 }
