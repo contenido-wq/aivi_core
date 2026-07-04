@@ -1,5 +1,6 @@
 import { supabase }  from "./supabase";
 import { toUSD }     from "./currency";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 
 // ── Períodos ──────────────────────────────────────────────────────────────────
 
@@ -460,7 +461,13 @@ Responde exactamente con este formato:
   const { data, error } = await supabase.functions.invoke("ai-analyst", {
     body: { prompt },
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error instanceof FunctionsHttpError) {
+      const body = await error.context.json().catch(() => null);
+      throw new Error(body?.error ?? error.message);
+    }
+    throw new Error(error.message);
+  }
   return data.text as string;
 }
 
