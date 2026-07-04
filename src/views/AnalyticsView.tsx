@@ -11,8 +11,9 @@ import { HourlyHeatmap }              from "../components/analytics/HourlyHeatma
 import { LTVTable }                   from "../components/analytics/LTVTable";
 import { CampaignMappingModal }       from "../components/analytics/CampaignMappingModal";
 import { AIAnalyst }                  from "../components/analytics/AIAnalyst";
+import { DateRangePicker }            from "../components/analytics/DateRangePicker";
 import type { AppView }               from "../types";
-import type { PeriodKey, AnalyticsSummary } from "../services/analytics";
+import type { AnalyticsSummary } from "../services/analytics";
 
 interface Props {
   onDashboard:    () => void;
@@ -23,15 +24,6 @@ interface Props {
   activeView:     AppView;
   isAdmin:        boolean;
 }
-
-const PERIOD_LABELS: Record<PeriodKey, string> = {
-  noche:  "Noche",
-  dia:    "Día",
-  hoy:    "Hoy",
-  ayer:   "Ayer",
-  "7dias": "7 días",
-  custom: "Custom",
-};
 
 export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings, onSignOut, activeView, isAdmin }: Props) {
   const {
@@ -143,17 +135,7 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
               </button>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {(["noche", "dia", "hoy", "ayer", "7dias"] as PeriodKey[]).map(key => (
-                <button key={key} onClick={() => setPeriod(key)} style={{
-                  background: period === key ? C.orange : "transparent",
-                  border: `1px solid ${period === key ? C.orange : C.border}`,
-                  borderRadius: 20, padding: "4px 14px", fontSize: 12,
-                  fontWeight: period === key ? 600 : 400,
-                  color: period === key ? C.white : C.mutedLight, cursor: "pointer",
-                }}>
-                  {PERIOD_LABELS[key]}
-                </button>
-              ))}
+              <DateRangePicker period={period} range={range} onSelect={setPeriod} />
               <button onClick={refresh} style={{
                 background: "transparent", border: `1px solid ${C.border}`,
                 borderRadius: 20, padding: "4px 12px", fontSize: 12, color: C.mutedMid, cursor: "pointer",
