@@ -4,9 +4,21 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 
 // ── Períodos ──────────────────────────────────────────────────────────────────
 
-export type PeriodKey = "hoy" | "ayer" | "7dias" | "mes" | "3meses" | "total" | "custom";
+export type PeriodKey =
+  | "hoy" | "ayer" | "hoyAyer"
+  | "7dias" | "14dias" | "28dias" | "30dias"
+  | "estaSemana" | "semanaPasada"
+  | "esteMes" | "mesPasado"
+  | "maximo" | "custom";
 
 export interface DateRange { from: string; to: string; fromTs: string; toTs: string }
+
+const MESES_ES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+export function formatDateEs(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return `${d} ${MESES_ES[m - 1]} ${y}`;
+}
 
 export function buildRange(key: PeriodKey, custom?: { from: string; to: string }): DateRange {
   const now    = new Date();
@@ -14,31 +26,37 @@ export function buildRange(key: PeriodKey, custom?: { from: string; to: string }
   const col    = new Date(colMs);
   const pad    = (n: number) => String(n).padStart(2, "0");
   const ymd    = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const range  = (from: string, to: string): DateRange => ({ from, to, fromTs: `${from}T00:00:00`, toTs: `${to}T23:59:59` });
 
   const today     = ymd(col);
   const yesterday = ymd(new Date(col.getTime() - 86400000));
 
-  if (key === "custom" && custom) {
-    return { from: custom.from, to: custom.to, fromTs: `${custom.from}T00:00:00`, toTs: `${custom.to}T23:59:59` };
+  if (key === "custom" && custom) return range(custom.from, custom.to);
+  if (key === "ayer")    return range(yesterday, yesterday);
+  if (key === "hoyAyer") return range(yesterday, today);
+  if (key === "7dias")   return range(ymd(new Date(col.getTime() - 6  * 86400000)), today);
+  if (key === "14dias")  return range(ymd(new Date(col.getTime() - 13 * 86400000)), today);
+  if (key === "28dias")  return range(ymd(new Date(col.getTime() - 27 * 86400000)), today);
+  if (key === "30dias")  return range(ymd(new Date(col.getTime() - 29 * 86400000)), today);
+  if (key === "estaSemana" || key === "semanaPasada") {
+    const dow          = col.getDay(); // 0=Dom..6=Sáb
+    const diffToMonday = (dow + 6) % 7;
+    const thisMonday   = new Date(col.getTime() - diffToMonday * 86400000);
+    if (key === "estaSemana") return range(ymd(thisMonday), today);
+    const lastMonday = new Date(thisMonday.getTime() - 7 * 86400000);
+    const lastSunday  = new Date(thisMonday.getTime() - 1 * 86400000);
+    return range(ymd(lastMonday), ymd(lastSunday));
   }
-  if (key === "ayer")   return { from: yesterday, to: yesterday, fromTs: `${yesterday}T00:00:00`, toTs: `${yesterday}T23:59:59` };
-  if (key === "7dias") {
-    const from7 = ymd(new Date(col.getTime() - 6 * 86400000));
-    return { from: from7, to: today, fromTs: `${from7}T00:00:00`, toTs: `${today}T23:59:59` };
+  if (key === "esteMes" || key === "mesPasado") {
+    const firstOfThisMonth = new Date(col.getFullYear(), col.getMonth(), 1);
+    if (key === "esteMes") return range(ymd(firstOfThisMonth), today);
+    const firstOfLastMonth = new Date(col.getFullYear(), col.getMonth() - 1, 1);
+    const lastOfLastMonth  = new Date(col.getFullYear(), col.getMonth(), 0);
+    return range(ymd(firstOfLastMonth), ymd(lastOfLastMonth));
   }
-  if (key === "mes") {
-    const from30 = ymd(new Date(col.getTime() - 29 * 86400000));
-    return { from: from30, to: today, fromTs: `${from30}T00:00:00`, toTs: `${today}T23:59:59` };
-  }
-  if (key === "3meses") {
-    const from90 = ymd(new Date(col.getTime() - 89 * 86400000));
-    return { from: from90, to: today, fromTs: `${from90}T00:00:00`, toTs: `${today}T23:59:59` };
-  }
-  if (key === "total") {
-    return { from: "2020-01-01", to: today, fromTs: "2020-01-01T00:00:00", toTs: `${today}T23:59:59` };
-  }
+  if (key === "maximo") return range("2020-01-01", today);
   // default: "hoy"
-  return { from: today, to: today, fromTs: `${today}T00:00:00`, toTs: `${today}T23:59:59` };
+  return range(today, today);
 }
 
 export function previousRange(r: DateRange): DateRange {
