@@ -112,7 +112,12 @@ export function classifyAd(r: AdRankRow, cacTarget: number, ticketMin: number): 
   return "MONITOREAR";
 }
 
-export interface HeatmapCell { hour: number; dow: number; value: number }
+export interface HeatmapCell {
+  hour:     number;
+  dow:      number;
+  value:    number;
+  bySource: { source: string; count: number }[];
+}
 
 export interface LTVRow {
   campaignName: string;
@@ -325,20 +330,29 @@ export async function getAdsRanking(r: DateRange): Promise<AdRankRow[]> {
 export async function getHourlyHeatmap(r: DateRange): Promise<HeatmapCell[]> {
   const { data } = await supabase
     .from("transactions")
-    .select("created_at")
+    .select("created_at, traffic_source")
     .gte("created_at", r.fromTs).lte("created_at", r.toTs)
     .eq("status", "active");
 
-  const cells: Record<string, number> = {};
+  const cells:     Record<string, number> = {};
+  const bySources: Record<string, Record<string, number>> = {};
+
   for (const tx of (data ?? [])) {
     const d = new Date(tx.created_at);
     const k = `${d.getHours()}-${d.getDay()}`;
     cells[k] = (cells[k] ?? 0) + 1;
+
+    const source = tx.traffic_source ?? "Sin UTM";
+    if (!bySources[k]) bySources[k] = {};
+    bySources[k][source] = (bySources[k][source] ?? 0) + 1;
   }
 
   return Object.entries(cells).map(([k, value]) => {
     const [hour, dow] = k.split("-").map(Number);
-    return { hour, dow, value };
+    const bySource = Object.entries(bySources[k] ?? {})
+      .map(([source, count]) => ({ source, count }))
+      .sort((a, b) => b.count - a.count);
+    return { hour, dow, value, bySource };
   });
 }
 
