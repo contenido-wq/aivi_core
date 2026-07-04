@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { C } from "../../tokens";
 import type { HeatmapCell } from "../../services/analytics";
 
@@ -18,6 +18,12 @@ export function HourlyHeatmap({ cells }: Props) {
     lookup[`${c.hour}-${c.dow}`]       = c.value;
     sourceLookup[`${c.hour}-${c.dow}`] = c.bySource;
   }
+
+  useEffect(() => {
+    if (selectedCell && !lookup[`${selectedCell.h}-${selectedCell.dow}`]) {
+      setSelectedCell(null);
+    }
+  }, [cells]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalConversions = cells.reduce((s, c) => s + c.value, 0);
   const selectedSources = selectedCell
