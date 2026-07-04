@@ -7,8 +7,6 @@ import { KPISummary }                 from "../components/analytics/KPISummary";
 import { CampaignFunnelCard }         from "../components/analytics/CampaignFunnelCard";
 import { VSLSelectorBar }             from "../components/analytics/VSLSelectorBar";
 import { VSLIntelligencePanel }       from "../components/analytics/VSLIntelligencePanel";
-import { ScaleRadar }                 from "../components/analytics/ScaleRadar";
-import { AdsRankingTable }            from "../components/analytics/AdsRankingTable";
 import { HourlyHeatmap }              from "../components/analytics/HourlyHeatmap";
 import { LTVTable }                   from "../components/analytics/LTVTable";
 import { CampaignMappingModal }       from "../components/analytics/CampaignMappingModal";
@@ -51,11 +49,6 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
   const filteredFunnel  = useMemo(
     () => selectedVslId ? funnel.filter(f => f.videoId === selectedVslId) : funnel,
     [funnel, selectedVslId],
-  );
-
-  const filteredRanking = useMemo(
-    () => selectedVslId ? ranking.filter(r => r.videoId === selectedVslId) : ranking,
-    [ranking, selectedVslId],
   );
 
   const selectedVsl = useMemo(
@@ -107,26 +100,65 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
 
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "0 24px", height: 56, borderBottom: `1px solid ${C.border}`,
-          background: C.nav, flexShrink: 0,
+          padding: "10px 24px", minHeight: 56, borderBottom: `1px solid ${C.border}`,
+          background: C.nav, flexShrink: 0, flexWrap: "wrap", gap: 12,
         }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: C.white }}>Analytics Command Center</div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {(["noche", "dia", "hoy", "ayer", "7dias"] as PeriodKey[]).map(key => (
-              <button key={key} onClick={() => setPeriod(key)} style={{
-                background: period === key ? C.orange : "transparent",
-                border: `1px solid ${period === key ? C.orange : C.border}`,
-                borderRadius: 20, padding: "4px 14px", fontSize: 12,
-                fontWeight: period === key ? 600 : 400,
-                color: period === key ? C.white : C.mutedLight, cursor: "pointer",
-              }}>
-                {PERIOD_LABELS[key]}
+          <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 11, color: C.mutedMid }}>CAC objetivo $</span>
+                <input
+                  type="number" value={cacTarget}
+                  onChange={e => setCacTarget(Number(e.target.value))}
+                  style={{
+                    width: 64, background: C.bgSecondary,
+                    border: `1px solid ${C.border}`, borderRadius: 6,
+                    padding: "4px 8px", color: C.white, fontSize: 12,
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 11, color: C.mutedMid }}>Ticket mín. $</span>
+                <input
+                  type="number" value={ticketMin}
+                  onChange={e => setTicketMin(Number(e.target.value))}
+                  style={{
+                    width: 64, background: C.bgSecondary,
+                    border: `1px solid ${C.border}`, borderRadius: 6,
+                    padding: "4px 8px", color: C.white, fontSize: 12,
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+              <button
+                onClick={() => setMappingOpen(true)}
+                style={{
+                  background: `rgba(254,128,63,0.12)`, border: `1px solid rgba(254,128,63,0.30)`,
+                  color: C.orange, borderRadius: 8, padding: "4px 12px", fontSize: 12, cursor: "pointer",
+                }}
+              >
+                Configurar VSLs
               </button>
-            ))}
-            <button onClick={refresh} style={{
-              background: "transparent", border: `1px solid ${C.border}`,
-              borderRadius: 20, padding: "4px 12px", fontSize: 12, color: C.mutedMid, cursor: "pointer",
-            }}>↺</button>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {(["noche", "dia", "hoy", "ayer", "7dias"] as PeriodKey[]).map(key => (
+                <button key={key} onClick={() => setPeriod(key)} style={{
+                  background: period === key ? C.orange : "transparent",
+                  border: `1px solid ${period === key ? C.orange : C.border}`,
+                  borderRadius: 20, padding: "4px 14px", fontSize: 12,
+                  fontWeight: period === key ? 600 : 400,
+                  color: period === key ? C.white : C.mutedLight, cursor: "pointer",
+                }}>
+                  {PERIOD_LABELS[key]}
+                </button>
+              ))}
+              <button onClick={refresh} style={{
+                background: "transparent", border: `1px solid ${C.border}`,
+                borderRadius: 20, padding: "4px 12px", fontSize: 12, color: C.mutedMid, cursor: "pointer",
+              }}>↺</button>
+            </div>
           </div>
         </div>
 
@@ -159,9 +191,14 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
             <KPISummary summary={filteredSummary} loading={loading} />
           </div>
 
-          <VSLIntelligencePanel primary={selectedVsl} compare={compareVsl} range={range} />
-
-          <ScaleRadar campaigns={filteredRanking} cacTarget={cacTarget} ticketMin={ticketMin} />
+          <VSLIntelligencePanel
+            primary={selectedVsl}
+            compare={compareVsl}
+            range={range}
+            ranking={ranking}
+            cacTarget={cacTarget}
+            ticketMin={ticketMin}
+          />
 
           {(loading || filteredFunnel.length > 0) && (
             <section>
@@ -182,15 +219,6 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
               )}
             </section>
           )}
-
-          <AdsRankingTable
-            rows={filteredRanking}
-            cacTarget={cacTarget}
-            ticketMin={ticketMin}
-            onCacTargetChange={setCacTarget}
-            onTicketMinChange={setTicketMin}
-            onOpenMapping={() => setMappingOpen(true)}
-          />
 
           <HourlyHeatmap cells={heatmap} />
 
