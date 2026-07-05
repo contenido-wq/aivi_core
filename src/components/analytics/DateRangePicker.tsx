@@ -157,7 +157,7 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
 
       {open && (
         <>
-          <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.35)" }} onClick={handleCancel} />
+          <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.7)" }} onClick={handleCancel} />
           <div style={{
             position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 100,
             background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12,
