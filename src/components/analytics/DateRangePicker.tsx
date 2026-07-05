@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { C, FONT } from "../../tokens";
+import { buildRange, formatDateEs } from "../../services/analytics";
 import type { PeriodKey, DateRange } from "../../services/analytics";
+import { MonthCalendar } from "./MonthCalendar";
 
 interface Props {
   period:   PeriodKey;
@@ -11,56 +13,121 @@ interface Props {
 type PresetKey = Exclude<PeriodKey, "custom">;
 
 const PRESETS: { key: PresetKey; label: string }[] = [
-  { key: "hoy",    label: "Hoy" },
-  { key: "ayer",   label: "Ayer" },
-  { key: "7dias",  label: "Últimos 7 días" },
-  { key: "mes",    label: "Último mes" },
-  { key: "3meses", label: "Últimos 3 meses" },
-  { key: "total",  label: "Total" },
+  { key: "hoy",          label: "Hoy" },
+  { key: "ayer",         label: "Ayer" },
+  { key: "hoyAyer",      label: "Hoy y ayer" },
+  { key: "7dias",        label: "Últimos 7 días" },
+  { key: "14dias",       label: "Últimos 14 días" },
+  { key: "28dias",       label: "Últimos 28 días" },
+  { key: "30dias",       label: "Últimos 30 días" },
+  { key: "estaSemana",   label: "Esta semana" },
+  { key: "semanaPasada", label: "La semana pasada" },
+  { key: "esteMes",      label: "Este mes" },
+  { key: "mesPasado",    label: "El mes pasado" },
+  { key: "maximo",       label: "Máximo" },
 ];
 
-const PRESET_LABEL: Record<PresetKey, string> = {
-  hoy: "Hoy", ayer: "Ayer", "7dias": "Últimos 7 días",
-  mes: "Último mes", "3meses": "Últimos 3 meses", total: "Total",
+const PRESET_LABEL: Record<PeriodKey, string> = {
+  hoy: "Hoy", ayer: "Ayer", hoyAyer: "Hoy y ayer",
+  "7dias": "Últimos 7 días", "14dias": "Últimos 14 días", "28dias": "Últimos 28 días", "30dias": "Últimos 30 días",
+  estaSemana: "Esta semana", semanaPasada: "La semana pasada",
+  esteMes: "Este mes", mesPasado: "El mes pasado",
+  maximo: "Máximo", custom: "Personalizado",
 };
 
-function formatShort(dateStr: string): string {
-  const parts = dateStr.split("-");
-  return `${parts[2]}/${parts[1]}`;
+function todayYearMonth(): { year: number; month: number } {
+  const d = new Date();
+  return { year: d.getFullYear(), month: d.getMonth() };
+}
+
+function parseYearMonth(dateStr: string): { year: number; month: number } {
+  const [y, m] = dateStr.split("-").map(Number);
+  return { year: y, month: m - 1 };
 }
 
 export function DateRangePicker({ period, range, onSelect }: Props) {
-  const [open,       setOpen]       = useState(false);
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo,   setCustomTo]   = useState("");
+  const [open,        setOpen]        = useState(false);
+  const [pendingKey,  setPendingKey]  = useState<PeriodKey>(period);
+  const [pendingFrom, setPendingFrom] = useState("");
+  const [pendingTo,   setPendingTo]   = useState("");
+  const [viewYear,    setViewYear]    = useState(() => todayYearMonth().year);
+  const [viewMonth,   setViewMonth]   = useState(() => todayYearMonth().month);
+  const [selecting,   setSelecting]   = useState<"start" | "end">("start");
+  const [compare,     setCompare]     = useState(false);
 
   useEffect(() => {
-    if (open && period === "custom" && range) {
-      setCustomFrom(range.from);
-      setCustomTo(range.to);
-    }
-  }, [open, period, range]);
+    if (!open) return;
+    setPendingKey(period);
+    const initial = period === "custom" && range ? range : buildRange(period);
+    setPendingFrom(initial.from);
+    setPendingTo(initial.to);
+    setSelecting("start");
+    const { year, month } = parseYearMonth(initial.from);
+    setViewYear(year);
+    setViewMonth(month);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
-  const buttonLabel = period === "custom" && range
-    ? `${formatShort(range.from)} - ${formatShort(range.to)}`
-    : PRESET_LABEL[period as PresetKey] ?? "Hoy";
+  const buttonLabel = range
+    ? `${PRESET_LABEL[period]}: ${formatDateEs(range.from)} - ${formatDateEs(range.to)}`
+    : "Cargando...";
 
   const handlePreset = (key: PresetKey) => {
-    onSelect(key);
+    setPendingKey(key);
+    const r = buildRange(key);
+    setPendingFrom(r.from);
+    setPendingTo(r.to);
+    const { year, month } = parseYearMonth(r.from);
+    setViewYear(year);
+    setViewMonth(month);
+  };
+
+  const handleDayClick = (dateStr: string) => {
+    setPendingKey("custom");
+    if (selecting === "start" || !pendingFrom) {
+      setPendingFrom(dateStr);
+      setPendingTo("");
+      setSelecting("end");
+    } else {
+      const from = pendingFrom <= dateStr ? pendingFrom : dateStr;
+      const to   = pendingFrom <= dateStr ? dateStr     : pendingFrom;
+      setPendingFrom(from);
+      setPendingTo(to);
+      setSelecting("start");
+    }
+  };
+
+  const handlePrevMonth = () => {
+    const d = new Date(viewYear, viewMonth - 1, 1);
+    setViewYear(d.getFullYear());
+    setViewMonth(d.getMonth());
+  };
+  const handleNextMonth = () => {
+    const d = new Date(viewYear, viewMonth + 1, 1);
+    setViewYear(d.getFullYear());
+    setViewMonth(d.getMonth());
+  };
+
+  const rightYearMonth = (() => {
+    const d = new Date(viewYear, viewMonth + 1, 1);
+    return { year: d.getFullYear(), month: d.getMonth() };
+  })();
+
+  const handleUpdate = () => {
+    if (pendingKey === "custom") {
+      if (!pendingFrom || !pendingTo) return;
+      onSelect("custom", { from: pendingFrom, to: pendingTo });
+    } else {
+      onSelect(pendingKey);
+    }
     setOpen(false);
   };
 
-  const handleApply = () => {
-    if (!customFrom || !customTo) return;
-    const from = customFrom <= customTo ? customFrom : customTo;
-    const to   = customFrom <= customTo ? customTo   : customFrom;
-    onSelect("custom", { from, to });
-    setOpen(false);
-  };
+  const handleCancel = () => setOpen(false);
 
   const dateInputStyle: React.CSSProperties = {
     background: C.bgSecondary, border: `1px solid ${C.border}`, borderRadius: 6,
-    padding: "6px 8px", color: C.white, fontSize: 12, fontFamily: FONT, width: "100%",
+    padding: "6px 8px", color: C.white, fontSize: 12, fontFamily: FONT, width: 118,
   };
 
   return (
@@ -79,51 +146,65 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
 
       {open && (
         <>
-          <div style={{ position: "fixed", inset: 0, zIndex: 90 }} onClick={() => setOpen(false)} />
+          <div style={{ position: "fixed", inset: 0, zIndex: 90 }} onClick={handleCancel} />
           <div style={{
             position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 100,
             background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12,
-            padding: 14, width: 220, boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            padding: 16, width: 620, boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            display: "flex", gap: 20,
           }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 140, flexShrink: 0 }}>
               {PRESETS.map(p => (
-                <button
-                  key={p.key}
-                  onClick={() => handlePreset(p.key)}
-                  style={{
-                    background: period === p.key ? "rgba(254,128,63,0.12)" : "transparent",
-                    border: "none", borderRadius: 8, padding: "8px 10px",
-                    fontSize: 12, textAlign: "left", cursor: "pointer", fontFamily: FONT,
-                    color: period === p.key ? C.orange : C.mutedLight,
-                  }}
-                >
-                  {p.label}
-                </button>
+                <label key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "5px 6px", borderRadius: 6 }}>
+                  <input
+                    type="radio" name="date-preset" checked={pendingKey === p.key}
+                    onChange={() => handlePreset(p.key)}
+                  />
+                  <span style={{ fontSize: 12, color: pendingKey === p.key ? C.white : C.mutedLight }}>{p.label}</span>
+                </label>
               ))}
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "5px 6px", borderRadius: 6 }}>
+                <input type="radio" name="date-preset" checked={pendingKey === "custom"} onChange={() => setPendingKey("custom")} />
+                <span style={{ fontSize: 12, color: pendingKey === "custom" ? C.white : C.mutedLight }}>Personalizado</span>
+              </label>
             </div>
 
-            <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 10, paddingTop: 10 }}>
-              <div style={{ fontSize: 11, color: C.mutedMid, marginBottom: 8 }}>Rango personalizado</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <div>
-                  <div style={{ fontSize: 10, color: C.mutedMid, marginBottom: 4 }}>Desde</div>
-                  <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} style={dateInputStyle} />
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+                <button onClick={handlePrevMonth} style={{ background: "transparent", border: "none", color: C.mutedLight, cursor: "pointer", fontSize: 16, marginTop: 4 }}>‹</button>
+                <MonthCalendar year={viewYear} month={viewMonth} rangeStart={pendingFrom || null} rangeEnd={pendingTo || null} onDayClick={handleDayClick} />
+                <MonthCalendar year={rightYearMonth.year} month={rightYearMonth.month} rangeStart={pendingFrom || null} rangeEnd={pendingTo || null} onDayClick={handleDayClick} />
+                <button onClick={handleNextMonth} style={{ background: "transparent", border: "none", color: C.mutedLight, cursor: "pointer", fontSize: 16, marginTop: 4 }}>›</button>
+              </div>
+
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                <input type="checkbox" checked={compare} onChange={e => setCompare(e.target.checked)} />
+                <span style={{ fontSize: 12, color: C.mutedLight }}>Comparar</span>
+              </label>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{
+                  background: C.bgSecondary, border: `1px solid ${C.border}`, borderRadius: 6,
+                  padding: "6px 10px", fontSize: 12, color: C.mutedLight, flex: 1,
+                }}>
+                  {PRESET_LABEL[pendingKey]}
                 </div>
-                <div>
-                  <div style={{ fontSize: 10, color: C.mutedMid, marginBottom: 4 }}>Hasta</div>
-                  <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={dateInputStyle} />
-                </div>
-                <button
-                  onClick={handleApply}
-                  disabled={!customFrom || !customTo}
-                  style={{
-                    background: C.orange, border: "none", borderRadius: 8, padding: "8px 0",
-                    color: C.white, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: FONT,
-                    opacity: !customFrom || !customTo ? 0.5 : 1,
-                  }}
-                >
-                  Aplicar
-                </button>
+                <input type="date" value={pendingFrom} onChange={e => { setPendingKey("custom"); setPendingFrom(e.target.value); }} style={dateInputStyle} />
+                <span style={{ color: C.mutedMid }}>-</span>
+                <input type="date" value={pendingTo} onChange={e => { setPendingKey("custom"); setPendingTo(e.target.value); }} style={dateInputStyle} />
+              </div>
+
+              <div style={{ fontSize: 11, color: C.mutedMid }}>Las fechas se muestran en la Hora de Bogotá</div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <button onClick={handleCancel} style={{
+                  background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8,
+                  padding: "6px 16px", fontSize: 12, color: C.mutedLight, cursor: "pointer",
+                }}>Cancelar</button>
+                <button onClick={handleUpdate} style={{
+                  background: C.orange, border: "none", borderRadius: 8,
+                  padding: "6px 16px", fontSize: 12, fontWeight: 600, color: C.white, cursor: "pointer",
+                }}>Actualizar</button>
               </div>
             </div>
           </div>
