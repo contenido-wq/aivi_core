@@ -133,6 +133,14 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
 
   const canUpdate = pendingKey !== "custom" || (!!pendingFrom && !!pendingTo);
 
+  const radioStyle = (checked: boolean): React.CSSProperties => ({
+    appearance: "none", WebkitAppearance: "none", margin: 0, flexShrink: 0,
+    width: 16, height: 16, borderRadius: "50%", cursor: "pointer",
+    border: `2px solid ${checked ? C.orange : C.mutedMid}`,
+    background: checked ? C.orange : "transparent",
+    boxShadow: checked ? `inset 0 0 0 3px ${C.panel}` : "none",
+  });
+
   return (
     <div style={{ position: "relative" }}>
       <button
@@ -149,7 +157,7 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
 
       {open && (
         <>
-          <div style={{ position: "fixed", inset: 0, zIndex: 90 }} onClick={handleCancel} />
+          <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.35)" }} onClick={handleCancel} />
           <div style={{
             position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 100,
             background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12,
@@ -162,12 +170,17 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
                   <input
                     type="radio" name="date-preset" checked={pendingKey === p.key}
                     onChange={() => handlePreset(p.key)}
+                    style={radioStyle(pendingKey === p.key)}
                   />
                   <span style={{ fontSize: 12, color: pendingKey === p.key ? C.white : C.mutedLight }}>{p.label}</span>
                 </label>
               ))}
               <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "5px 6px", borderRadius: 6 }}>
-                <input type="radio" name="date-preset" checked={pendingKey === "custom"} onChange={() => setPendingKey("custom")} />
+                <input
+                  type="radio" name="date-preset" checked={pendingKey === "custom"}
+                  onChange={() => setPendingKey("custom")}
+                  style={radioStyle(pendingKey === "custom")}
+                />
                 <span style={{ fontSize: 12, color: pendingKey === "custom" ? C.white : C.mutedLight }}>Personalizado</span>
               </label>
             </div>
@@ -181,7 +194,20 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
               </div>
 
               <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                <input type="checkbox" checked={compare} onChange={e => setCompare(e.target.checked)} />
+                <div style={{ position: "relative", width: 16, height: 16, flexShrink: 0 }}>
+                  <input
+                    type="checkbox" checked={compare} onChange={e => setCompare(e.target.checked)}
+                    style={{
+                      appearance: "none", WebkitAppearance: "none", margin: 0, cursor: "pointer",
+                      width: 16, height: 16, borderRadius: 4,
+                      border: `2px solid ${compare ? C.orange : C.mutedMid}`,
+                      background: compare ? C.orange : "transparent",
+                    }}
+                  />
+                  {compare && (
+                    <span style={{ position: "absolute", top: -2, left: 2, fontSize: 11, color: C.white, fontWeight: 700, pointerEvents: "none" }}>✓</span>
+                  )}
+                </div>
                 <span style={{ fontSize: 12, color: C.mutedLight }}>Comparar</span>
               </label>
 

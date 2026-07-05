@@ -48,9 +48,9 @@ export function MonthCalendar({ year, month, rangeStart, rangeEnd, onDayClick }:
               style={{
                 height: 26, borderRadius: 6, border: "none", cursor: "pointer",
                 fontSize: 11, fontFamily: FONT,
-                background: boundary ? C.orange : inRange ? "rgba(254,128,63,0.18)" : "transparent",
-                color: boundary ? C.white : C.mutedLight,
-                fontWeight: boundary ? 700 : 400,
+                background: boundary ? C.orange : inRange ? "rgba(254,128,63,0.32)" : "transparent",
+                color: boundary ? C.white : inRange ? C.white : C.mutedLight,
+                fontWeight: boundary ? 700 : inRange ? 600 : 400,
               }}
             >
               {d}
