@@ -21,7 +21,7 @@ export function KPISummary({ summary, loading }: Props) {
   const kpis: KPI[] = summary ? [
     { label: "Inversión",      value: summary.investment,  prevValue: summary.prev?.investment,  type: "usd" },
     { label: "Ingresos",       value: summary.revenue,     prevValue: summary.prev?.revenue,     type: "usd" },
-    { label: "ROAS",           value: summary.roas,        prevValue: summary.prev?.roas,        type: "x"   },
+    { label: "ROI",            value: summary.roi,         prevValue: summary.prev?.roi,         type: "x"   },
     { label: "CAC Promedio",   value: summary.cac,         prevValue: summary.prev?.cac,         type: "usd", inverseColor: true },
     { label: "Ventas",         value: summary.sales,       prevValue: summary.prev?.sales,       type: "num" },
     { label: "Plays Totales",  value: summary.plays,       prevValue: summary.prev?.plays,       type: "num" },

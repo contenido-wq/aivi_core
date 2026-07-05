@@ -51,8 +51,8 @@ export function CampaignFunnelCard({ campaign: c }: Props) {
           <div style={{ fontSize: 14, fontWeight: 700, color: C.white }}>${c.cac.toFixed(0)}</div>
         </div>
         <div>
-          <div style={{ fontSize: 10, color: C.mutedMid }}>ROAS</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: c.roas >= 2 ? "#FE803F" : "#FFC252" }}>{c.roas.toFixed(2)}x</div>
+          <div style={{ fontSize: 10, color: C.mutedMid }}>ROI</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: c.roi >= 1 ? "#FE803F" : "#FFC252" }}>{c.roi.toFixed(2)}x</div>
         </div>
         <div>
           <div style={{ fontSize: 10, color: C.mutedMid }}>Inversión</div>

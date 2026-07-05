@@ -57,13 +57,13 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
   const filteredSummary = useMemo((): AnalyticsSummary | null => {
     if (!selectedVslId || !summary) return summary;
     const investment = filteredFunnel.reduce((s, f) => s + f.investment, 0);
-    const revenue    = filteredFunnel.reduce((s, f) => s + f.investment * f.roas, 0);
+    const revenue    = filteredFunnel.reduce((s, f) => s + f.investment * (1 + f.roi), 0);
     const salesCount = filteredFunnel.reduce((s, f) => s + f.sales, 0);
     const plays      = filteredFunnel.reduce((s, f) => s + f.plays, 0);
     return {
       investment,
       revenue,
-      roas:        investment > 0 ? revenue / investment : 0,
+      roi:         investment > 0 ? (revenue - investment) / investment : 0,
       cac:         salesCount > 0 ? investment / salesCount : 0,
       sales:       salesCount,
       plays,

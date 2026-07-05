@@ -199,7 +199,7 @@ function AdSourceView({ rows, cacTarget, ticketMin }: { rows: AdRankRow[]; cacTa
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
         <thead>
           <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-            {["Campaña", "Inv.", "Ventas", "CAC", "ROAS", "Score", "Acción"].map(h => (
+            {["Campaña", "Inv.", "Ventas", "CAC", "ROI", "Score", "Acción"].map(h => (
               <th key={h} style={{ padding: "6px 8px", color: C.mutedMid, fontWeight: 500, textAlign: "left", whiteSpace: "nowrap" }}>
                 {h}
               </th>
@@ -220,8 +220,8 @@ function AdSourceView({ rows, cacTarget, ticketMin }: { rows: AdRankRow[]; cacTa
                 <td style={{ padding: "9px 8px", color: adCacColor(r.cac, cacTarget), fontWeight: 700 }}>
                   {r.cac > 0 ? `$${r.cac.toFixed(0)}` : "—"}
                 </td>
-                <td style={{ padding: "9px 8px", color: r.roas >= 2 ? C.green : r.roas >= 1 ? C.yellow : C.red, fontWeight: 600 }}>
-                  {r.roas > 0 ? `${r.roas.toFixed(2)}x` : "—"}
+                <td style={{ padding: "9px 8px", color: r.roi >= 1 ? C.green : r.roi >= 0 ? C.yellow : C.red, fontWeight: 600 }}>
+                  {r.investment > 0 ? `${r.roi.toFixed(2)}x` : "—"}
                 </td>
                 <td style={{ padding: "9px 8px" }}>
                   <span style={{ background: `${adScoreColor(r.score)}20`, color: adScoreColor(r.score), borderRadius: 12, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>

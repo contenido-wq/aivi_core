@@ -74,7 +74,7 @@ export function previousRange(r: DateRange): DateRange {
 export interface AnalyticsSummary {
   investment:  number;
   revenue:     number;
-  roas:        number;
+  roi:         number;
   cac:         number;
   sales:       number;
   plays:       number;
@@ -93,7 +93,7 @@ export interface FunnelCampaign {
   ctaClicks:    number;
   sales:        number;
   cac:          number;
-  roas:         number;
+  roi:          number;
   investment:   number;
   topHour:      number | null;
   score:        number;
@@ -125,7 +125,7 @@ export interface AdRankRow {
   playRate:     number;
   sales:        number;
   cac:          number;
-  roas:         number;
+  roi:          number;
   videoId:      string | null;
   videoName:    string | null;
   score:        number;
@@ -134,10 +134,10 @@ export interface AdRankRow {
 export type AdAction = "ESCALAR" | "PAUSAR" | "MONITOREAR";
 
 export function classifyAd(r: AdRankRow, cacTarget: number, ticketMin: number): AdAction {
-  const avgTicket = r.sales > 0 && r.investment > 0 ? (r.investment * r.roas) / r.sales : 0;
+  const avgTicket = r.sales > 0 && r.investment > 0 ? (r.investment * (1 + r.roi)) / r.sales : 0;
   const ticketOk  = ticketMin === 0 || avgTicket >= ticketMin;
-  if (r.sales >= 1 && r.cac > 0 && r.cac <= cacTarget && r.roas >= 2.0 && ticketOk) return "ESCALAR";
-  if ((r.cac > 0 && r.cac > cacTarget * 1.5) || (r.roas < 1.0 && r.investment > 0)) return "PAUSAR";
+  if (r.sales >= 1 && r.cac > 0 && r.cac <= cacTarget && r.roi >= 1.0 && ticketOk) return "ESCALAR";
+  if ((r.cac > 0 && r.cac > cacTarget * 1.5) || (r.roi < 0.0 && r.investment > 0)) return "PAUSAR";
   return "MONITOREAR";
 }
 
@@ -184,7 +184,7 @@ export async function getAnalyticsSummary(r: DateRange): Promise<AnalyticsSummar
   return {
     investment,
     revenue,
-    roas:        investment > 0 ? revenue / investment : 0,
+    roi:         investment > 0 ? (revenue - investment) / investment : 0,
     cac:         sales > 0 ? investment / sales : 0,
     sales,
     plays,
@@ -235,10 +235,10 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
 
   const allCampaigns = new Set([...Object.keys(invMap), ...Object.keys(salesMap)]);
 
-  const maxRoas = Math.max(1, ...[...allCampaigns].map(c => {
+  const maxRoi = Math.max(1, ...[...allCampaigns].map(c => {
     const inv = invMap[c]?.investment ?? 0;
     const rev = salesMap[c]?.revenue ?? 0;
-    return inv > 0 ? rev / inv : 0;
+    return inv > 0 ? (rev - inv) / inv : 0;
   }));
 
   return [...allCampaigns].map(campaignName => {
@@ -248,7 +248,7 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
     const vData = vsl ? (vturlMap[vsl.videoId] ?? { plays: 0, buttonClicks: 0 }) : null;
 
     const cac  = sales.count > 0 ? inv.investment / sales.count : 0;
-    const roas = inv.investment > 0 ? sales.revenue / inv.investment : 0;
+    const roi  = inv.investment > 0 ? (sales.revenue - inv.investment) / inv.investment : 0;
 
     const hourCount: Record<number, number> = {};
     for (const h of sales.hours) hourCount[h] = (hourCount[h] ?? 0) + 1;
@@ -256,15 +256,15 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
       ? Number(Object.entries(hourCount).sort((a, b) => b[1] - a[1])[0][0])
       : null;
 
-    const roasNorm  = maxRoas > 0 ? Math.min(roas / maxRoas, 1) : 0;
+    const roiNorm   = maxRoi > 0 ? Math.min(Math.max(roi / maxRoi, 0), 1) : 0;
     const convRate  = vData && vData.plays > 0 ? sales.count / vData.plays : 0;
-    const score     = Math.round((roasNorm * 0.50 + Math.min(convRate * 10, 1) * 0.50) * 100);
+    const score     = Math.round((roiNorm * 0.50 + Math.min(convRate * 10, 1) * 0.50) * 100);
 
     return {
       campaignName, videoId: vsl?.videoId ?? null, videoName: vsl?.videoName ?? null,
       impressions: inv.impressions, clicks: inv.clicks,
       plays: vData?.plays ?? 0, ctaClicks: vData?.buttonClicks ?? 0,
-      sales: sales.count, cac, roas, investment: inv.investment, topHour, score,
+      sales: sales.count, cac, roi, investment: inv.investment, topHour, score,
     };
   }).sort((a, b) => (a.cac || 999) - (b.cac || 999));
 }
@@ -351,7 +351,7 @@ export async function getAdsRanking(r: DateRange): Promise<AdRankRow[]> {
     playRate:     f.clicks > 0 ? (f.plays / f.clicks) * 100 : 0,
     sales:        f.sales,
     cac:          f.cac,
-    roas:         f.roas,
+    roi:          f.roi,
     videoId:      f.videoId,
     videoName:    f.videoName,
     score:        f.score,
@@ -509,8 +509,8 @@ export function generateAlerts(
     if (delta > 0.30) alerts.push({ level: "rojo", message: `CAC subió ${Math.round(delta*100)}% vs período anterior ($${summary.cac.toFixed(0)} vs $${summary.prev.cac.toFixed(0)})` });
   }
 
-  if (summary.roas < 1.5 && summary.investment > 0) {
-    alerts.push({ level: "rojo", message: `ROAS global en ${summary.roas.toFixed(2)}x — la inversión no se está recuperando` });
+  if (summary.roi < 0.5 && summary.investment > 0) {
+    alerts.push({ level: "rojo", message: `ROI global en ${summary.roi.toFixed(2)}x — la inversión no se está recuperando` });
   }
 
   for (const vsl of vsls) {
@@ -524,7 +524,7 @@ export function generateAlerts(
   }
 
   for (const f of funnel) {
-    if (f.score >= 80) alerts.push({ level: "verde", message: `Campaña "${f.campaignName}" tiene Score ${f.score} — ROAS ${f.roas.toFixed(1)}x, candidata a escalar` });
+    if (f.score >= 80) alerts.push({ level: "verde", message: `Campaña "${f.campaignName}" tiene Score ${f.score} — ROI ${f.roi.toFixed(1)}x, candidata a escalar` });
   }
 
   return alerts.slice(0, 5);
@@ -539,10 +539,10 @@ export async function getAIAnalysis(payload: {
   const prompt = `Eres un analista de marketing experto. Analiza estos datos del período "${payload.period}" y responde SOLO con las 3 secciones indicadas, en español latinoamericano, directo y accionable.
 
 DATOS DEL PERÍODO:
-Inversión: $${payload.summary.investment.toFixed(2)} | Ingresos: $${payload.summary.revenue.toFixed(2)} | ROAS: ${payload.summary.roas.toFixed(2)}x | CAC: $${payload.summary.cac.toFixed(2)} | Ventas: ${payload.summary.sales}
+Inversión: $${payload.summary.investment.toFixed(2)} | Ingresos: $${payload.summary.revenue.toFixed(2)} | ROI: ${payload.summary.roi.toFixed(2)}x | CAC: $${payload.summary.cac.toFixed(2)} | Ventas: ${payload.summary.sales}
 
 CAMPAÑAS (ordenadas por CAC):
-${payload.funnel.map(f => `- ${f.campaignName}: CAC $${f.cac.toFixed(0)}, ROAS ${f.roas.toFixed(1)}x, Score ${f.score}, VSL: ${f.videoName ?? "Sin asignar"}, Ventas: ${f.sales}`).join("\n")}
+${payload.funnel.map(f => `- ${f.campaignName}: CAC $${f.cac.toFixed(0)}, ROI ${f.roi.toFixed(1)}x, Score ${f.score}, VSL: ${f.videoName ?? "Sin asignar"}, Ventas: ${f.sales}`).join("\n")}
 
 VSLs:
 ${payload.vsls.map(v => `- ${v.videoName}: ${v.plays} plays, Ret50% ${v.ret50.toFixed(0)}%, CTA ${v.ctaClicks} clicks, Conv ${v.convRate.toFixed(1)}%${v.dropSecond ? `, caída en segundo ${v.dropSecond}` : ""}`).join("\n")}
