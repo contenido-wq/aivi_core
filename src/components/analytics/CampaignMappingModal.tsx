@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { C } from "../../tokens";
-import { saveVSLMapping, deleteVSLMapping, getAvailableVideos } from "../../services/analytics";
+import { saveVSLMapping, deleteVSLMapping, getAvailableVideos, DEFAULT_VSL_CAMPAIGN } from "../../services/analytics";
 import type { VSLMapping, VTurbVideo } from "../../services/analytics";
 
 interface Props {
@@ -73,7 +73,9 @@ export function CampaignMappingModal({ open, onClose, mappings, campaigns, onSav
         {visibleMappings.map(m => (
           <div key={m.campaignName} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: C.card, borderRadius: 8, marginBottom: 6 }}>
             <div>
-              <div style={{ fontSize: 13, color: C.white }}>{m.campaignName}</div>
+              <div style={{ fontSize: 13, color: C.white }}>
+                {m.campaignName === DEFAULT_VSL_CAMPAIGN ? "🔹 VSL por defecto (todo el tráfico sin mapear)" : m.campaignName}
+              </div>
               <div style={{ fontSize: 11, color: C.mutedMid }}>{m.videoName}</div>
             </div>
             <button onClick={() => handleDelete(m.campaignName)} style={{ background: "rgba(255,65,59,0.12)", border: "none", color: "#FF413B", borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>
@@ -92,6 +94,9 @@ export function CampaignMappingModal({ open, onClose, mappings, campaigns, onSav
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <select value={newCampaign} onChange={e => setNewCampaign(e.target.value)} style={sel}>
               <option value="">Selecciona campaña...</option>
+              {!mappings.find(m => m.campaignName === DEFAULT_VSL_CAMPAIGN) && (
+                <option value={DEFAULT_VSL_CAMPAIGN}>— VSL por defecto (todo el tráfico sin mapear) —</option>
+              )}
               {unmapped.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
 

@@ -166,6 +166,10 @@ export interface Alert {
 
 export interface VSLMapping { campaignName: string; videoId: string; videoName: string }
 
+// Mapeo especial: captura todo el tráfico/ventas sin una campaña mapeada
+// explícitamente, en vez de perderse como "Sin VSL asignado".
+export const DEFAULT_VSL_CAMPAIGN = "__default__";
+
 // ── Funciones ─────────────────────────────────────────────────────────────────
 
 export async function getAnalyticsSummary(r: DateRange): Promise<AnalyticsSummary> {
@@ -224,6 +228,7 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
   for (const m of (mappingRes.data ?? [])) {
     mappingMap[m.campaign_name] = { videoId: m.video_id, videoName: m.video_name ?? m.video_id };
   }
+  const defaultVsl = mappingMap[DEFAULT_VSL_CAMPAIGN] ?? null;
 
   const vturlMap: Record<string, { plays: number; buttonClicks: number }> = {};
   for (const row of (analyticsRes.data ?? [])) {
@@ -244,7 +249,7 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
   return [...allCampaigns].map(campaignName => {
     const inv   = invMap[campaignName]  ?? { investment: 0, impressions: 0, clicks: 0 };
     const sales = salesMap[campaignName] ?? { count: 0, revenue: 0, hours: [] };
-    const vsl   = mappingMap[campaignName] ?? null;
+    const vsl   = mappingMap[campaignName] ?? defaultVsl;
     const vData = vsl ? (vturlMap[vsl.videoId] ?? { plays: 0, buttonClicks: 0 }) : null;
 
     const cac  = sales.count > 0 ? inv.investment / sales.count : 0;
@@ -280,8 +285,9 @@ export async function getVSLRetention(r: DateRange): Promise<VSLData[]> {
   const videoSales: Record<string, number> = {};
   const mappingBySource: Record<string, string> = {};
   for (const m of (mappingRes.data ?? [])) mappingBySource[m.campaign_name] = m.video_id;
+  const defaultVideoId = mappingBySource[DEFAULT_VSL_CAMPAIGN] ?? null;
   for (const tx of (txRes.data ?? [])) {
-    const vid = mappingBySource[tx.traffic_source ?? ""] ?? null;
+    const vid = mappingBySource[tx.traffic_source ?? ""] ?? defaultVideoId;
     if (vid) videoSales[vid] = (videoSales[vid] ?? 0) + 1;
   }
 
@@ -370,6 +376,7 @@ export async function getHourlyHeatmap(r: DateRange): Promise<HeatmapCell[]> {
 
   const videoByCampaign: Record<string, string> = {};
   for (const m of (mappingRes.data ?? [])) videoByCampaign[m.campaign_name] = m.video_id;
+  const defaultVideoId = videoByCampaign[DEFAULT_VSL_CAMPAIGN] ?? null;
 
   const cells:         Record<string, number> = {};
   const bySources:     Record<string, Record<string, number>> = {};
@@ -387,7 +394,7 @@ export async function getHourlyHeatmap(r: DateRange): Promise<HeatmapCell[]> {
     if (!bySources[k]) bySources[k] = {};
     bySources[k][source] = (bySources[k][source] ?? 0) + 1;
 
-    const videoKey = videoByCampaign[tx.traffic_source] ?? NO_VSL;
+    const videoKey = videoByCampaign[tx.traffic_source] ?? defaultVideoId ?? NO_VSL;
     if (!byVideoCount[k]) byVideoCount[k] = {};
     byVideoCount[k][videoKey] = (byVideoCount[k][videoKey] ?? 0) + 1;
     if (!byVideoSource[k]) byVideoSource[k] = {};
@@ -427,6 +434,7 @@ export async function getLTVBySource(r: DateRange): Promise<LTVRow[]> {
 
   const videoByCampaign: Record<string, string> = {};
   for (const m of (mappingRes.data ?? [])) videoByCampaign[m.campaign_name] = m.video_id;
+  const defaultVideoId = videoByCampaign[DEFAULT_VSL_CAMPAIGN] ?? null;
 
   const invMap: Record<string, number> = {};
   for (const row of (campRes.data ?? [])) {
@@ -448,7 +456,7 @@ export async function getLTVBySource(r: DateRange): Promise<LTVRow[]> {
     const ltv          = customers > 0 ? totalRevenue / customers : 0;
     const cac          = invMap[campaignName] ?? 0;
     const roiReal      = cac > 0 ? ltv / cac : 0;
-    const videoId      = videoByCampaign[campaignName] ?? null;
+    const videoId      = videoByCampaign[campaignName] ?? defaultVideoId;
     return { campaignName, videoId, customers, ltv, totalRevenue, cac, roiReal };
   }).sort((a, b) => b.roiReal - a.roiReal);
 }
