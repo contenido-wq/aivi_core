@@ -17,6 +17,7 @@ export function CampaignMappingModal({ open, onClose, mappings, campaigns, onSav
   const [saving,       setSaving]      = useState(false);
   const [videos,       setVideos]      = useState<VTurbVideo[]>([]);
   const [videosState,  setVideosState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [filterVideoId, setFilterVideoId] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -24,13 +25,16 @@ export function CampaignMappingModal({ open, onClose, mappings, campaigns, onSav
       getAvailableVideos()
         .then(v => { setVideos(v); setVideosState("ready"); })
         .catch(() => { setVideos([]); setVideosState("error"); });
+    } else {
+      setFilterVideoId("");
     }
   }, [open]);
 
   if (!open) return null;
 
-  const unmapped     = campaigns.filter(c => !mappings.find(m => m.campaignName === c));
-  const selectedName = videos.find(v => v.videoId === newVideoId)?.videoName ?? newVideoId;
+  const unmapped        = campaigns.filter(c => !mappings.find(m => m.campaignName === c));
+  const selectedName    = videos.find(v => v.videoId === newVideoId)?.videoName ?? newVideoId;
+  const visibleMappings = filterVideoId ? mappings.filter(m => m.videoId === filterVideoId) : mappings;
 
   const handleSave = async () => {
     if (!newCampaign || !newVideoId) return;
@@ -59,7 +63,14 @@ export function CampaignMappingModal({ open, onClose, mappings, campaigns, onSav
         onClick={e => e.stopPropagation()}>
         <div style={{ fontSize: 16, fontWeight: 700, color: C.white, marginBottom: 20 }}>Configurar Campaña → VSL</div>
 
-        {mappings.map(m => (
+        <select value={filterVideoId} onChange={e => setFilterVideoId(e.target.value)} style={{ ...sel, marginBottom: 16 }}>
+          <option value="">Todos los VSLs</option>
+          {videos.map(v => (
+            <option key={v.videoId} value={v.videoId}>{v.videoName}</option>
+          ))}
+        </select>
+
+        {visibleMappings.map(m => (
           <div key={m.campaignName} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: C.card, borderRadius: 8, marginBottom: 6 }}>
             <div>
               <div style={{ fontSize: 13, color: C.white }}>{m.campaignName}</div>
@@ -70,7 +81,11 @@ export function CampaignMappingModal({ open, onClose, mappings, campaigns, onSav
             </button>
           </div>
         ))}
-        {mappings.length === 0 && <div style={{ fontSize: 12, color: C.mutedMid, textAlign: "center", padding: 16 }}>Sin mapeos configurados</div>}
+        {visibleMappings.length === 0 && (
+          <div style={{ fontSize: 12, color: C.mutedMid, textAlign: "center", padding: 16 }}>
+            {filterVideoId ? "Sin campañas mapeadas a este VSL" : "Sin mapeos configurados"}
+          </div>
+        )}
 
         <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16, marginTop: 8 }}>
           <div style={{ fontSize: 13, color: C.mutedLight, marginBottom: 12 }}>Añadir nuevo mapeo</div>
