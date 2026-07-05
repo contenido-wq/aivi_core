@@ -2,6 +2,11 @@
 import { serve }        from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+declare const Deno: {
+  env:  { get(key: string): string | undefined };
+  cron: (name: string, schedule: string, handler: () => Promise<void>) => void;
+};
+
 /** Devuelve la fecha en Colombia (UTC-5) como "YYYY-MM-DD" */
 function toColombiaDate(d: Date): string {
   const local = new Date(d.getTime() - 5 * 60 * 60 * 1000);
@@ -68,15 +73,19 @@ const OFFER_NAMES: Record<string, string> = {
   "z48o3uz9": "AIVI — Creator Lite Semestral",
 };
 
-serve(async (req) => {
+/** Ventana de 3 días (con solape) para la corrida automática — captura renovaciones
+ *  y reintentos recientes sin re-descargar todo el histórico en cada corrida. */
+function lastDaysRange(days: number): { start: string; end: string } {
+  const end = Date.now();
+  const start = end - days * 24 * 60 * 60 * 1000;
+  return { start: String(start), end: String(end) };
+}
+
+async function runSync(startDate: string, endDate: string): Promise<Response> {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
-
-  const url       = new URL(req.url);
-  const startDate = url.searchParams.get("start") ?? "1735689600000";
-  const endDate   = url.searchParams.get("end")   ?? String(Date.now());
 
   console.log(`Sincronizando ventas del ${startDate} al ${endDate}`);
 
@@ -121,7 +130,13 @@ serve(async (req) => {
         const plan_name       = OFFER_NAMES[offer_code] ?? product.name ?? "AIVI";
         const amount          = Number(purchase.price?.value ?? 0);
         const currency        = purchase.price?.currency_code ?? "USD";
-        const subscriber_code = subscription?.subscriber?.code ?? hotmart_id;
+        // Hotmart no siempre envía subscription.subscriber.code en cobros recurrentes
+        // (solo en el pago inicial). Si cae a hotmart_id, cada renovación mensual genera
+        // un hotmart_id distinto y el upsert onConflict:"subscriber_code" nunca matchea
+        // la fila anterior, duplicando la suscripción cada mes. Usamos email+plan como
+        // llave estable para que las renovaciones actualicen la misma fila.
+        const subscriber_code = subscription?.subscriber?.code
+          ?? (buyer_email ? `EMAIL:${buyer_email.toLowerCase().trim()}::${plan_name}` : hotmart_id);
         const order_date      = purchase.order_date
           ? new Date(purchase.order_date).toISOString()
           : new Date().toISOString();
@@ -167,7 +182,7 @@ serve(async (req) => {
           : { onConflict: "hotmart_id" };
         await supabase.from("transactions").upsert(txRecord, upsertOpts);
 
-        await supabase.from("subscriptions").upsert({
+        const { error: subError } = await supabase.from("subscriptions").upsert({
           subscriber_code,
           buyer_email,
           buyer_name,
@@ -177,6 +192,7 @@ serve(async (req) => {
           currency,
           updated_at: order_date,
         }, { onConflict: "subscriber_code" });
+        if (subError) console.error("Error upsert subscriptions:", subError);
 
         inserted++;
       } catch (e) {
@@ -220,6 +236,22 @@ serve(async (req) => {
     console.error("Sync failed:", e);
     return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500 });
   }
+}
+
+// Corrida diaria automática — red de seguridad para renovaciones/eventos que el
+// webhook en tiempo real no haya recibido (caídas, reintentos de Hotmart, etc).
+if (typeof Deno.cron === "function") {
+  Deno.cron("hotmart-sync-daily", "0 6 * * *", async () => {
+    const { start, end } = lastDaysRange(3);
+    await runSync(start, end);
+  });
+}
+
+serve(async (req) => {
+  const url       = new URL(req.url);
+  const startDate = url.searchParams.get("start") ?? "1735689600000";
+  const endDate   = url.searchParams.get("end")   ?? String(Date.now());
+  return runSync(startDate, endDate);
 });
 
 function deriveStatus(event: string): string {

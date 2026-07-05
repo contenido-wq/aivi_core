@@ -87,7 +87,13 @@ serve(async (req) => {
   const plan_name       = product?.name         ?? "Desconocido";
   const buyer_email     = buyer?.email           ?? "";
   const buyer_name      = buyer?.name            ?? "";
-  const subscriber_code    = sub?.subscriber?.code              ?? hotmart_id;
+  // Hotmart no siempre envía subscription.subscriber.code en cobros recurrentes
+  // (solo en el pago inicial). Si cae a hotmart_id, cada renovación mensual genera
+  // un hotmart_id distinto y el upsert onConflict:"subscriber_code" nunca matchea
+  // la fila anterior, duplicando la suscripción cada mes. Usamos email+plan como
+  // llave estable para que las renovaciones actualicen la misma fila.
+  const subscriber_code    = sub?.subscriber?.code
+    ?? (buyer_email ? `EMAIL:${buyer_email.toLowerCase().trim()}::${plan_name}` : hotmart_id);
   const cancellation_type  = sub?.subscriber?.cancellation_type ?? null;
   const amount             = Number(purchase.price?.value ?? 0);
   const currency           = (purchase.price?.currency_value ?? "USD") as string;
@@ -147,7 +153,7 @@ serve(async (req) => {
     created_at:        new Date().toISOString(),
   }, { onConflict: "hotmart_id" });
 
-  await supabase.from("subscriptions").upsert({
+  const { error: subError } = await supabase.from("subscriptions").upsert({
     subscriber_code,
     buyer_email,
     buyer_name,
@@ -157,6 +163,7 @@ serve(async (req) => {
     currency,
     updated_at: new Date().toISOString(),
   }, { onConflict: "subscriber_code" });
+  if (subError) console.error("Error upsert subscriptions:", subError);
 
   await recalcDailyMetrics(supabase, today);
 
