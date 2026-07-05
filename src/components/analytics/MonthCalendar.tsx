@@ -35,26 +35,33 @@ export function MonthCalendar({ year, month, rangeStart, rangeEnd, onDayClick }:
           <div key={d} style={{ fontSize: 9, color: C.mutedMid, textAlign: "center", fontWeight: 600 }}>{d}</div>
         ))}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 0 }}>
         {cells.map((d, i) => {
           if (d === null) return <div key={`blank-${i}`} />;
           const dateStr  = `${year}-${pad(month + 1)}-${pad(d)}`;
           const inRange  = isInRange(dateStr);
           const boundary = isBoundary(dateStr);
           return (
-            <button
+            <div
               key={dateStr}
-              onClick={() => onDayClick(dateStr)}
               style={{
-                height: 26, borderRadius: 6, border: "none", cursor: "pointer",
-                fontSize: 11, fontFamily: FONT,
-                background: boundary ? C.orange : inRange ? "rgba(254,128,63,0.32)" : "transparent",
-                color: boundary ? C.white : inRange ? C.white : C.mutedLight,
-                fontWeight: boundary ? 700 : inRange ? 600 : 400,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                height: 28, background: inRange && !boundary ? "rgba(254,128,63,0.24)" : "transparent",
               }}
             >
-              {d}
-            </button>
+              <button
+                onClick={() => onDayClick(dateStr)}
+                style={{
+                  width: 24, height: 24, borderRadius: "50%", border: "none", cursor: "pointer",
+                  fontSize: 11, fontFamily: FONT,
+                  background: boundary ? C.orange : "transparent",
+                  color: boundary ? C.white : inRange ? C.white : C.mutedLight,
+                  fontWeight: boundary ? 700 : inRange ? 600 : 400,
+                }}
+              >
+                {d}
+              </button>
+            </div>
           );
         })}
       </div>
