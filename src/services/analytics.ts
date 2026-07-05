@@ -453,6 +453,50 @@ export async function getLTVBySource(r: DateRange): Promise<LTVRow[]> {
   }).sort((a, b) => b.roiReal - a.roiReal);
 }
 
+export interface ProductRevenueRow {
+  product:   string;
+  revenue:   number;
+  sales:     number;
+  avgTicket: number;
+}
+
+const PRODUCT_GROUPS: Record<string, string[]> = {
+  "AIVI": [
+    "AIVI",
+    "AIVI — Creator Lite Semestral",
+  ],
+  "Contenido que Vende con IA": [
+    "Taller: Contenido que V3NDE con Inteligencia Artificial (Marzo 9, 10, 11 y 12)",
+    "Taller: Contenido que V3NDE con Inteligencia Artificial (Enero 19, 20, 21 y 22)",
+  ],
+  "MV3": [
+    "Método V3 - [Viralidad, Comunidad y Ventas]",
+    "Master Creator - MV3",
+    "Master Creator",
+  ],
+};
+
+export async function getProductRevenue(): Promise<ProductRevenueRow[]> {
+  const now   = new Date();
+  const colMs = now.getTime() - 5 * 60 * 60 * 1000; // UTC → Colombia (UTC-5), mismo criterio que buildRange
+  const today = new Date(colMs).toISOString().split("T")[0];
+  const from  = "2025-10-01";
+
+  const { data } = await supabase
+    .from("transactions")
+    .select("plan_name, amount, currency")
+    .gte("created_at", `${from}T00:00:00`)
+    .lte("created_at", `${today}T23:59:59`)
+    .eq("status", "active");
+
+  return Object.entries(PRODUCT_GROUPS).map(([product, planNames]) => {
+    const rows    = (data ?? []).filter((tx: any) => planNames.includes(tx.plan_name));
+    const revenue = rows.reduce((s: number, tx: any) => s + toUSD(Number(tx.amount), tx.currency), 0);
+    const sales   = rows.length;
+    return { product, revenue, sales, avgTicket: sales > 0 ? revenue / sales : 0 };
+  });
+}
+
 export function generateAlerts(
   summary: AnalyticsSummary,
   funnel: FunnelCampaign[],

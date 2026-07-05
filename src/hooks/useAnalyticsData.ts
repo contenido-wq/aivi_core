@@ -3,30 +3,31 @@ import {
   buildRange, previousRange,
   getAnalyticsSummary, getFunnelByCampaign, getVSLRetention,
   getAdsRanking, getHourlyHeatmap, getLTVBySource, generateAlerts,
-  getVSLMappings,
+  getVSLMappings, getProductRevenue,
 } from "../services/analytics";
 import type {
   PeriodKey, DateRange, AnalyticsSummary, FunnelCampaign, VSLData,
-  AdRankRow, HeatmapCell, LTVRow, Alert, VSLMapping,
+  AdRankRow, HeatmapCell, LTVRow, Alert, VSLMapping, ProductRevenueRow,
 } from "../services/analytics";
 
 export interface AnalyticsState {
-  summary:  AnalyticsSummary | null;
-  funnel:   FunnelCampaign[];
-  vsls:     VSLData[];
-  ranking:  AdRankRow[];
-  heatmap:  HeatmapCell[];
-  ltv:      LTVRow[];
-  alerts:   Alert[];
-  mappings: VSLMapping[];
-  loading:  boolean;
-  error:    string | null;
-  range:    DateRange | null;
+  summary:        AnalyticsSummary | null;
+  funnel:         FunnelCampaign[];
+  vsls:           VSLData[];
+  ranking:        AdRankRow[];
+  heatmap:        HeatmapCell[];
+  ltv:            LTVRow[];
+  alerts:         Alert[];
+  mappings:       VSLMapping[];
+  productRevenue: ProductRevenueRow[];
+  loading:        boolean;
+  error:          string | null;
+  range:          DateRange | null;
 }
 
 const EMPTY: AnalyticsState = {
   summary: null, funnel: [], vsls: [], ranking: [], heatmap: [],
-  ltv: [], alerts: [], mappings: [], loading: true, error: null, range: null,
+  ltv: [], alerts: [], mappings: [], productRevenue: [], loading: true, error: null, range: null,
 };
 
 export function useAnalyticsData() {
@@ -44,7 +45,7 @@ export function useAnalyticsData() {
       const r     = buildRange(period, custom);
       const rPrev = previousRange(r);
 
-      const [summary, summaryPrev, funnel, vsls, ranking, heatmap, ltv, mappings] = await Promise.all([
+      const [summary, summaryPrev, funnel, vsls, ranking, heatmap, ltv, mappings, productRevenue] = await Promise.all([
         getAnalyticsSummary(r),
         getAnalyticsSummary(rPrev),
         getFunnelByCampaign(r),
@@ -53,12 +54,13 @@ export function useAnalyticsData() {
         getHourlyHeatmap(r),
         getLTVBySource(r),
         getVSLMappings(),
+        getProductRevenue(),
       ]);
 
       const summaryWithPrev: AnalyticsSummary = { ...summary, prev: summaryPrev };
       const alerts = generateAlerts(summaryWithPrev, funnel, vsls);
 
-      setState({ summary: summaryWithPrev, funnel, vsls, ranking, heatmap, ltv, alerts, mappings, loading: false, error: null, range: r });
+      setState({ summary: summaryWithPrev, funnel, vsls, ranking, heatmap, ltv, alerts, mappings, productRevenue, loading: false, error: null, range: r });
       setSelectedVslId(prev => prev ?? (vsls[0]?.videoId ?? null));
     } catch (e) {
       setState(s => ({ ...s, loading: false, error: String(e) }));

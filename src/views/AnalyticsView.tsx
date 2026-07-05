@@ -9,6 +9,7 @@ import { VSLSelectorBar }             from "../components/analytics/VSLSelectorB
 import { VSLIntelligencePanel }       from "../components/analytics/VSLIntelligencePanel";
 import { HourlyHeatmap }              from "../components/analytics/HourlyHeatmap";
 import { LTVTable }                   from "../components/analytics/LTVTable";
+import { ProductRevenueTable }        from "../components/analytics/ProductRevenueTable";
 import { CampaignMappingModal }       from "../components/analytics/CampaignMappingModal";
 import { AIAnalyst }                  from "../components/analytics/AIAnalyst";
 import { DateRangePicker }            from "../components/analytics/DateRangePicker";
@@ -27,7 +28,7 @@ interface Props {
 
 export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings, onSignOut, activeView, isAdmin }: Props) {
   const {
-    summary, funnel, vsls, ranking, heatmap, ltv, alerts, mappings,
+    summary, funnel, vsls, ranking, heatmap, ltv, alerts, mappings, productRevenue,
     loading, error, period, setPeriod, refresh, aiResult, aiLoading, runAIAnalysis,
     selectedVslId, compareVslId, setSelectedVsl, setCompareVsl, range,
   } = useAnalyticsData();
@@ -220,6 +221,8 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
           <HourlyHeatmap cells={filteredHeatmap} />
 
           <LTVTable rows={filteredLtv} />
+
+          <ProductRevenueTable rows={productRevenue} />
 
           <AIAnalyst result={aiResult} loading={aiLoading} onAnalyze={runAIAnalysis} />
 
