@@ -213,7 +213,7 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
 
   const salesMap: Record<string, { count: number; revenue: number; hours: number[] }> = {};
   for (const tx of (txRes.data ?? [])) {
-    const k = tx.traffic_source ?? "Sin UTM";
+    const k = tx.traffic_source || "Sin UTM";
     if (!salesMap[k]) salesMap[k] = { count: 0, revenue: 0, hours: [] };
     salesMap[k].count++;
     salesMap[k].revenue += toUSD(Number(tx.amount), tx.currency);
@@ -383,7 +383,7 @@ export async function getHourlyHeatmap(r: DateRange): Promise<HeatmapCell[]> {
     const k = `${d.getHours()}-${d.getDay()}`;
     cells[k] = (cells[k] ?? 0) + 1;
 
-    const source = tx.traffic_source ?? "Sin UTM";
+    const source = tx.traffic_source || "Sin UTM";
     if (!bySources[k]) bySources[k] = {};
     bySources[k][source] = (bySources[k][source] ?? 0) + 1;
 
@@ -436,7 +436,7 @@ export async function getLTVBySource(r: DateRange): Promise<LTVRow[]> {
   const revenueMap: Record<string, number> = {};
   const customersMap: Record<string, Set<string>> = {};
   for (const tx of (txRes.data ?? [])) {
-    const k = tx.traffic_source ?? "Sin UTM";
+    const k = tx.traffic_source || "Sin UTM";
     revenueMap[k] = (revenueMap[k] ?? 0) + Number(tx.amount);
     if (!customersMap[k]) customersMap[k] = new Set();
     if (tx.buyer_email) customersMap[k].add(tx.buyer_email);
