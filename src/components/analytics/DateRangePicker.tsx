@@ -65,6 +65,7 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
     const { year, month } = parseYearMonth(initial.from);
     setViewYear(year);
     setViewMonth(month);
+    setCompare(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -129,6 +130,8 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
     background: C.bgSecondary, border: `1px solid ${C.border}`, borderRadius: 6,
     padding: "6px 8px", color: C.white, fontSize: 12, fontFamily: FONT, width: 118,
   };
+
+  const canUpdate = pendingKey !== "custom" || (!!pendingFrom && !!pendingTo);
 
   return (
     <div style={{ position: "relative" }}>
@@ -201,9 +204,10 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
                   background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8,
                   padding: "6px 16px", fontSize: 12, color: C.mutedLight, cursor: "pointer",
                 }}>Cancelar</button>
-                <button onClick={handleUpdate} style={{
+                <button onClick={handleUpdate} disabled={!canUpdate} style={{
                   background: C.orange, border: "none", borderRadius: 8,
-                  padding: "6px 16px", fontSize: 12, fontWeight: 600, color: C.white, cursor: "pointer",
+                  padding: "6px 16px", fontSize: 12, fontWeight: 600, color: C.white,
+                  cursor: canUpdate ? "pointer" : "not-allowed", opacity: canUpdate ? 1 : 0.5,
                 }}>Actualizar</button>
               </div>
             </div>
