@@ -54,7 +54,7 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
   );
 
   const filteredSummary = useMemo((): AnalyticsSummary | null => {
-    if (!selectedVslId || !summary || filteredFunnel.length === 0) return summary;
+    if (!selectedVslId || !summary) return summary;
     const investment = filteredFunnel.reduce((s, f) => s + f.investment, 0);
     const revenue    = filteredFunnel.reduce((s, f) => s + f.investment * f.roas, 0);
     const salesCount = filteredFunnel.reduce((s, f) => s + f.sales, 0);
