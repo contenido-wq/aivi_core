@@ -92,6 +92,7 @@ export interface FunnelCampaign {
   plays:        number;
   ctaClicks:    number;
   sales:        number;
+  revenue:      number;
   cac:          number;
   roi:          number;
   investment:   number;
@@ -269,7 +270,7 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
       campaignName, videoId: vsl?.videoId ?? null, videoName: vsl?.videoName ?? null,
       impressions: inv.impressions, clicks: inv.clicks,
       plays: vData?.plays ?? 0, ctaClicks: vData?.buttonClicks ?? 0,
-      sales: sales.count, cac, roi, investment: inv.investment, topHour, score,
+      sales: sales.count, revenue: sales.revenue, cac, roi, investment: inv.investment, topHour, score,
     };
   }).sort((a, b) => (a.cac || 999) - (b.cac || 999));
 }
