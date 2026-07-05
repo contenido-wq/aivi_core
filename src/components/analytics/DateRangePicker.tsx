@@ -45,6 +45,16 @@ function parseYearMonth(dateStr: string): { year: number; month: number } {
   return { year: y, month: m - 1 };
 }
 
+function useCompact(): boolean {
+  const [compact, setCompact] = useState(() => typeof window !== "undefined" && window.innerWidth < 900);
+  useEffect(() => {
+    const onResize = () => setCompact(window.innerWidth < 900);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return compact;
+}
+
 export function DateRangePicker({ period, range, onSelect }: Props) {
   const [open,        setOpen]        = useState(false);
   const [pendingKey,  setPendingKey]  = useState<PeriodKey>(period);
@@ -54,6 +64,7 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
   const [viewMonth,   setViewMonth]   = useState(() => todayYearMonth().month);
   const [selecting,   setSelecting]   = useState<"start" | "end">("start");
   const [compare,     setCompare]     = useState(false);
+  const compact = useCompact();
 
   useEffect(() => {
     if (!open) return;
@@ -156,16 +167,23 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
       </button>
 
       {open && (
-        <>
-          <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.95)" }} onClick={handleCancel} />
-          <div style={{
-            position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 100,
-            background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12,
-            padding: 16, width: 620, maxWidth: "calc(100vw - 252px)", overflowX: "auto",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-            display: "flex", gap: 20,
-          }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 140, flexShrink: 0 }}>
+        <div
+          style={{
+            position: "fixed", top: 0, right: 0, bottom: 0, left: 220, zIndex: 90, background: "rgba(0,0,0,0.95)",
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+          }}
+          onClick={handleCancel}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12,
+              padding: 16, width: compact ? 328 : 620, maxWidth: "calc(100vw - 252px)",
+              maxHeight: "calc(100vh - 32px)", overflowY: "auto",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+              display: "flex", flexDirection: compact ? "column" : "row", gap: compact ? 16 : 20,
+            }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: compact ? undefined : 140, flexShrink: 0 }}>
               {PRESETS.map(p => (
                 <label key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "5px 6px", borderRadius: 6 }}>
                   <input
@@ -186,11 +204,13 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
               </label>
             </div>
 
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 16, justifyContent: compact ? "center" : undefined }}>
                 <button onClick={handlePrevMonth} style={{ background: "transparent", border: "none", color: C.mutedLight, cursor: "pointer", fontSize: 16, marginTop: 4 }}>‹</button>
                 <MonthCalendar year={viewYear} month={viewMonth} rangeStart={pendingFrom || null} rangeEnd={pendingTo || null} onDayClick={handleDayClick} />
-                <MonthCalendar year={rightYearMonth.year} month={rightYearMonth.month} rangeStart={pendingFrom || null} rangeEnd={pendingTo || null} onDayClick={handleDayClick} />
+                {!compact && (
+                  <MonthCalendar year={rightYearMonth.year} month={rightYearMonth.month} rangeStart={pendingFrom || null} rangeEnd={pendingTo || null} onDayClick={handleDayClick} />
+                )}
                 <button onClick={handleNextMonth} style={{ background: "transparent", border: "none", color: C.mutedLight, cursor: "pointer", fontSize: 16, marginTop: 4 }}>›</button>
               </div>
 
@@ -212,10 +232,10 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
                 <span style={{ fontSize: 12, color: C.mutedLight }}>Comparar</span>
               </label>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <div style={{
                   background: C.bgSecondary, border: `1px solid ${C.border}`, borderRadius: 6,
-                  padding: "6px 10px", fontSize: 12, color: C.mutedLight, flex: 1,
+                  padding: "6px 10px", fontSize: 12, color: C.mutedLight, flex: 1, minWidth: 90,
                 }}>
                   {PRESET_LABEL[pendingKey]}
                 </div>
@@ -239,7 +259,7 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
