@@ -170,7 +170,7 @@ export function DateRangePicker({ period, range, onSelect }: Props) {
         <div
           style={{
             position: "fixed", top: 0, right: 0, bottom: 0, left: 220, zIndex: 90, background: "rgba(0,0,0,0.95)",
-            display: "flex", alignItems: "flex-start", justifyContent: "flex-start", padding: 24,
+            display: "flex", alignItems: "flex-start", justifyContent: "flex-end", padding: 24,
           }}
           onClick={handleCancel}
         >
