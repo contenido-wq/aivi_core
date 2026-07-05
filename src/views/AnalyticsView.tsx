@@ -71,6 +71,21 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
     };
   }, [selectedVslId, filteredFunnel, summary]);
 
+  const filteredLtv = useMemo(
+    () => selectedVslId ? ltv.filter(l => l.videoId === selectedVslId) : ltv,
+    [ltv, selectedVslId],
+  );
+
+  const filteredHeatmap = useMemo(() => {
+    if (!selectedVslId) return heatmap;
+    return heatmap
+      .map(c => {
+        const match = c.byVideo.find(v => v.videoId === selectedVslId);
+        return { ...c, value: match?.value ?? 0, bySource: match?.bySource ?? [] };
+      })
+      .filter(c => c.value > 0);
+  }, [heatmap, selectedVslId]);
+
   return (
     <div style={{ display: "flex", height: "100vh", background: C.bg, fontFamily: FONT, color: C.white, overflow: "hidden" }}>
       <Sidebar
@@ -202,9 +217,9 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
             </section>
           )}
 
-          <HourlyHeatmap cells={heatmap} />
+          <HourlyHeatmap cells={filteredHeatmap} />
 
-          <LTVTable rows={ltv} />
+          <LTVTable rows={filteredLtv} />
 
           <AIAnalyst result={aiResult} loading={aiLoading} onAnalyze={runAIAnalysis} />
 

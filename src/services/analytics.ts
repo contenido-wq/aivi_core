@@ -146,10 +146,12 @@ export interface HeatmapCell {
   dow:      number;
   value:    number;
   bySource: { source: string; count: number }[];
+  byVideo:  { videoId: string | null; value: number; bySource: { source: string; count: number }[] }[];
 }
 
 export interface LTVRow {
   campaignName: string;
+  videoId:      string | null;
   customers:    number;
   ltv:          number;
   totalRevenue: number;
@@ -357,16 +359,26 @@ export async function getAdsRanking(r: DateRange): Promise<AdRankRow[]> {
 }
 
 export async function getHourlyHeatmap(r: DateRange): Promise<HeatmapCell[]> {
-  const { data } = await supabase
-    .from("transactions")
-    .select("created_at, traffic_source")
-    .gte("created_at", r.fromTs).lte("created_at", r.toTs)
-    .eq("status", "active");
+  const [txRes, mappingRes] = await Promise.all([
+    supabase
+      .from("transactions")
+      .select("created_at, traffic_source")
+      .gte("created_at", r.fromTs).lte("created_at", r.toTs)
+      .eq("status", "active"),
+    supabase.from("campaign_vsl_mapping").select("campaign_name, video_id"),
+  ]);
 
-  const cells:     Record<string, number> = {};
-  const bySources: Record<string, Record<string, number>> = {};
+  const videoByCampaign: Record<string, string> = {};
+  for (const m of (mappingRes.data ?? [])) videoByCampaign[m.campaign_name] = m.video_id;
 
-  for (const tx of (data ?? [])) {
+  const cells:         Record<string, number> = {};
+  const bySources:     Record<string, Record<string, number>> = {};
+  const byVideoCount:  Record<string, Record<string, number>> = {};
+  const byVideoSource: Record<string, Record<string, Record<string, number>>> = {};
+
+  const NO_VSL = "__sin_vsl__";
+
+  for (const tx of (txRes.data ?? [])) {
     const d = new Date(tx.created_at);
     const k = `${d.getHours()}-${d.getDay()}`;
     cells[k] = (cells[k] ?? 0) + 1;
@@ -374,6 +386,13 @@ export async function getHourlyHeatmap(r: DateRange): Promise<HeatmapCell[]> {
     const source = tx.traffic_source ?? "Sin UTM";
     if (!bySources[k]) bySources[k] = {};
     bySources[k][source] = (bySources[k][source] ?? 0) + 1;
+
+    const videoKey = videoByCampaign[tx.traffic_source] ?? NO_VSL;
+    if (!byVideoCount[k]) byVideoCount[k] = {};
+    byVideoCount[k][videoKey] = (byVideoCount[k][videoKey] ?? 0) + 1;
+    if (!byVideoSource[k]) byVideoSource[k] = {};
+    if (!byVideoSource[k][videoKey]) byVideoSource[k][videoKey] = {};
+    byVideoSource[k][videoKey][source] = (byVideoSource[k][videoKey][source] ?? 0) + 1;
   }
 
   return Object.entries(cells).map(([k, value]) => {
@@ -381,15 +400,33 @@ export async function getHourlyHeatmap(r: DateRange): Promise<HeatmapCell[]> {
     const bySource = Object.entries(bySources[k] ?? {})
       .map(([source, count]) => ({ source, count }))
       .sort((a, b) => b.count - a.count);
-    return { hour, dow, value, bySource };
+    const byVideo = Object.entries(byVideoCount[k] ?? {}).map(([videoKey, count]) => ({
+      videoId: videoKey === NO_VSL ? null : videoKey,
+      value:   count,
+      bySource: Object.entries(byVideoSource[k]?.[videoKey] ?? {})
+        .map(([source, c]) => ({ source, count: c }))
+        .sort((a, b) => b.count - a.count),
+    }));
+    return { hour, dow, value, bySource, byVideo };
   });
 }
 
-export async function getLTVBySource(): Promise<LTVRow[]> {
-  const [txRes, campRes] = await Promise.all([
-    supabase.from("transactions").select("traffic_source, amount, buyer_email, event_type"),
-    supabase.from("campaign_investment_data").select("campaign_name, investment"),
+export async function getLTVBySource(r: DateRange): Promise<LTVRow[]> {
+  const [txRes, campRes, mappingRes] = await Promise.all([
+    supabase
+      .from("transactions")
+      .select("traffic_source, amount, buyer_email, event_type")
+      .gte("created_at", r.fromTs).lte("created_at", r.toTs)
+      .eq("status", "active"),
+    supabase
+      .from("campaign_investment_data")
+      .select("campaign_name, investment")
+      .gte("date", r.from).lte("date", r.to),
+    supabase.from("campaign_vsl_mapping").select("campaign_name, video_id"),
   ]);
+
+  const videoByCampaign: Record<string, string> = {};
+  for (const m of (mappingRes.data ?? [])) videoByCampaign[m.campaign_name] = m.video_id;
 
   const invMap: Record<string, number> = {};
   for (const row of (campRes.data ?? [])) {
@@ -398,7 +435,7 @@ export async function getLTVBySource(): Promise<LTVRow[]> {
 
   const revenueMap: Record<string, number> = {};
   const customersMap: Record<string, Set<string>> = {};
-  for (const tx of (txRes.data ?? []).filter((t: any) => t.status === "active")) {
+  for (const tx of (txRes.data ?? [])) {
     const k = tx.traffic_source ?? "Sin UTM";
     revenueMap[k] = (revenueMap[k] ?? 0) + Number(tx.amount);
     if (!customersMap[k]) customersMap[k] = new Set();
@@ -411,7 +448,8 @@ export async function getLTVBySource(): Promise<LTVRow[]> {
     const ltv          = customers > 0 ? totalRevenue / customers : 0;
     const cac          = invMap[campaignName] ?? 0;
     const roiReal      = cac > 0 ? ltv / cac : 0;
-    return { campaignName, customers, ltv, totalRevenue, cac, roiReal };
+    const videoId      = videoByCampaign[campaignName] ?? null;
+    return { campaignName, videoId, customers, ltv, totalRevenue, cac, roiReal };
   }).sort((a, b) => b.roiReal - a.roiReal);
 }
 

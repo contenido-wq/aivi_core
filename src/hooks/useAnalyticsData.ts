@@ -51,7 +51,7 @@ export function useAnalyticsData() {
         getVSLRetention(r),
         getAdsRanking(r),
         getHourlyHeatmap(r),
-        getLTVBySource(),
+        getLTVBySource(r),
         getVSLMappings(),
       ]);
 
