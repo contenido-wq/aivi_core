@@ -13,17 +13,53 @@ function toColombiaDate(d: Date): string {
   return local.toISOString().split("T")[0];
 }
 
-// Meta/Utmify concatena campaña|adset|ad|placement en purchase.tracking.external_code
-// separados por este token fijo (confirmado contra ~3000 transacciones históricas).
-// Cada segmento de campaña/adset/ad termina en "|<id numérico>" que hay que descartar
-// para que el nombre coincida exactamente con campaign_investment_data.campaign_name.
+// Meta/Utmify concatena {prefijo}|campaña|adset|ad|placement en
+// purchase.tracking.external_code, separados por este token fijo (confirmado
+// contra transacciones reales — ver docs/superpowers/specs/2026-07-06-ad-level-attribution-metrics-design.md).
+// Cada segmento de campaña/adset/ad termina en "|<id numérico>" que hay que
+// separar del nombre; placement no tiene id.
 const EXTERNAL_CODE_DELIMITER = "hQwK21wXxR";
 
-function extractCampaignFromExternalCode(externalCode: string | undefined | null): string | null {
-  if (!externalCode || !externalCode.includes(EXTERNAL_CODE_DELIMITER)) return null;
+interface TrackingSegments {
+  campaignName: string | null;
+  campaignId:   string | null;
+  adsetName:    string | null;
+  adsetId:      string | null;
+  adName:       string | null;
+  adId:         string | null;
+  placement:    string | null;
+}
+
+function splitNameAndId(segment: string | undefined): { name: string | null; id: string | null } {
+  if (!segment) return { name: null, id: null };
+  const match = segment.match(/^(.*)\|(\d+)$/);
+  if (match) {
+    const name = match[1].trim();
+    return { name: name || null, id: match[2] };
+  }
+  const trimmed = segment.trim();
+  return { name: trimmed || null, id: null };
+}
+
+function extractTrackingSegments(externalCode: string | undefined | null): TrackingSegments {
+  const empty: TrackingSegments = {
+    campaignName: null, campaignId: null,
+    adsetName: null, adsetId: null,
+    adName: null, adId: null,
+    placement: null,
+  };
+  if (!externalCode || !externalCode.includes(EXTERNAL_CODE_DELIMITER)) return empty;
   const parts = externalCode.split(EXTERNAL_CODE_DELIMITER);
-  const raw = (parts[1] ?? "").replace(/\|\d+$/, "").trim();
-  return raw || null;
+  const campaign  = splitNameAndId(parts[1]);
+  const adset     = splitNameAndId(parts[2]);
+  const ad        = splitNameAndId(parts[3]);
+  const placement = (parts[4] ?? "").trim() || null;
+  return {
+    campaignName: campaign.name, campaignId: campaign.id,
+    adsetName:    adset.name,    adsetId:    adset.id,
+    adName:       ad.name,       adId:       ad.id,
+    placement,
+  };
 }
 
 const HOTMART_AUTH_URL = "https://api-sec-vlc.hotmart.com/security/oauth/token";
@@ -137,7 +173,8 @@ async function runSync(startDate: string, endDate: string): Promise<Response> {
         const offer_code      = purchase.offer?.code ?? "";
         const tracking        = purchase.tracking;
         const sale_origin     = tracking?.source_sck ?? tracking?.source ?? "";
-        const traffic_source  = extractCampaignFromExternalCode(tracking?.external_code) ?? tracking?.source_sck ?? "";
+        const segments        = extractTrackingSegments(tracking?.external_code);
+        const traffic_source  = segments.campaignName ?? tracking?.source_sck ?? "";
         const plan_name       = OFFER_NAMES[offer_code] ?? product.name ?? "AIVI";
         const amount          = Number(purchase.price?.value ?? 0);
         const currency        = purchase.price?.currency_code ?? "USD";
@@ -176,6 +213,11 @@ async function runSync(startDate: string, endDate: string): Promise<Response> {
           offer_code,
           sale_origin,
           traffic_source,
+          ad_id:      segments.adId,
+          ad_name:    segments.adName,
+          adset_id:   segments.adsetId,
+          adset_name: segments.adsetName,
+          placement:  segments.placement,
           plan_name,
           amount,
           currency,
