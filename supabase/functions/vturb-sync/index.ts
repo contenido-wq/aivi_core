@@ -42,12 +42,13 @@ async function vturb(apiKey: string, path: string, body?: unknown): Promise<unkn
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-interface VTurbPlayer { id: string; name: string; duration: number }
+interface VTurbPlayer { id: string; name: string; duration: number; pitch_time?: number | null }
 
 interface EventsByPlayer {
-  player_id: string;
-  event:     string;
-  total:     number;
+  player_id:            string;
+  event:                string;
+  total:                number;
+  total_uniq_sessions?: number;
 }
 
 interface ClicksByDay {
@@ -86,11 +87,12 @@ async function syncAnalytics(
     }) as EventsByPlayer[];
 
     // Agrupar por player_id
-    const byPlayer: Record<string, { plays: number; views: number }> = {};
+    const byPlayer: Record<string, { plays: number; views: number; uniquePlays: number; uniqueViews: number }> = {};
     for (const e of (events ?? [])) {
-      if (!byPlayer[e.player_id]) byPlayer[e.player_id] = { plays: 0, views: 0 };
-      if (e.event === "started") byPlayer[e.player_id].plays += e.total;
-      if (e.event === "viewed")  byPlayer[e.player_id].views += e.total;
+      if (!byPlayer[e.player_id]) byPlayer[e.player_id] = { plays: 0, views: 0, uniquePlays: 0, uniqueViews: 0 };
+      const uniq = e.total_uniq_sessions ?? 0;
+      if (e.event === "started") { byPlayer[e.player_id].plays += e.total; byPlayer[e.player_id].uniquePlays += uniq; }
+      if (e.event === "viewed")  { byPlayer[e.player_id].views += e.total; byPlayer[e.player_id].uniqueViews += uniq; }
     }
 
     const activeIds = Object.keys(byPlayer);
@@ -110,33 +112,44 @@ async function syncAnalytics(
       } catch { clicksByPlayer[pid] = 0; }
     }));
 
-    for (const [pid, { plays, views }] of Object.entries(byPlayer)) {
+    for (const [pid, { plays, views, uniquePlays, uniqueViews }] of Object.entries(byPlayer)) {
       allRows.push({
         video_id:      pid,
         video_name:    null,
         date:          day,
         plays,
         views,
+        unique_plays:  uniquePlays,
+        unique_views:  uniqueViews,
         play_rate:     views > 0 ? Math.round((plays / views) * 10000) / 100 : null,
         avg_watch_time: null,
         button_clicks: clicksByPlayer[pid] ?? 0,
+        pitch_second:  null,
       });
     }
   }
 
   if (allRows.length === 0) { console.log(`VTurb analytics: sin datos ${from}→${to}`); return; }
 
-  // Enriquecer video_name desde la lista de players
+  // Enriquecer video_name y pitch_second desde la lista de players.
+  // pitch_time llega en 0 para la mayoría de players sin pitch configurado en
+  // VTurb (verificado contra la respuesta real de /players/list) — se trata
+  // igual que "sin configurar", no como un pitch real en el segundo 0.
   try {
     const players = await vturb(apiKey, "/players/list") as VTurbPlayer[];
-    const nameMap: Record<string, string> = {};
-    for (const p of players) nameMap[p.id] = p.name;
+    const nameMap:  Record<string, string> = {};
+    const pitchMap: Record<string, number | null> = {};
+    for (const p of players) {
+      nameMap[p.id]  = p.name;
+      pitchMap[p.id] = p.pitch_time && p.pitch_time > 0 ? p.pitch_time : null;
+    }
     for (const r of allRows) {
       if (r.video_name === null && nameMap[r.video_id as string]) {
         r.video_name = nameMap[r.video_id as string];
       }
+      r.pitch_second = pitchMap[r.video_id as string] ?? null;
     }
-  } catch { /* continuar sin nombres */ }
+  } catch { /* continuar sin nombres ni pitch_second */ }
 
   const { error } = await supabase
     .from("vturb_analytics")
@@ -342,6 +355,21 @@ if (typeof Deno.cron === "function") {
 
 serve(async (req) => {
   const params = new URL(req.url).searchParams;
+
+  if (params.has("debug")) {
+    const apiKey  = Deno.env.get("VTURB_API_KEY")!;
+    const today   = toColombiaDate(new Date());
+    const startDt = `${today} 00:00:00`;
+    const endDt   = `${today} 23:59:59`;
+    const events = await vturb(apiKey, "/events/total_by_company_players", {
+      start_date: startDt, end_date: endDt, events: ["started", "viewed"],
+    });
+    const players = await vturb(apiKey, "/players/list");
+    return new Response(JSON.stringify({ events, players }, null, 2), {
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   const from = params.get("from") ?? undefined;
   const to   = params.get("to")   ?? undefined;
   return runSync(from, to);
