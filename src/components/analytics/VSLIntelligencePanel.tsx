@@ -5,6 +5,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell,
 } from "recharts";
 import { C, FONT } from "../../tokens";
+import { InfoTooltip } from "./InfoTooltip";
 import type { VSLData, DateRange, DimensionRow, AdRankRow, AdAction } from "../../services/analytics";
 import {
   getVSLByCountry, getVSLByDevice, getVSLByOS,
@@ -199,9 +200,16 @@ function AdSourceView({ rows, cacTarget, ticketMin }: { rows: AdRankRow[]; cacTa
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
         <thead>
           <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-            {["Campaña", "Inv.", "Ventas", "CAC", "ROI", "Score", "Acción"].map(h => (
+            {[
+              { h: "Campaña" }, { h: "Inv." }, { h: "Ventas" },
+              { h: "CAC",    help: "Inversión ÷ Ventas de esta campaña. Más bajo es mejor." },
+              { h: "ROI",    help: "(Ingresos − Inversión) ÷ Inversión de esta campaña. 1.0x = recuperaste el doble de lo invertido." },
+              { h: "Score",  help: "Combina el ROI relativo (50%) y la conversión ventas/plays (50%) en un puntaje de 0 a 100 para comparar campañas de un vistazo." },
+              { h: "Acción", help: "ESCALAR: cumple el CAC objetivo, ROI ≥ 1x y el ticket mínimo — sube presupuesto. PAUSAR: CAC muy por encima del objetivo o ROI negativo. MONITOREAR: aún no cumple ninguno de los dos criterios." },
+            ].map(({ h, help }) => (
               <th key={h} style={{ padding: "6px 8px", color: C.mutedMid, fontWeight: 500, textAlign: "left", whiteSpace: "nowrap" }}>
                 {h}
+                {help && <InfoTooltip text={help} />}
               </th>
             ))}
           </tr>

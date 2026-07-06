@@ -1,7 +1,17 @@
 import { C } from "../../tokens";
+import { InfoTooltip } from "./InfoTooltip";
 import type { LTVRow } from "../../services/analytics";
 
 interface Props { rows: LTVRow[] }
+
+const HEADERS: { h: string; help?: string }[] = [
+  { h: "Campaña" },
+  { h: "Clientes", help: "Compradores distintos (por email) atribuidos a esta fuente en el período." },
+  { h: "LTV Prom.", help: "Ingresos totales ÷ Clientes — cuánto genera en promedio cada cliente de esta fuente." },
+  { h: "Ingresos Totales" },
+  { h: "CAC", help: "Inversión de la campaña ÷ Clientes distintos (no ÷ ventas, como en el resto del dashboard) — para que sea comparable directamente con el LTV Promedio." },
+  { h: "ROI Real", help: "LTV Promedio ÷ CAC. Un valor de 5x significa que cada cliente deja, en promedio, 5 veces lo que costó adquirirlo." },
+];
 
 export function LTVTable({ rows }: Props) {
   return (
@@ -13,8 +23,11 @@ export function LTVTable({ rows }: Props) {
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
         <thead>
           <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-            {["Campaña","Clientes","LTV Prom.","Ingresos Totales","CAC","ROI Real"].map(h => (
-              <th key={h} style={{ padding: "6px 10px", color: C.mutedMid, fontWeight: 500, textAlign: "left" }}>{h}</th>
+            {HEADERS.map(({ h, help }) => (
+              <th key={h} style={{ padding: "6px 10px", color: C.mutedMid, fontWeight: 500, textAlign: "left" }}>
+                {h}
+                {help && <InfoTooltip text={help} />}
+              </th>
             ))}
           </tr>
         </thead>

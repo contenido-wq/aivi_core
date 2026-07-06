@@ -455,7 +455,8 @@ export async function getLTVBySource(r: DateRange): Promise<LTVRow[]> {
     const totalRevenue = revenueMap[campaignName] ?? 0;
     const customers    = customersMap[campaignName]?.size ?? 0;
     const ltv          = customers > 0 ? totalRevenue / customers : 0;
-    const cac          = invMap[campaignName] ?? 0;
+    const investment   = invMap[campaignName] ?? 0;
+    const cac          = customers > 0 ? investment / customers : 0;
     const roiReal      = cac > 0 ? ltv / cac : 0;
     const videoId      = videoByCampaign[campaignName] ?? defaultVideoId;
     return { campaignName, videoId, customers, ltv, totalRevenue, cac, roiReal };

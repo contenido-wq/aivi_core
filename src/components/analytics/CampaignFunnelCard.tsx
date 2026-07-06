@@ -1,4 +1,5 @@
 import { C } from "../../tokens";
+import { InfoTooltip } from "./InfoTooltip";
 import type { FunnelCampaign } from "../../services/analytics";
 
 function pct(a: number, b: number) { return b > 0 ? `${((a / b) * 100).toFixed(1)}%` : "—"; }
@@ -24,10 +25,14 @@ export function CampaignFunnelCard({ campaign: c }: Props) {
           <div style={{ fontSize: 11, color: C.mutedMid }}>{c.videoName ?? "Sin VSL asignado"}</div>
         </div>
         <span style={{
+          display: "inline-flex", alignItems: "center",
           background: `${scoreColor(c.score)}20`, color: scoreColor(c.score),
           border: `1px solid ${scoreColor(c.score)}`, borderRadius: 20,
           fontSize: 11, fontWeight: 700, padding: "2px 10px",
-        }}>Score {c.score}</span>
+        }}>
+          Score {c.score}
+          <InfoTooltip text="Combina el ROI relativo (50%) y la conversión ventas/plays (50%) en un puntaje de 0 a 100 para comparar campañas de un vistazo." align="right" />
+        </span>
       </div>
 
       <div style={{ display: "flex", gap: 4, alignItems: "flex-end", marginBottom: 16 }}>

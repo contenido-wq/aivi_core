@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { C } from "../../tokens";
+import { InfoTooltip } from "./InfoTooltip";
 import type { HeatmapCell } from "../../services/analytics";
 
 const DAYS  = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -37,7 +38,10 @@ export function HourlyHeatmap({ cells }: Props) {
     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 20 }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: C.white }}>Conversiones por Hora y Día</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: C.white }}>
+          Conversiones por Hora y Día
+          <InfoTooltip text="Cada celda es una hora del día × día de la semana — mientras más intenso el color, más ventas ocurrieron en ese cruce. Haz clic en una celda para ver de qué fuente vinieron." />
+        </div>
         <div style={{ fontSize: 12, color: C.mutedMid }}>
           {totalConversions} conversiones totales
         </div>

@@ -1,4 +1,5 @@
 import { C } from "../../tokens";
+import { InfoTooltip } from "./InfoTooltip";
 import type { ProductRevenueRow } from "../../services/analytics";
 
 interface Props { rows: ProductRevenueRow[] }
@@ -6,7 +7,10 @@ interface Props { rows: ProductRevenueRow[] }
 export function ProductRevenueTable({ rows }: Props) {
   return (
     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 20 }}>
-      <div style={{ fontSize: 14, fontWeight: 600, color: C.white, marginBottom: 4 }}>Ingresos por Producto</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: C.white, marginBottom: 4 }}>
+        Ingresos por Producto
+        <InfoTooltip text="Agrupa las ventas de Hotmart por producto según su plan_name. El rango de fechas es fijo (1 oct 2025 - hoy) y no cambia con el selector de fechas de arriba." />
+      </div>
       <div style={{ fontSize: 12, color: C.mutedMid, marginBottom: 16 }}>
         AIVI, Contenido que Vende con IA y MV3 — 1 oct 2025 hasta hoy
       </div>

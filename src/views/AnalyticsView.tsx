@@ -13,6 +13,7 @@ import { ProductRevenueTable }        from "../components/analytics/ProductReven
 import { CampaignMappingModal }       from "../components/analytics/CampaignMappingModal";
 import { AIAnalyst }                  from "../components/analytics/AIAnalyst";
 import { DateRangePicker }            from "../components/analytics/DateRangePicker";
+import { InfoTooltip }                from "../components/analytics/InfoTooltip";
 import type { AppView }               from "../types";
 import type { AnalyticsSummary } from "../services/analytics";
 
@@ -202,6 +203,7 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
             <section>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.white, marginBottom: 12 }}>
                 Funnels por Campaña
+                <InfoTooltip text="Cada tarjeta muestra el recorrido Impresiones → Clics → Plays del VSL → Clics en CTA → Compras para una campaña, con el % de conversión entre cada paso." />
                 {selectedVslId && selectedVsl && (
                   <span style={{ fontSize: 11, color: C.mutedMid, fontWeight: 400, marginLeft: 8 }}>
                     · {selectedVsl.videoName}
