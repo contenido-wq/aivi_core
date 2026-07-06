@@ -43,7 +43,6 @@ id            uuid primary key
 ad_id         text not null
 ad_name       text
 campaign_id   text
-campaign_name text
 date          date not null
 platform      text default 'facebook'
 investment    numeric(10,2) default 0
@@ -52,6 +51,8 @@ clicks        integer default 0
 synced_at     timestamptz default now()
 unique(ad_id, date, platform)
 ```
+
+**Nota (verificado contra la respuesta real de `utmify-sync?debug-campaigns`):** el objeto que devuelve `get_meta_ad_objects` no tiene un campo `campaignName` — solo `campaignId`/`adsetId`/`adId` (los que no aplican al nivel pedido llegan en `null`) y un `name` contextual al nivel solicitado. Por eso `ad_investment_data` no guarda `campaign_name` directamente; se resuelve en la capa de servicio (`analytics.ts`) uniendo por `campaign_id` contra `campaign_investment_data` (que sí tiene `campaign_id` + `campaign_name` desde `syncCampaigns()`).
 
 ### Nueva tabla: `ad_vsl_mapping`
 
