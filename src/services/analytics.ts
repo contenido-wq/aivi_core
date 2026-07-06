@@ -102,17 +102,22 @@ export interface FunnelCampaign {
 
 export interface VSLRetentionPoint { second: number; percentage: number }
 export interface VSLData {
-  videoId:    string;
-  videoName:  string;
-  plays:      number;
-  ret25:      number;
-  ret50:      number;
-  ret75:      number;
-  ctaClicks:  number;
-  sales:      number;
-  convRate:   number;
-  retention:  VSLRetentionPoint[];
-  dropSecond: number | null;
+  videoId:       string;
+  videoName:     string;
+  plays:         number;
+  ret25:         number;
+  ret50:         number;
+  ret75:         number;
+  ctaClicks:     number;
+  sales:         number;
+  convRate:      number;
+  retention:     VSLRetentionPoint[];
+  dropSecond:    number | null;
+  views:         number;
+  uniqueViews:   number;
+  uniquePlays:   number;
+  engagement:    number;
+  pitchAudience: number | null;
 }
 
 export interface AdRankRow {
@@ -134,7 +139,9 @@ export interface AdRankRow {
 
 export type AdAction = "ESCALAR" | "PAUSAR" | "MONITOREAR";
 
-export function classifyAd(r: AdRankRow, cacTarget: number, ticketMin: number): AdAction {
+export interface ScoreableRow { sales: number; cac: number; roi: number; investment: number }
+
+export function classifyAd(r: ScoreableRow, cacTarget: number, ticketMin: number): AdAction {
   const avgTicket = r.sales > 0 && r.investment > 0 ? (r.investment * (1 + r.roi)) / r.sales : 0;
   const ticketOk  = ticketMin === 0 || avgTicket >= ticketMin;
   if (r.sales >= 1 && r.cac > 0 && r.cac <= cacTarget && r.roi >= 1.0 && ticketOk) return "ESCALAR";
@@ -171,6 +178,37 @@ export interface VSLMapping { campaignName: string; videoId: string; videoName: 
 // explícitamente, en vez de perderse como "Sin VSL asignado".
 export const DEFAULT_VSL_CAMPAIGN = "__default__";
 
+// ── Score compartido (campaña y anuncio) ────────────────────────────────────────
+
+const SCORE_WEIGHTS = { roi: 0.30, convRate: 0.20, pitchAudience: 0.30, engagement: 0.20 } as const;
+
+function computeScore(
+  input: { roi: number; convRate: number; pitchAudience: number | null; engagement: number },
+  maxRoi: number,
+  maxConvRate: number,
+): number {
+  const roiNorm      = maxRoi > 0 ? Math.min(Math.max(input.roi / maxRoi, 0), 1) : 0;
+  const convRateNorm = maxConvRate > 0 ? Math.min(Math.max(input.convRate / maxConvRate, 0), 1) : 0;
+  const pitchNorm       = Math.min(Math.max((input.pitchAudience ?? 0) / 100, 0), 1);
+  const engagementNorm  = Math.min(Math.max(input.engagement / 100, 0), 1);
+  return Math.round((
+    roiNorm * SCORE_WEIGHTS.roi +
+    convRateNorm * SCORE_WEIGHTS.convRate +
+    pitchNorm * SCORE_WEIGHTS.pitchAudience +
+    engagementNorm * SCORE_WEIGHTS.engagement
+  ) * 100);
+}
+
+function averageRetention(points: VSLRetentionPoint[]): number {
+  return points.length > 0 ? points.reduce((s, p) => s + p.percentage, 0) / points.length : 0;
+}
+
+function retentionAt(points: VSLRetentionPoint[], second: number): number {
+  if (points.length === 0) return 0;
+  const pt = points.find(p => p.second >= second) ?? points[points.length - 1];
+  return pt.percentage;
+}
+
 // ── Funciones ─────────────────────────────────────────────────────────────────
 
 export async function getAnalyticsSummary(r: DateRange): Promise<AnalyticsSummary> {
@@ -199,12 +237,13 @@ export async function getAnalyticsSummary(r: DateRange): Promise<AnalyticsSummar
 }
 
 export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[]> {
-  const [campRes, txRes, mappingRes, analyticsRes] = await Promise.all([
+  const [campRes, txRes, mappingRes, analyticsRes, retentionRes] = await Promise.all([
     supabase.from("campaign_investment_data").select("campaign_name, investment, impressions, clicks").gte("date", r.from).lte("date", r.to),
     // traffic_source es el campo donde Hotmart guarda el UTM (src/sck)
     supabase.from("transactions").select("traffic_source, amount, currency, created_at").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("status", "active"),
     supabase.from("campaign_vsl_mapping").select("*"),
-    supabase.from("vturb_analytics").select("video_id, plays, button_clicks").gte("date", r.from).lte("date", r.to),
+    supabase.from("vturb_analytics").select("video_id, plays, button_clicks, pitch_second").gte("date", r.from).lte("date", r.to),
+    supabase.from("vturb_retention").select("video_id, second, percentage").gte("date", r.from).lte("date", r.to),
   ]);
 
   const invMap: Record<string, { investment: number; impressions: number; clicks: number }> = {};
@@ -231,13 +270,21 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
   }
   const defaultVsl = mappingMap[DEFAULT_VSL_CAMPAIGN] ?? null;
 
-  const vturlMap: Record<string, { plays: number; buttonClicks: number }> = {};
+  const vturlMap: Record<string, { plays: number; buttonClicks: number; pitchSecond: number | null }> = {};
   for (const row of (analyticsRes.data ?? [])) {
     const k = row.video_id;
-    if (!vturlMap[k]) vturlMap[k] = { plays: 0, buttonClicks: 0 };
+    if (!vturlMap[k]) vturlMap[k] = { plays: 0, buttonClicks: 0, pitchSecond: null };
     vturlMap[k].plays        += Number(row.plays);
     vturlMap[k].buttonClicks += Number(row.button_clicks);
+    if (row.pitch_second != null) vturlMap[k].pitchSecond = Number(row.pitch_second);
   }
+
+  const retByVideo: Record<string, VSLRetentionPoint[]> = {};
+  for (const row of (retentionRes.data ?? [])) {
+    if (!retByVideo[row.video_id]) retByVideo[row.video_id] = [];
+    retByVideo[row.video_id].push({ second: Number(row.second), percentage: Number(row.percentage) });
+  }
+  for (const points of Object.values(retByVideo)) points.sort((a, b) => a.second - b.second);
 
   const allCampaigns = new Set([...Object.keys(invMap), ...Object.keys(salesMap)]);
 
@@ -246,12 +293,19 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
     const rev = salesMap[c]?.revenue ?? 0;
     return inv > 0 ? (rev - inv) / inv : 0;
   }));
+  const maxConvRate = Math.max(0.0001, ...[...allCampaigns].map(c => {
+    const vsl   = mappingMap[c] ?? defaultVsl;
+    const vData = vsl ? vturlMap[vsl.videoId] : null;
+    const sales = salesMap[c]?.count ?? 0;
+    return vData && vData.plays > 0 ? sales / vData.plays : 0;
+  }));
 
   return [...allCampaigns].map(campaignName => {
     const inv   = invMap[campaignName]  ?? { investment: 0, impressions: 0, clicks: 0 };
     const sales = salesMap[campaignName] ?? { count: 0, revenue: 0, hours: [] };
     const vsl   = mappingMap[campaignName] ?? defaultVsl;
-    const vData = vsl ? (vturlMap[vsl.videoId] ?? { plays: 0, buttonClicks: 0 }) : null;
+    const vData = vsl ? (vturlMap[vsl.videoId] ?? { plays: 0, buttonClicks: 0, pitchSecond: null }) : null;
+    const retention = vsl ? (retByVideo[vsl.videoId] ?? []) : [];
 
     const cac  = sales.count > 0 ? inv.investment / sales.count : 0;
     const roi  = inv.investment > 0 ? (sales.revenue - inv.investment) / inv.investment : 0;
@@ -262,9 +316,10 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
       ? Number(Object.entries(hourCount).sort((a, b) => b[1] - a[1])[0][0])
       : null;
 
-    const roiNorm   = maxRoi > 0 ? Math.min(Math.max(roi / maxRoi, 0), 1) : 0;
-    const convRate  = vData && vData.plays > 0 ? sales.count / vData.plays : 0;
-    const score     = Math.round((roiNorm * 0.50 + Math.min(convRate * 10, 1) * 0.50) * 100);
+    const convRate     = vData && vData.plays > 0 ? sales.count / vData.plays : 0;
+    const engagement   = averageRetention(retention);
+    const pitchAudience = vData?.pitchSecond != null ? retentionAt(retention, vData.pitchSecond) : null;
+    const score = computeScore({ roi, convRate, pitchAudience, engagement }, maxRoi, maxConvRate);
 
     return {
       campaignName, videoId: vsl?.videoId ?? null, videoName: vsl?.videoName ?? null,
@@ -277,7 +332,7 @@ export async function getFunnelByCampaign(r: DateRange): Promise<FunnelCampaign[
 
 export async function getVSLRetention(r: DateRange): Promise<VSLData[]> {
   const [analyticsRes, retentionRes, txRes, mappingRes] = await Promise.all([
-    supabase.from("vturb_analytics").select("video_id, video_name, plays, button_clicks").gte("date", r.from).lte("date", r.to),
+    supabase.from("vturb_analytics").select("video_id, video_name, plays, views, unique_views, unique_plays, button_clicks, pitch_second").gte("date", r.from).lte("date", r.to),
     supabase.from("vturb_retention").select("video_id, second, percentage").gte("date", r.from).lte("date", r.to).order("second", { ascending: true }),
     supabase.from("transactions").select("traffic_source").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("status", "active"),
     supabase.from("campaign_vsl_mapping").select("*"),
@@ -292,12 +347,16 @@ export async function getVSLRetention(r: DateRange): Promise<VSLData[]> {
     if (vid) videoSales[vid] = (videoSales[vid] ?? 0) + 1;
   }
 
-  const analyticsMap: Record<string, { videoName: string; plays: number; ctaClicks: number }> = {};
+  const analyticsMap: Record<string, { videoName: string; plays: number; views: number; uniqueViews: number; uniquePlays: number; ctaClicks: number; pitchSecond: number | null }> = {};
   for (const row of (analyticsRes.data ?? [])) {
     const k = row.video_id;
-    if (!analyticsMap[k]) analyticsMap[k] = { videoName: row.video_name ?? k, plays: 0, ctaClicks: 0 };
-    analyticsMap[k].plays     += Number(row.plays);
-    analyticsMap[k].ctaClicks += Number(row.button_clicks);
+    if (!analyticsMap[k]) analyticsMap[k] = { videoName: row.video_name ?? k, plays: 0, views: 0, uniqueViews: 0, uniquePlays: 0, ctaClicks: 0, pitchSecond: null };
+    analyticsMap[k].plays       += Number(row.plays);
+    analyticsMap[k].views       += Number(row.views);
+    analyticsMap[k].uniqueViews += Number(row.unique_views ?? 0);
+    analyticsMap[k].uniquePlays += Number(row.unique_plays ?? 0);
+    analyticsMap[k].ctaClicks   += Number(row.button_clicks);
+    if (row.pitch_second != null) analyticsMap[k].pitchSecond = Number(row.pitch_second);
   }
 
   // Promedia los puntos de retención por segundo cuando hay múltiples fechas en el rango
@@ -341,6 +400,11 @@ export async function getVSLRetention(r: DateRange): Promise<VSLData[]> {
       videoId, videoName: a.videoName, plays: a.plays, ctaClicks: a.ctaClicks,
       ret25: getAt(25), ret50: getAt(50), ret75: getAt(75),
       sales, convRate, retention, dropSecond,
+      views:         a.views,
+      uniqueViews:   a.uniqueViews,
+      uniquePlays:   a.uniquePlays,
+      engagement:    averageRetention(retention),
+      pitchAudience: a.pitchSecond != null ? retentionAt(retention, a.pitchSecond) : null,
     };
   });
 }
@@ -363,6 +427,146 @@ export async function getAdsRanking(r: DateRange): Promise<AdRankRow[]> {
     videoName:    f.videoName,
     score:        f.score,
   }));
+}
+
+export interface AdVSLRow {
+  adId:          string;
+  adName:        string;
+  adsetName:     string | null;
+  placement:     string | null;
+  campaignName:  string;
+  videoId:       string | null;
+  videoName:     string | null;
+  investment:    number;
+  clicks:        number;
+  impressions:   number;
+  sales:         number;
+  cac:           number;
+  roi:           number;
+  convRate:      number;
+  views:         number;
+  uniqueViews:   number;
+  plays:         number;
+  uniquePlays:   number;
+  playRate:      number;
+  engagement:    number;
+  pitchAudience: number | null;
+  score:         number;
+}
+
+export async function getAdVSLRanking(r: DateRange): Promise<AdVSLRow[]> {
+  const [adInvRes, campInvRes, txRes, adMappingRes, campMappingRes, vturbRes, retentionRes] = await Promise.all([
+    supabase.from("ad_investment_data").select("ad_id, ad_name, campaign_id, investment, impressions, clicks").gte("date", r.from).lte("date", r.to),
+    supabase.from("campaign_investment_data").select("campaign_id, campaign_name").gte("date", r.from).lte("date", r.to),
+    supabase.from("transactions").select("ad_id, ad_name, adset_name, placement, traffic_source, amount, currency").gte("created_at", r.fromTs).lte("created_at", r.toTs).eq("status", "active"),
+    supabase.from("ad_vsl_mapping").select("*"),
+    supabase.from("campaign_vsl_mapping").select("*"),
+    supabase.from("vturb_analytics").select("video_id, plays, views, unique_plays, unique_views, pitch_second").gte("date", r.from).lte("date", r.to),
+    supabase.from("vturb_retention").select("video_id, second, percentage").gte("date", r.from).lte("date", r.to),
+  ]);
+
+  const campNameById: Record<string, string> = {};
+  for (const row of (campInvRes.data ?? [])) if (row.campaign_id) campNameById[row.campaign_id] = row.campaign_name ?? row.campaign_id;
+
+  const invMap: Record<string, { adName: string; campaignId: string | null; investment: number; impressions: number; clicks: number }> = {};
+  for (const row of (adInvRes.data ?? [])) {
+    const k = row.ad_id;
+    if (!invMap[k]) invMap[k] = { adName: row.ad_name ?? k, campaignId: row.campaign_id ?? null, investment: 0, impressions: 0, clicks: 0 };
+    invMap[k].investment  += Number(row.investment);
+    invMap[k].impressions += Number(row.impressions);
+    invMap[k].clicks      += Number(row.clicks);
+  }
+
+  const salesMap: Record<string, { count: number; revenue: number; adName: string | null; adsetName: string | null; placement: string | null; campaignName: string | null }> = {};
+  for (const tx of (txRes.data ?? [])) {
+    const k = tx.ad_id;
+    if (!k) continue; // ventas sin ad_id (tráfico no atribuido a un anuncio) no entran al ranking por anuncio
+    if (!salesMap[k]) salesMap[k] = { count: 0, revenue: 0, adName: tx.ad_name ?? null, adsetName: tx.adset_name ?? null, placement: tx.placement ?? null, campaignName: tx.traffic_source || null };
+    salesMap[k].count++;
+    salesMap[k].revenue += toUSD(Number(tx.amount), tx.currency);
+  }
+
+  const adVideoMap: Record<string, { videoId: string; videoName: string }> = {};
+  for (const m of (adMappingRes.data ?? [])) adVideoMap[m.ad_id] = { videoId: m.video_id, videoName: m.video_name ?? m.video_id };
+  const campVideoMap: Record<string, { videoId: string; videoName: string }> = {};
+  for (const m of (campMappingRes.data ?? [])) campVideoMap[m.campaign_name] = { videoId: m.video_id, videoName: m.video_name ?? m.video_id };
+  const defaultVideo = campVideoMap[DEFAULT_VSL_CAMPAIGN] ?? null;
+
+  const vturbMap: Record<string, { plays: number; views: number; uniquePlays: number; uniqueViews: number; pitchSecond: number | null }> = {};
+  for (const row of (vturbRes.data ?? [])) {
+    const k = row.video_id;
+    if (!vturbMap[k]) vturbMap[k] = { plays: 0, views: 0, uniquePlays: 0, uniqueViews: 0, pitchSecond: null };
+    vturbMap[k].plays       += Number(row.plays);
+    vturbMap[k].views       += Number(row.views);
+    vturbMap[k].uniquePlays += Number(row.unique_plays ?? 0);
+    vturbMap[k].uniqueViews += Number(row.unique_views ?? 0);
+    if (row.pitch_second != null) vturbMap[k].pitchSecond = Number(row.pitch_second);
+  }
+
+  const retentionByVideo: Record<string, VSLRetentionPoint[]> = {};
+  for (const row of (retentionRes.data ?? [])) {
+    if (!retentionByVideo[row.video_id]) retentionByVideo[row.video_id] = [];
+    retentionByVideo[row.video_id].push({ second: Number(row.second), percentage: Number(row.percentage) });
+  }
+  for (const points of Object.values(retentionByVideo)) points.sort((a, b) => a.second - b.second);
+
+  const allAdIds = new Set([...Object.keys(invMap), ...Object.keys(salesMap)]);
+
+  const resolveVideo = (adId: string, campaignName: string) =>
+    adVideoMap[adId] ?? campVideoMap[campaignName] ?? defaultVideo;
+
+  const maxRoi = Math.max(1, ...[...allAdIds].map(id => {
+    const inv = invMap[id]?.investment ?? 0;
+    const rev = salesMap[id]?.revenue ?? 0;
+    return inv > 0 ? (rev - inv) / inv : 0;
+  }));
+  const maxConvRate = Math.max(0.0001, ...[...allAdIds].map(id => {
+    const sale = salesMap[id];
+    const campaignName = (invMap[id]?.campaignId ? campNameById[invMap[id].campaignId!] : null) ?? sale?.campaignName ?? "Sin campaña";
+    const video = resolveVideo(id, campaignName);
+    const plays = video ? (vturbMap[video.videoId]?.plays ?? 0) : 0;
+    return plays > 0 ? (sale?.count ?? 0) / plays : 0;
+  }));
+
+  return [...allAdIds].map(adId => {
+    const inv  = invMap[adId]  ?? { adName: adId, campaignId: null, investment: 0, impressions: 0, clicks: 0 };
+    const sale = salesMap[adId] ?? { count: 0, revenue: 0, adName: null, adsetName: null, placement: null, campaignName: null };
+    const campaignName = (inv.campaignId ? campNameById[inv.campaignId] : null) ?? sale.campaignName ?? "Sin campaña";
+    const video = resolveVideo(adId, campaignName);
+    const vturb = video ? (vturbMap[video.videoId] ?? null) : null;
+    const retention = video ? (retentionByVideo[video.videoId] ?? []) : [];
+
+    const cac = sale.count > 0 ? inv.investment / sale.count : 0;
+    const roi = inv.investment > 0 ? (sale.revenue - inv.investment) / inv.investment : 0;
+    const convRate = vturb && vturb.plays > 0 ? sale.count / vturb.plays : 0;
+    const engagement = averageRetention(retention);
+    const pitchAudience = vturb?.pitchSecond != null ? retentionAt(retention, vturb.pitchSecond) : null;
+    const playRate = vturb && vturb.views > 0 ? (vturb.plays / vturb.views) * 100 : 0;
+    const score = computeScore({ roi, convRate, pitchAudience, engagement }, maxRoi, maxConvRate);
+
+    return {
+      adId,
+      adName:       inv.adName ?? sale.adName ?? adId,
+      adsetName:    sale.adsetName,
+      placement:    sale.placement,
+      campaignName,
+      videoId:      video?.videoId ?? null,
+      videoName:    video?.videoName ?? null,
+      investment:   inv.investment,
+      clicks:       inv.clicks,
+      impressions:  inv.impressions,
+      sales:        sale.count,
+      cac, roi, convRate,
+      views:        vturb?.views ?? 0,
+      uniqueViews:  vturb?.uniqueViews ?? 0,
+      plays:        vturb?.plays ?? 0,
+      uniquePlays:  vturb?.uniquePlays ?? 0,
+      playRate,
+      engagement,
+      pitchAudience,
+      score,
+    };
+  }).sort((a, b) => b.score - a.score);
 }
 
 export async function getHourlyHeatmap(r: DateRange): Promise<HeatmapCell[]> {
