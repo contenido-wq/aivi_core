@@ -88,6 +88,41 @@ async function syncCampaigns(
   console.log(`✅ UTMify campaigns — ${rows.length} campañas — ${dateStr}`);
 }
 
+// Sincroniza gasto a nivel de anuncio individual para un día
+async function syncAds(
+  supabase: ReturnType<typeof createClient>,
+  mcpToken: string,
+  dashboardId: string,
+  dateStr: string,
+): Promise<void> {
+  const data = await callMcp(mcpToken, "get_meta_ad_objects", {
+    dashboardId,
+    level:     "ad",
+    dateRange: { from: dateStr, to: dateStr },
+  }) as { results: Array<{ adId: string; campaignId: string; name: string; spend: number; impressions: number; inlineLinkClicks: number; accountId: string }> };
+
+  const ads = (data.results ?? []).filter((r: any) => r.accountId === META_ACCOUNT_ID && r.adId);
+  if (ads.length === 0) { console.log(`UTMify ads: sin datos para ${dateStr}`); return; }
+
+  const rows = ads.map((a) => ({
+    ad_id:       a.adId,
+    ad_name:     a.name ?? a.adId,
+    campaign_id: a.campaignId ?? null,
+    date:        dateStr,
+    platform:    "facebook",
+    investment:  (a.spend ?? 0) / 100,
+    impressions: a.impressions ?? 0,
+    clicks:      a.inlineLinkClicks ?? 0,
+    synced_at:   new Date().toISOString(),
+  }));
+
+  const { error } = await supabase
+    .from("ad_investment_data")
+    .upsert(rows, { onConflict: "ad_id,date,platform" });
+  if (error) throw new Error(`ad_investment_data upsert (${dateStr}): ${error.message}`);
+  console.log(`✅ UTMify ads — ${rows.length} anuncios — ${dateStr}`);
+}
+
 // Sincroniza un día pasado (completado) — Meta devuelve gasto diario exacto
 async function syncDate(
   supabase: ReturnType<typeof createClient>,
@@ -205,6 +240,12 @@ async function runSync(debug = false): Promise<Response> {
       console.error(`Campaign sync error for ${dateStr}:`, e);
       errors.push({ date: dateStr, error: String(e) });
     }
+    try {
+      await syncAds(supabase, mcpToken, dashboardId, dateStr);
+    } catch (e) {
+      console.error(`Ad sync error for ${dateStr}:`, e);
+      errors.push({ date: dateStr, error: String(e) });
+    }
   }
 
   // Calcular hoy con método delta (evita el acumulado del mes)
@@ -219,6 +260,12 @@ async function runSync(debug = false): Promise<Response> {
     await syncCampaigns(supabase, mcpToken, dashboardId, today);
   } catch (e) {
     console.error(`Campaign sync error for today (${today}):`, e);
+    errors.push({ date: today, error: String(e) });
+  }
+  try {
+    await syncAds(supabase, mcpToken, dashboardId, today);
+  } catch (e) {
+    console.error(`Ad sync error for today (${today}):`, e);
     errors.push({ date: today, error: String(e) });
   }
 
@@ -271,6 +318,11 @@ async function runBackfill(from: string, to: string): Promise<Response> {
     } catch (e) {
       errors.push({ date: dateStr, error: String(e) });
     }
+    try {
+      await syncAds(supabase, mcpToken, dashboardId, dateStr);
+    } catch (e) {
+      errors.push({ date: dateStr, error: String(e) });
+    }
   }
 
   const totalInvestment = results.reduce((s, r) => s + r.totalInvestment, 0);
@@ -305,6 +357,18 @@ serve(async (req) => {
     const today       = toColombiaDate(new Date());
     const raw = await callMcp(mcpToken, "get_meta_ad_objects", {
       dashboardId, level: "campaign",
+      dateRange: { from: today, to: today },
+    });
+    return new Response(JSON.stringify(raw, null, 2), { headers: { "Content-Type": "application/json" } });
+  }
+
+  // Debug: retorna raw de UTMify a nivel anuncio para inspección
+  if (params.has("debug-ads")) {
+    const mcpToken    = Deno.env.get("UTMIFY_MCP_TOKEN")!;
+    const dashboardId = Deno.env.get("UTMIFY_DASHBOARD_ID")!;
+    const today       = toColombiaDate(new Date());
+    const raw = await callMcp(mcpToken, "get_meta_ad_objects", {
+      dashboardId, level: "ad",
       dateRange: { from: today, to: today },
     });
     return new Response(JSON.stringify(raw, null, 2), { headers: { "Content-Type": "application/json" } });
