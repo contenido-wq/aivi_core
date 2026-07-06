@@ -13,6 +13,19 @@ function toColombiaDate(d: Date): string {
   return local.toISOString().split("T")[0];
 }
 
+// Meta/Utmify concatena campaña|adset|ad|placement en purchase.tracking.external_code
+// separados por este token fijo (confirmado contra ~3000 transacciones históricas).
+// Cada segmento de campaña/adset/ad termina en "|<id numérico>" que hay que descartar
+// para que el nombre coincida exactamente con campaign_investment_data.campaign_name.
+const EXTERNAL_CODE_DELIMITER = "hQwK21wXxR";
+
+function extractCampaignFromExternalCode(externalCode: string | undefined | null): string | null {
+  if (!externalCode || !externalCode.includes(EXTERNAL_CODE_DELIMITER)) return null;
+  const parts = externalCode.split(EXTERNAL_CODE_DELIMITER);
+  const raw = (parts[1] ?? "").replace(/\|\d+$/, "").trim();
+  return raw || null;
+}
+
 const HOTMART_AUTH_URL = "https://api-sec-vlc.hotmart.com/security/oauth/token";
 const HOTMART_API_URL  = "https://developers.hotmart.com/payments/api/v1";
 
@@ -122,11 +135,9 @@ async function runSync(startDate: string, endDate: string): Promise<Response> {
         const buyer_phone     = buyer.checkout_phone ?? buyer.phone ?? "";
         const buyer_country   = buyer.address?.country ?? "";
         const offer_code      = purchase.offer?.code ?? "";
-        const rawOrigin       = purchase.origin;
-        const sale_origin     = typeof rawOrigin === "object" && rawOrigin !== null
-          ? (rawOrigin.sck ?? rawOrigin.src ?? JSON.stringify(rawOrigin))
-          : (rawOrigin ?? "");
-        const traffic_source  = sale.tracking?.src ?? sale.tracking?.source_sck ?? "";
+        const tracking        = purchase.tracking;
+        const sale_origin     = tracking?.source_sck ?? tracking?.source ?? "";
+        const traffic_source  = extractCampaignFromExternalCode(tracking?.external_code) ?? tracking?.source_sck ?? "";
         const plan_name       = OFFER_NAMES[offer_code] ?? product.name ?? "AIVI";
         const amount          = Number(purchase.price?.value ?? 0);
         const currency        = purchase.price?.currency_code ?? "USD";

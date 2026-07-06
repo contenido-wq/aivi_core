@@ -21,6 +21,19 @@ function colombiaDayRange(date: string): { start: string; end: string } {
   };
 }
 
+// Meta/Utmify concatena campaña|adset|ad|placement en purchase.tracking.external_code
+// separados por este token fijo (confirmado contra ~3000 transacciones históricas).
+// Cada segmento de campaña/adset/ad termina en "|<id numérico>" que hay que descartar
+// para que el nombre coincida exactamente con campaign_investment_data.campaign_name.
+const EXTERNAL_CODE_DELIMITER = "hQwK21wXxR";
+
+function extractCampaignFromExternalCode(externalCode: string | undefined | null): string | null {
+  if (!externalCode || !externalCode.includes(EXTERNAL_CODE_DELIMITER)) return null;
+  const parts = externalCode.split(EXTERNAL_CODE_DELIMITER);
+  const raw = (parts[1] ?? "").replace(/\|\d+$/, "").trim();
+  return raw || null;
+}
+
 const SALE_EVENTS           = ["PURCHASE_COMPLETE", "PURCHASE_APPROVED"];
 const REFUND_REQUEST_EVENTS = ["PURCHASE_REFUND_REQUEST"];
 const REFUND_EVENTS         = ["PURCHASE_REFUNDED"];
@@ -102,11 +115,9 @@ serve(async (req) => {
   const buyer_phone     = buyer?.checkout_phone                         ?? buyer?.phone ?? "";
   const buyer_country   = buyer?.address?.country                       ?? "";
   const offer_code      = purchase?.offer?.code                         ?? "";
-  const rawOrigin       = purchase?.origin;
-  const sale_origin     = typeof rawOrigin === "object" && rawOrigin !== null
-    ? (rawOrigin.sck ?? rawOrigin.src ?? JSON.stringify(rawOrigin))
-    : (rawOrigin ?? "");
-  const traffic_source  = payload.data?.trackingParameters?.source_sck ?? payload.data?.trackingParameters?.src ?? "";
+  const tracking        = purchase?.tracking;
+  const sale_origin     = tracking?.source_sck ?? tracking?.source ?? "";
+  const traffic_source  = extractCampaignFromExternalCode(tracking?.external_code) ?? tracking?.source_sck ?? "";
 
   // Para cancelaciones, chargebacks y pagos atrasados, evitar duplicados del mismo día
   // (Hotmart reintenta webhooks con distinto hotmart_id para el mismo evento)
