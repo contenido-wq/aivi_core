@@ -96,6 +96,13 @@ export function useAnalyticsData() {
     }
   }, [state.summary, state.funnel, state.vsls, period]);
 
+  // Genera el análisis de IA automáticamente cada vez que cambia el rango
+  // de fechas cargado (no en cada cambio de VSL seleccionado/comparado).
+  useEffect(() => {
+    if (state.range) runAIAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.range?.from, state.range?.to]);
+
   return {
     ...state,
     period, setPeriod, refresh: load,
