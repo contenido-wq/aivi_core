@@ -222,7 +222,13 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
                 <div style={{ height: 180, background: C.card, border: `1px solid ${C.border}`, borderRadius: 14 }} />
               ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
-                  {filteredFunnel.map(f => <CampaignFunnelCard key={f.campaignName} campaign={f} />)}
+                  {filteredFunnel.map(f => (
+                    <CampaignFunnelCard
+                      key={f.campaignName}
+                      campaign={f}
+                      ads={filteredAdRanking.filter(a => a.campaignName === f.campaignName)}
+                    />
+                  ))}
                 </div>
               )}
             </section>
