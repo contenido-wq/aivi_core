@@ -65,7 +65,7 @@ export function VSLSelectorBar({ vsls, selectedId, compareId, onSelect, onCompar
               <div style={{
                 position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 150,
                 background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12,
-                width: 320, maxHeight: 360, display: "flex", flexDirection: "column",
+                width: "min(320px, 90vw)", maxHeight: 360, display: "flex", flexDirection: "column",
                 boxShadow: "0 8px 24px rgba(0,0,0,0.4)", overflow: "hidden",
               }}>
                 <input

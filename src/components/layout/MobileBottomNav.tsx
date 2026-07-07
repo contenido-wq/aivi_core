@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, SlidersHorizontal, Settings } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, BarChart2, SlidersHorizontal, Settings } from "lucide-react";
 import { C, FONT } from "../../tokens";
 import type { ProductFilter } from "../../services/dashboard";
 
@@ -8,6 +8,7 @@ interface MobileBottomNavProps {
   onDashboard?:    () => void;
   onUsers?:        () => void;
   onTransactions?: () => void;
+  onAnalytics?:    () => void;
   onSettings?:     () => void;
   isAdmin?:        boolean;
   filter:          ProductFilter;
@@ -25,10 +26,11 @@ const NAV = [
   { icon: LayoutDashboard, label: "Dashboard",     view: "dashboard"     },
   { icon: Users,           label: "Usuarios",      view: "usuarios"      },
   { icon: CreditCard,      label: "Transacciones", view: "transacciones" },
+  { icon: BarChart2,       label: "Analytics",     view: "analytics"     },
 ] as const;
 
 export function MobileBottomNav({
-  activeView, onDashboard, onUsers, onTransactions, onSettings, isAdmin: _isAdmin = false, filter, onFilter,
+  activeView, onDashboard, onUsers, onTransactions, onAnalytics, onSettings, isAdmin: _isAdmin = false, filter, onFilter,
 }: MobileBottomNavProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -36,6 +38,7 @@ export function MobileBottomNav({
     if (view === "dashboard")     onDashboard?.();
     if (view === "usuarios")      onUsers?.();
     if (view === "transacciones") onTransactions?.();
+    if (view === "analytics")     onAnalytics?.();
   };
 
   const handleFilter = (f: ProductFilter) => {
@@ -122,7 +125,7 @@ export function MobileBottomNav({
                 border: "none",
                 borderRadius: 16,
                 cursor: "pointer",
-                width: 52,
+                width: 46,
                 height: 44,
                 display: "flex",
                 alignItems: "center",
@@ -144,7 +147,7 @@ export function MobileBottomNav({
             border: "none",
             borderRadius: 16,
             cursor: "pointer",
-            width: 52,
+            width: 46,
             height: 44,
             display: "flex",
             alignItems: "center",
@@ -164,7 +167,7 @@ export function MobileBottomNav({
               border: "none",
               borderRadius: 16,
               cursor: "pointer",
-              width: 52,
+              width: 46,
               height: 44,
               display: "flex",
               alignItems: "center",

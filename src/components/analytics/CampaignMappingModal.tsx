@@ -108,7 +108,7 @@ export function CampaignMappingModal({ open, onClose, mappings, campaigns, onSav
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
       onClick={onClose}>
-      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, width: 560, maxHeight: "80vh", overflowY: "auto", padding: 28 }}
+      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, width: "min(560px, 92vw)", maxHeight: "80vh", overflowY: "auto", padding: 28 }}
         onClick={e => e.stopPropagation()}>
         <div style={{ fontSize: 16, fontWeight: 700, color: C.white, marginBottom: 16 }}>Configurar VSLs</div>
 

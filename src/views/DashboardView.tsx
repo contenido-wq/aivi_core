@@ -242,6 +242,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
           activeView={activeView}
           onUsers={onUsers}
           onTransactions={onTransactions}
+          onAnalytics={onAnalytics}
           onSettings={onSettings}
           isAdmin={isAdmin}
           filter={filter}

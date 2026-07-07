@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Download, Search, RefreshCw } from "lucide-react";
+import { Download, Search, RefreshCw, Menu } from "lucide-react";
 import { C, FONT } from "../tokens";
 import { Sidebar } from "../components/layout/Sidebar";
 import { MobileBottomNav } from "../components/layout/MobileBottomNav";
@@ -22,16 +22,17 @@ const CATEGORIES: { key: TxCategory; label: string; shortLabel: string; color: s
 ];
 
 interface TransactionsViewProps {
-  onSettings:   () => void;
-  onSignOut?:   () => void;
-  onDashboard?: () => void;
-  onUsers?:     () => void;
-  activeView?:  string;
-  isAdmin?:     boolean;
+  onSettings:    () => void;
+  onSignOut?:    () => void;
+  onDashboard?:  () => void;
+  onUsers?:      () => void;
+  onAnalytics?:  () => void;
+  activeView?:   string;
+  isAdmin?:      boolean;
 }
 
 export function TransactionsView({
-  onSettings, onSignOut, onDashboard, onUsers, activeView = "transacciones", isAdmin = false,
+  onSettings, onSignOut, onDashboard, onUsers, onAnalytics, activeView = "transacciones", isAdmin = false,
 }: TransactionsViewProps) {
   const { isMobile, isTablet, isLarge, isXLarge } = useResponsive();
   const thisYearStart = `${new Date().getFullYear()}-01-01`;
@@ -152,6 +153,19 @@ export function TransactionsView({
           background: C.sidebar,
           flexShrink: 0,
         }}>
+          {isMobileLayout && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Abrir menú"
+              style={{
+                background: "none", border: "none", color: C.mutedLight,
+                padding: 4, display: "flex", alignItems: "center",
+                justifyContent: "center", borderRadius: 8, flexShrink: 0,
+              }}
+            >
+              <Menu size={20} />
+            </button>
+          )}
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.03em" }}>
               Transacciones
@@ -381,6 +395,7 @@ export function TransactionsView({
           activeView={activeView}
           onDashboard={onDashboard}
           onUsers={onUsers}
+          onAnalytics={onAnalytics}
           onSettings={onSettings}
           isAdmin={isAdmin}
           filter={filter}

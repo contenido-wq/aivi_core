@@ -1,7 +1,10 @@
 import { useState, useMemo }          from "react";
+import { Menu }                       from "lucide-react";
 import { C, FONT }                    from "../tokens";
 import { useAnalyticsData }           from "../hooks/useAnalyticsData";
+import { useResponsive }              from "../hooks/useResponsive";
 import { Sidebar }                    from "../components/layout/Sidebar";
+import { MobileBottomNav }            from "../components/layout/MobileBottomNav";
 import { AlertsPanel }                from "../components/analytics/AlertsPanel";
 import { KPISummary }                 from "../components/analytics/KPISummary";
 import { CampaignFunnelCard }         from "../components/analytics/CampaignFunnelCard";
@@ -38,8 +41,14 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
   const [cacTarget,    setCacTarget]    = useState(50);
   const [ticketMin,    setTicketMin]    = useState(0);
   const [mappingOpen,  setMappingOpen]  = useState(false);
+  const [sidebarOpen,  setSidebarOpen]  = useState(false);
+
+  const { isMobile, isTablet } = useResponsive();
+  const isMobileLayout = isMobile || isTablet;
 
   const SIDEBAR_W = 220;
+  const sidebarWidth = isMobileLayout ? 0 : SIDEBAR_W;
+  const px = isMobile ? 12 : 24;
 
   const filteredFunnel  = useMemo(
     () => selectedVslId ? funnel.filter(f => f.videoId === selectedVslId) : funnel,
@@ -108,17 +117,35 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
         activeView={activeView}
         mrr={0} arr={0}
         isAdmin={isAdmin}
-        width={SIDEBAR_W}
+        width={sidebarWidth || undefined}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        isMobile={isMobileLayout}
       />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", marginLeft: SIDEBAR_W }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", marginLeft: sidebarWidth }}>
 
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "10px 24px", minHeight: 56, borderBottom: `1px solid ${C.border}`,
+          padding: `10px ${px}px`, minHeight: 56, borderBottom: `1px solid ${C.border}`,
           background: C.nav, flexShrink: 0, flexWrap: "wrap", gap: 12,
         }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: C.white }}>Analytics Command Center</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            {isMobileLayout && (
+              <button
+                onClick={() => setSidebarOpen(true)}
+                aria-label="Abrir menú"
+                style={{
+                  background: "none", border: "none", color: C.mutedLight,
+                  padding: 4, display: "flex", alignItems: "center",
+                  justifyContent: "center", borderRadius: 8, flexShrink: 0,
+                }}
+              >
+                <Menu size={20} />
+              </button>
+            )}
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.white }}>Analytics Command Center</div>
+          </div>
           <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -177,7 +204,7 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
           />
         )}
 
-        <main style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
+        <main style={{ flex: 1, overflowY: "auto", padding: `20px ${px}px`, paddingBottom: isMobile ? 64 : 20, display: "flex", flexDirection: "column", gap: 20 }}>
 
           {error && (
             <div style={{ background: "rgba(255,65,59,0.1)", border: "1px solid #FF413B", borderRadius: 10, padding: 14, fontSize: 13, color: "#FF413B" }}>
@@ -221,7 +248,7 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
               {loading ? (
                 <div style={{ height: 180, background: C.card, border: `1px solid ${C.border}`, borderRadius: 14 }} />
               ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? 260 : 340}px, 1fr))`, gap: 16 }}>
                   {filteredFunnel.map(f => (
                     <CampaignFunnelCard
                       key={f.campaignName}
@@ -244,6 +271,19 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
 
         </main>
       </div>
+
+      {isMobile && (
+        <MobileBottomNav
+          activeView="analytics"
+          onDashboard={onDashboard}
+          onUsers={onUsers}
+          onTransactions={onTransactions}
+          onSettings={onSettings}
+          isAdmin={isAdmin}
+          filter="todos"
+          onFilter={() => {}}
+        />
+      )}
 
       <CampaignMappingModal
         open={mappingOpen}

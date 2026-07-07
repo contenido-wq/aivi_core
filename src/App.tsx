@@ -53,6 +53,7 @@ export default function App() {
       onBack={() => setView("dashboard")}
       onDashboard={() => setView("dashboard")}
       onTransactions={() => setView("transacciones")}
+      onAnalytics={() => setView("analytics")}
       onSettings={() => setView("admin")}
       isAdmin={isAdmin}
     />
@@ -78,6 +79,7 @@ export default function App() {
       onSignOut={signOut}
       onDashboard={() => setView("dashboard")}
       onUsers={() => setView("usuarios")}
+      onAnalytics={() => setView("analytics")}
       activeView={view}
       isAdmin={isAdmin}
     />
