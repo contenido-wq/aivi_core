@@ -767,6 +767,37 @@ export async function getAtRiskUsers(filter: ProductFilter = "todos"): Promise<A
   });
 }
 
+export interface RenewalSummary {
+  renewed: number;
+  total:   number;
+  buckets: { "0": number; "1": number; "2": number; "3+": number };
+}
+
+export async function getRenewalSummary(filter: ProductFilter = "todos"): Promise<RenewalSummary> {
+  const { data: allTx } = await supabase
+    .from("transactions")
+    .select("buyer_email, plan_name, status")
+    .in("status", ["active", "delayed"])
+    .limit(50000);
+
+  const counts: Record<string, number> = {};
+  for (const tx of allTx ?? []) {
+    if (!tx.buyer_email || tx.buyer_email === "—") continue;
+    if (!matchesPlan(tx.plan_name, filter)) continue;
+    counts[tx.buyer_email] = (counts[tx.buyer_email] ?? 0) + 1;
+  }
+
+  const buckets = { "0": 0, "1": 0, "2": 0, "3+": 0 };
+  for (const count of Object.values(counts)) {
+    const renewals = Math.max(0, count - 1);
+    const k = renewals >= 3 ? "3+" : (String(renewals) as "0" | "1" | "2");
+    buckets[k]++;
+  }
+  const total   = Object.keys(counts).length;
+  const renewed = total - buckets["0"];
+  return { renewed, total, buckets };
+}
+
 // ─── Trazabilidad de usuarios ─────────────────────────────────────────────────
 
 export interface UserTx {

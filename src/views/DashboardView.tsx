@@ -35,7 +35,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
 
   const { isMobile, isTablet, isDesktop, isShortScreen, isLarge, isXLarge } = useResponsive();
 
-  const { kpis, plans, daily, transactions, comparison, chartData, atRiskUsers, delayedUsers, cancelledUsers, cancelledByDay, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
+  const { kpis, plans, daily, transactions, comparison, chartData, atRiskUsers, delayedUsers, cancelledUsers, cancelledByDay, renewalSummary, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
     useDashboardData(date, filter);
 
   const handleSync = useCallback(async () => {
@@ -129,6 +129,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
                 weekRevenue={comparison?.weekRevenue ?? 0}
                 monthRevenue={comparison?.monthRevenue ?? 0}
                 filter={filter}
+                renewalSummary={renewalSummary}
               />
 
               {/* Sección principal: Usuarios + Seguimiento */}
@@ -164,6 +165,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
               daily={daily}
               weekRevenue={comparison?.weekRevenue ?? 0}
               monthRevenue={comparison?.monthRevenue ?? 0}
+              renewalSummary={renewalSummary}
             />
 
             {/* Sección principal: Usuarios + Seguimiento */}
@@ -206,6 +208,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
               daily={daily}
               weekRevenue={comparison?.weekRevenue ?? 0}
               monthRevenue={comparison?.monthRevenue ?? 0}
+              renewalSummary={renewalSummary}
             />
 
             {/* Sección principal */}
