@@ -30,7 +30,7 @@ interface Props {
 
 export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings, onSignOut, activeView, isAdmin }: Props) {
   const {
-    summary, funnel, vsls, ranking, adRanking, heatmap, ltv, alerts, mappings, productRevenue,
+    summary, funnel, vsls, adRanking, heatmap, ltv, alerts, mappings, productRevenue,
     loading, error, period, setPeriod, refresh, aiResult, aiLoading, runAIAnalysis,
     selectedVslId, compareVslId, setSelectedVsl, setCompareVsl, range,
   } = useAnalyticsData();
@@ -200,7 +200,7 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
             primary={selectedVsl}
             compare={compareVsl}
             range={range}
-            ranking={ranking}
+            adRanking={adRanking}
             cacTarget={cacTarget}
             ticketMin={ticketMin}
           />

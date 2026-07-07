@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import { C, FONT } from "../../tokens";
 import { InfoTooltip } from "./InfoTooltip";
-import type { VSLData, DateRange, DimensionRow, AdRankRow, AdAction } from "../../services/analytics";
+import type { VSLData, DateRange, DimensionRow, AdVSLRow, AdAction } from "../../services/analytics";
 import {
   getVSLByCountry, getVSLByDevice, getVSLByOS,
   getVSLByBrowser, classifyAd,
@@ -191,9 +191,9 @@ function adScoreColor(s: number) {
   return s >= 80 ? C.green : s >= 50 ? C.yellow : C.red;
 }
 
-function AdSourceView({ rows, cacTarget, ticketMin }: { rows: AdRankRow[]; cacTarget: number; ticketMin: number }) {
+function AdSourceView({ rows, cacTarget, ticketMin }: { rows: AdVSLRow[]; cacTarget: number; ticketMin: number }) {
   if (rows.length === 0) return (
-    <DimEmpty msg="Sin anuncios atribuidos a este VSL en el período. Verifica el mapeo campaña→VSL arriba." />
+    <DimEmpty msg="Sin anuncios atribuidos a este VSL en el período. Verifica el mapeo anuncio→VSL o campaña→VSL arriba." />
   );
   return (
     <div style={{ padding: "8px 16px 12px", overflowX: "auto" }}>
@@ -201,10 +201,10 @@ function AdSourceView({ rows, cacTarget, ticketMin }: { rows: AdRankRow[]; cacTa
         <thead>
           <tr style={{ borderBottom: `1px solid ${C.border}` }}>
             {[
-              { h: "Campaña" }, { h: "Inv." }, { h: "Ventas" },
-              { h: "CAC",    help: "Inversión ÷ Ventas de esta campaña. Más bajo es mejor." },
-              { h: "ROI",    help: "(Ingresos − Inversión) ÷ Inversión de esta campaña. 1.0x = recuperaste el doble de lo invertido." },
-              { h: "Score",  help: "Combina el ROI relativo (50%) y la conversión ventas/plays (50%) en un puntaje de 0 a 100 para comparar campañas de un vistazo." },
+              { h: "Anuncio" }, { h: "Inv." }, { h: "Ventas" },
+              { h: "CAC",    help: "Inversión ÷ Ventas de este anuncio. Más bajo es mejor." },
+              { h: "ROI",    help: "(Ingresos − Inversión) ÷ Inversión de este anuncio. 1.0x = recuperaste el doble de lo invertido." },
+              { h: "Score",  help: "Combina ROI (30%), conversión (20%), audiencia del pitch (30%) y engagement (20%) en un puntaje de 0 a 100." },
               { h: "Acción", help: "ESCALAR: cumple el CAC objetivo, ROI ≥ 1x y el ticket mínimo — sube presupuesto. PAUSAR: CAC muy por encima del objetivo o ROI negativo. MONITOREAR: aún no cumple ninguno de los dos criterios." },
             ].map(({ h, help }) => (
               <th key={h} style={{ padding: "6px 8px", color: C.mutedMid, fontWeight: 500, textAlign: "left", whiteSpace: "nowrap" }}>
@@ -215,13 +215,13 @@ function AdSourceView({ rows, cacTarget, ticketMin }: { rows: AdRankRow[]; cacTa
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => {
+          {rows.map((r) => {
             const action  = classifyAd(r, cacTarget, ticketMin);
             const acStyle = AD_ACTION_STYLE[action];
             return (
-              <tr key={`${r.campaignName}-${i}`} style={{ borderBottom: `1px solid ${C.border}` }}>
+              <tr key={r.adId} style={{ borderBottom: `1px solid ${C.border}` }}>
                 <td style={{ padding: "9px 8px", color: C.white, fontWeight: 500, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {r.campaignName}
+                  {r.adName}
                 </td>
                 <td style={{ padding: "9px 8px", color: C.mutedLight }}>${r.investment.toFixed(0)}</td>
                 <td style={{ padding: "9px 8px", color: C.mutedLight }}>{r.sales}</td>
@@ -267,22 +267,22 @@ interface Props {
   primary:   VSLData | null;
   compare?:  VSLData | null;
   range:     DateRange | null;
-  ranking:   AdRankRow[];
+  adRanking: AdVSLRow[];
   cacTarget: number;
   ticketMin: number;
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export function VSLIntelligencePanel({ primary, compare, range, ranking, cacTarget, ticketMin }: Props) {
+export function VSLIntelligencePanel({ primary, compare, range, adRanking, cacTarget, ticketMin }: Props) {
   const [activeTab,       setActiveTabState] = useState<DimensionTab>("general");
   const [dimCache,        setDimCache]       = useState<Partial<Record<DimensionTab, DimensionRow[]>>>({});
   const [dimLoading,      setDimLoading]     = useState(false);
   const [showConversions, setShowConversions] = useState(false);
 
   const adsForThisVsl = useMemo(
-    () => ranking.filter(r => r.videoId === primary?.videoId),
-    [ranking, primary?.videoId],
+    () => adRanking.filter(r => r.videoId === primary?.videoId),
+    [adRanking, primary?.videoId],
   );
 
   // Invalida caché al cambiar rango o video
@@ -514,12 +514,15 @@ export function VSLIntelligencePanel({ primary, compare, range, ranking, cacTarg
 
       {/* KPIs — siempre visibles */}
       <div style={{ display: "flex", gap: 10, padding: "16px 20px 20px", flexWrap: "wrap" }}>
-        <KpiCard label="Plays" value={primary.plays.toLocaleString("es")} />
+        <KpiCard label="Plays" value={primary.plays.toLocaleString("es")} sub={`${primary.uniquePlays.toLocaleString("es")} únicas`} />
+        <KpiCard label="Vistas" value={primary.views.toLocaleString("es")} sub={`${primary.uniqueViews.toLocaleString("es")} únicas`} />
         <KpiCard label="Hook (25%)"       value={`${primary.ret25.toFixed(0)}%`} color={LEVEL_COLOR[hookLevel]} sub="Retención al cuarto" />
         <KpiCard label="Ret. media (50%)" value={`${primary.ret50.toFixed(0)}%`} color={LEVEL_COLOR[retLevel]}  sub="Mitad del video" />
         <KpiCard label="Cierre (75%)"     value={`${primary.ret75.toFixed(0)}%`}
           color={primary.ret75 >= 20 ? "#22c55e" : primary.ret75 >= 10 ? C.yellow : C.red}
           sub="Tres cuartos" />
+        <KpiCard label="Engagement" value={`${primary.engagement.toFixed(0)}%`} sub="Promedio de toda la curva" />
+        <KpiCard label="Audiencia del pitch" value={primary.pitchAudience != null ? `${primary.pitchAudience.toFixed(0)}%` : "—"} sub={primary.pitchAudience != null ? "Configurado en VTurb" : "Sin pitch_time en VTurb"} />
         <KpiCard label="CTA Click Rate"   value={`${ctaRate.toFixed(1)}%`} color={LEVEL_COLOR[ctaLevel]} sub={`${primary.ctaClicks.toLocaleString("es")} clicks`} />
         <KpiCard label="Conv. Rate"       value={`${primary.convRate.toFixed(1)}%`}
           color={primary.convRate >= 3 ? "#22c55e" : primary.convRate >= 1 ? C.yellow : C.red}
