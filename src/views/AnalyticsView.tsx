@@ -5,6 +5,7 @@ import { Sidebar }                    from "../components/layout/Sidebar";
 import { AlertsPanel }                from "../components/analytics/AlertsPanel";
 import { KPISummary }                 from "../components/analytics/KPISummary";
 import { CampaignFunnelCard }         from "../components/analytics/CampaignFunnelCard";
+import { AdRankingTable }             from "../components/analytics/AdRankingTable";
 import { VSLSelectorBar }             from "../components/analytics/VSLSelectorBar";
 import { VSLIntelligencePanel }       from "../components/analytics/VSLIntelligencePanel";
 import { HourlyHeatmap }              from "../components/analytics/HourlyHeatmap";
@@ -29,7 +30,7 @@ interface Props {
 
 export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings, onSignOut, activeView, isAdmin }: Props) {
   const {
-    summary, funnel, vsls, ranking, heatmap, ltv, alerts, mappings, productRevenue,
+    summary, funnel, vsls, ranking, adRanking, heatmap, ltv, alerts, mappings, productRevenue,
     loading, error, period, setPeriod, refresh, aiResult, aiLoading, runAIAnalysis,
     selectedVslId, compareVslId, setSelectedVsl, setCompareVsl, range,
   } = useAnalyticsData();
@@ -43,6 +44,11 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
   const filteredFunnel  = useMemo(
     () => selectedVslId ? funnel.filter(f => f.videoId === selectedVslId) : funnel,
     [funnel, selectedVslId],
+  );
+
+  const filteredAdRanking = useMemo(
+    () => selectedVslId ? adRanking.filter(a => a.videoId === selectedVslId) : adRanking,
+    [adRanking, selectedVslId],
   );
 
   const selectedVsl = useMemo(
@@ -198,6 +204,8 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
             cacTarget={cacTarget}
             ticketMin={ticketMin}
           />
+
+          <AdRankingTable rows={filteredAdRanking} cacTarget={cacTarget} ticketMin={ticketMin} />
 
           {(loading || filteredFunnel.length > 0) && (
             <section>

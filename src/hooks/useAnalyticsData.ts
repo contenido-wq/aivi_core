@@ -2,12 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import {
   buildRange, previousRange,
   getAnalyticsSummary, getFunnelByCampaign, getVSLRetention,
-  getAdsRanking, getHourlyHeatmap, getLTVBySource, generateAlerts,
+  getAdsRanking, getAdVSLRanking, getHourlyHeatmap, getLTVBySource, generateAlerts,
   getVSLMappings, getProductRevenue,
 } from "../services/analytics";
 import type {
   PeriodKey, DateRange, AnalyticsSummary, FunnelCampaign, VSLData,
-  AdRankRow, HeatmapCell, LTVRow, Alert, VSLMapping, ProductRevenueRow,
+  AdRankRow, AdVSLRow, HeatmapCell, LTVRow, Alert, VSLMapping, ProductRevenueRow,
 } from "../services/analytics";
 
 export interface AnalyticsState {
@@ -15,6 +15,7 @@ export interface AnalyticsState {
   funnel:         FunnelCampaign[];
   vsls:           VSLData[];
   ranking:        AdRankRow[];
+  adRanking:      AdVSLRow[];
   heatmap:        HeatmapCell[];
   ltv:            LTVRow[];
   alerts:         Alert[];
@@ -26,7 +27,7 @@ export interface AnalyticsState {
 }
 
 const EMPTY: AnalyticsState = {
-  summary: null, funnel: [], vsls: [], ranking: [], heatmap: [],
+  summary: null, funnel: [], vsls: [], ranking: [], adRanking: [], heatmap: [],
   ltv: [], alerts: [], mappings: [], productRevenue: [], loading: true, error: null, range: null,
 };
 
@@ -45,12 +46,13 @@ export function useAnalyticsData() {
       const r     = buildRange(period, custom);
       const rPrev = previousRange(r);
 
-      const [summary, summaryPrev, funnel, vsls, ranking, heatmap, ltv, mappings, productRevenue] = await Promise.all([
+      const [summary, summaryPrev, funnel, vsls, ranking, adRanking, heatmap, ltv, mappings, productRevenue] = await Promise.all([
         getAnalyticsSummary(r),
         getAnalyticsSummary(rPrev),
         getFunnelByCampaign(r),
         getVSLRetention(r),
         getAdsRanking(r),
+        getAdVSLRanking(r),
         getHourlyHeatmap(r),
         getLTVBySource(r),
         getVSLMappings(),
@@ -60,7 +62,7 @@ export function useAnalyticsData() {
       const summaryWithPrev: AnalyticsSummary = { ...summary, prev: summaryPrev };
       const alerts = generateAlerts(summaryWithPrev, funnel, vsls);
 
-      setState({ summary: summaryWithPrev, funnel, vsls, ranking, heatmap, ltv, alerts, mappings, productRevenue, loading: false, error: null, range: r });
+      setState({ summary: summaryWithPrev, funnel, vsls, ranking, adRanking, heatmap, ltv, alerts, mappings, productRevenue, loading: false, error: null, range: r });
       setSelectedVslId(prev => prev ?? (vsls[0]?.videoId ?? null));
     } catch (e) {
       setState(s => ({ ...s, loading: false, error: String(e) }));
