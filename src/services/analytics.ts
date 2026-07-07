@@ -823,6 +823,48 @@ export async function deleteVSLMapping(campaignName: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+// ── Mapeo Anuncio → VSL (override opcional) ─────────────────────────────────────
+
+export interface AdVSLMapping { adId: string; videoId: string; videoName: string }
+
+export async function getAdVSLMappings(): Promise<AdVSLMapping[]> {
+  const { data, error } = await supabase.from("ad_vsl_mapping").select("*");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r: any) => ({ adId: r.ad_id, videoId: r.video_id, videoName: r.video_name ?? r.video_id }));
+}
+
+export async function saveAdVSLMapping(m: AdVSLMapping): Promise<void> {
+  const { error } = await supabase.from("ad_vsl_mapping").upsert(
+    { ad_id: m.adId, video_id: m.videoId, video_name: m.videoName },
+    { onConflict: "ad_id" },
+  );
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteAdVSLMapping(adId: string): Promise<void> {
+  const { error } = await supabase.from("ad_vsl_mapping").delete().eq("ad_id", adId);
+  if (error) throw new Error(error.message);
+}
+
+export interface AvailableAd { adId: string; adName: string }
+
+export async function getAvailableAds(): Promise<AvailableAd[]> {
+  const { data } = await supabase
+    .from("ad_investment_data")
+    .select("ad_id, ad_name")
+    .not("ad_id", "is", null);
+
+  const seen = new Set<string>();
+  const result: AvailableAd[] = [];
+  for (const row of (data ?? [])) {
+    if (!seen.has(row.ad_id)) {
+      seen.add(row.ad_id);
+      result.push({ adId: row.ad_id, adName: row.ad_name ?? row.ad_id });
+    }
+  }
+  return result.sort((a, b) => a.adName.localeCompare(b.adName));
+}
+
 // ── Dimensiones ───────────────────────────────────────────────────────────────
 
 export interface DimensionRow {
