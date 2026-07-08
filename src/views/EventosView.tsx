@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Calendar, Upload, Search, Loader2, RefreshCw, Menu, ArrowLeft, X } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList, PieChart, Pie,
 } from "recharts";
 import { C, FONT } from "../tokens";
 import { useResponsive } from "../hooks/useResponsive";
@@ -86,24 +86,42 @@ function ModuleTip({ active, payload }: any) {
   );
 }
 
-function StatusBarChart({ data }: { data: StatusBreakdownRow[] }) {
+function StatusDonutChart({ data }: { data: StatusBreakdownRow[] }) {
+  const total = data.reduce((s, d) => s + d.count, 0);
   return (
-    <ResponsiveContainer width="100%" height={160}>
-      <BarChart data={data} layout="vertical" margin={{ top: 4, right: 36, left: 4, bottom: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-        <XAxis type="number" hide />
-        <YAxis
-          type="category" dataKey="label" width={190}
-          tick={{ fill: C.mutedLight, fontSize: 11, fontFamily: FONT }}
-          tickLine={false} axisLine={false}
-        />
-        <Tooltip content={<StatusTip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-        <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={24} isAnimationActive animationDuration={600}>
-          {data.map(d => <Cell key={d.status} fill={STATUS_COLOR[d.status]} />)}
-          <LabelList dataKey="count" position="right" fill={C.mutedLight} fontSize={11} fontFamily={FONT} />
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+    <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap", justifyContent: "center", padding: "8px 0" }}>
+      <div style={{ position: "relative", width: 160, height: 160, flexShrink: 0 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data} dataKey="count" nameKey="label"
+              innerRadius={52} outerRadius={78} paddingAngle={2} stroke="none"
+              isAnimationActive animationDuration={600}
+            >
+              {data.map(d => <Cell key={d.status} fill={STATUS_COLOR[d.status]} />)}
+            </Pie>
+            <Tooltip content={<StatusTip />} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div style={{
+          position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", pointerEvents: "none",
+        }}>
+          <div style={{ fontFamily: FONT, fontSize: 24, fontWeight: 900, color: C.white, letterSpacing: "-0.02em" }}>{total}</div>
+          <div style={{ fontSize: 9, fontWeight: 800, color: C.mutedLight, textTransform: "uppercase", letterSpacing: "0.08em" }}>Total</div>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {data.map(d => (
+          <div key={d.status} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_COLOR[d.status], flexShrink: 0 }} />
+            <span style={{ color: C.mutedLight, minWidth: 160 }}>{d.label}</span>
+            <span style={{ fontWeight: 700, color: C.white, fontFamily: FONT }}>{d.count}</span>
+            <span style={{ color: C.mutedMid, fontSize: 11 }}>({d.pct}%)</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -422,7 +440,7 @@ export function EventosView({
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.white, marginBottom: 10 }}>Estado de usuarios</div>
                 <Card style={{ padding: "12px 14px" }}>
-                  <StatusBarChart data={statusBreakdown} />
+                  <StatusDonutChart data={statusBreakdown} />
                 </Card>
               </div>
 
