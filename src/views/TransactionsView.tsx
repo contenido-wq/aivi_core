@@ -28,13 +28,14 @@ interface TransactionsViewProps {
   onDashboard?:  () => void;
   onUsers?:      () => void;
   onAnalytics?:  () => void;
+  onEventos?:    () => void;
   activeView?:   string;
   isAdmin?:      boolean;
   allowedSections?: AppView[];
 }
 
 export function TransactionsView({
-  onSettings, onSignOut, onDashboard, onUsers, onAnalytics, activeView = "transacciones", isAdmin = false, allowedSections = [],
+  onSettings, onSignOut, onDashboard, onUsers, onAnalytics, onEventos, activeView = "transacciones", isAdmin = false, allowedSections = [],
 }: TransactionsViewProps) {
   const { isMobile, isTablet, isLarge, isXLarge } = useResponsive();
   const thisYearStart = `${new Date().getFullYear()}-01-01`;
@@ -127,6 +128,7 @@ export function TransactionsView({
         onSignOut={onSignOut}
         onDashboard={onDashboard}
         onUsers={onUsers}
+        onEventos={onEventos}
         activeView={activeView}
         mrr={0}
         arr={0}

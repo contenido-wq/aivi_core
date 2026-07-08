@@ -6,6 +6,7 @@ import { LoginView }           from "./views/LoginView";
 import { AdminPanel }          from "./components/admin/AdminPanel";
 import { UsersView }           from "./views/UsersView";
 import { TransactionsView }    from "./views/TransactionsView";
+import { EventosView }         from "./views/EventosView";
 import { useAuth }             from "./hooks/useAuth";
 import { ADMIN_EMAIL }         from "./lib/authConfig";
 import { C, FONT }             from "./tokens";
@@ -90,6 +91,7 @@ export default function App() {
       onUsers={() => setView("usuarios")}
       onTransactions={() => setView("transacciones")}
       onSettings={() => setView("admin")}
+      onEventos={() => setView("eventos")}
       onSignOut={signOut}
       activeView={effectiveView}
       isAdmin={isAdmin}
@@ -105,6 +107,22 @@ export default function App() {
       onDashboard={() => setView("dashboard")}
       onUsers={() => setView("usuarios")}
       onAnalytics={() => setView("analytics")}
+      onEventos={() => setView("eventos")}
+      activeView={effectiveView}
+      isAdmin={isAdmin}
+      allowedSections={allowedSections}
+    />
+  );
+
+  // Vista Eventos
+  if (effectiveView === "eventos") return (
+    <EventosView
+      onSettings={() => setView("admin")}
+      onSignOut={signOut}
+      onDashboard={() => setView("dashboard")}
+      onUsers={() => setView("usuarios")}
+      onTransactions={() => setView("transacciones")}
+      onAnalytics={() => setView("analytics")}
       activeView={effectiveView}
       isAdmin={isAdmin}
       allowedSections={allowedSections}
@@ -118,6 +136,7 @@ export default function App() {
       onUsers={() => setView("usuarios")}
       onTransactions={() => setView("transacciones")}
       onAnalytics={() => setView("analytics")}
+      onEventos={() => setView("eventos")}
       activeView={effectiveView}
       isAdmin={isAdmin}
       allowedSections={allowedSections}

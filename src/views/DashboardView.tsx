@@ -23,12 +23,13 @@ interface DashboardViewProps {
   onUsers?:         () => void;
   onTransactions?:  () => void;
   onAnalytics?:     () => void;
+  onEventos?:       () => void;
   activeView?:      string;
   isAdmin?:         boolean;
   allowedSections?: AppView[];
 }
 
-export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, onAnalytics, activeView = "dashboard", isAdmin = false, allowedSections = [] }: DashboardViewProps) {
+export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, onAnalytics, onEventos, activeView = "dashboard", isAdmin = false, allowedSections = [] }: DashboardViewProps) {
   const time                  = useClock();
   const [adsOn, setAdsOn]     = useState(false);
   const [date]                = useState(() => new Date());
@@ -81,6 +82,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
         onUsers={onUsers}
         onTransactions={onTransactions}
         onAnalytics={onAnalytics}
+        onEventos={onEventos}
         activeView={activeView}
         mrr={kpis?.mrr ?? 0}
         arr={kpis?.arr ?? 0}

@@ -27,12 +27,13 @@ interface Props {
   onTransactions: () => void;
   onSettings:     () => void;
   onSignOut:      () => void;
+  onEventos?:     () => void;
   activeView:     AppView;
   isAdmin:        boolean;
   allowedSections?: AppView[];
 }
 
-export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings, onSignOut, activeView, isAdmin, allowedSections = [] }: Props) {
+export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings, onSignOut, onEventos, activeView, isAdmin, allowedSections = [] }: Props) {
   const {
     summary, funnel, vsls, adRanking, heatmap, ltv, alerts, mappings, productRevenue,
     loading, error, period, setPeriod, refresh, aiResult, aiLoading, runAIAnalysis,
@@ -115,6 +116,7 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
         onUsers={onUsers}
         onTransactions={onTransactions}
         onAnalytics={() => {}}
+        onEventos={onEventos}
         activeView={activeView}
         mrr={0} arr={0}
         isAdmin={isAdmin}

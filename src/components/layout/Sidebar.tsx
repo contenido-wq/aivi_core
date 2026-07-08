@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight, X, LogOut, Pencil } from "lucide-react";
+import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight, X, LogOut, Pencil, Calendar } from "lucide-react";
 import { C } from "../../tokens";
 import type { ProductFilter, DailyData } from "../../services/dashboard";
 import type { AppView } from "../../types";
@@ -14,6 +14,7 @@ interface SidebarProps {
   onUsers?:         () => void;
   onTransactions?:  () => void;
   onAnalytics?:     () => void;
+  onEventos?:       () => void;
   activeView?:      string;
   mrr:        number;
   arr:        number;
@@ -36,6 +37,7 @@ const NAV_ITEMS = [
   { icon: Users,           label: "Usuarios",      view: "usuarios"      },
   { icon: CreditCard,      label: "Transacciones", view: "transacciones" },
   { icon: BarChart2,       label: "Analytics",     view: "analytics"     },
+  { icon: Calendar,        label: "Eventos",       view: "eventos"       },
   { icon: RefreshCw,       label: "Suscripciones", view: null            },
 ];
 
@@ -46,7 +48,7 @@ const FILTERS: { value: ProductFilter; label: string }[] = [
   { value: "Reto15D",  label: "Reto 15D" },
 ];
 
-export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, onUsers, onTransactions, onAnalytics, activeView, mrr, arr, daily, open, onClose, isMobile, isAdmin = false, allowedSections = [], width }: SidebarProps) {
+export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, onUsers, onTransactions, onAnalytics, onEventos, activeView, mrr, arr, daily, open, onClose, isMobile, isAdmin = false, allowedSections = [], width }: SidebarProps) {
   const canSee = (v: string | null) => isAdmin || v === null || allowedSections.includes(v as AppView);
   const fmtK = (n: number) => {
     const parts = n.toFixed(2).split(".");
@@ -133,6 +135,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
             if (item.view === "usuarios")      onUsers?.();
             if (item.view === "transacciones") onTransactions?.();
             if (item.view === "analytics")     onAnalytics?.();
+            if (item.view === "eventos")       onEventos?.();
             if (isMobile) onClose?.();
           };
           return (

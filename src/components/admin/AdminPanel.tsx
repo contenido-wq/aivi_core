@@ -26,6 +26,7 @@ const SECTIONS: { key: AppView; label: string }[] = [
   { key: "usuarios",      label: "Usuarios" },
   { key: "transacciones", label: "Transacciones" },
   { key: "analytics",     label: "Analytics" },
+  { key: "eventos",       label: "Eventos" },
   { key: "admin",         label: "Ajustes" },
 ];
 
