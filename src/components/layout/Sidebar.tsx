@@ -2,6 +2,7 @@ import { useState } from "react";
 import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight, X, LogOut, Pencil } from "lucide-react";
 import { C } from "../../tokens";
 import type { ProductFilter, DailyData } from "../../services/dashboard";
+import type { AppView } from "../../types";
 import { useDailyGoal } from "../../hooks/useDailyGoal";
 
 interface SidebarProps {
@@ -24,6 +25,8 @@ interface SidebarProps {
   /** Whether sidebar is in mobile mode (drawer) */
   isMobile?: boolean;
   isAdmin?: boolean;
+  /** Secciones a las que el usuario tiene acceso — filtra la navegación */
+  allowedSections?: AppView[];
   /** Override the sidebar width (desktop only). Default: 220 */
   width?: number;
 }
@@ -43,7 +46,8 @@ const FILTERS: { value: ProductFilter; label: string }[] = [
   { value: "Reto15D",  label: "Reto 15D" },
 ];
 
-export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, onUsers, onTransactions, onAnalytics, activeView, mrr, arr, daily, open, onClose, isMobile, isAdmin: _isAdmin = false, width }: SidebarProps) {
+export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, onUsers, onTransactions, onAnalytics, activeView, mrr, arr, daily, open, onClose, isMobile, isAdmin = false, allowedSections = [], width }: SidebarProps) {
+  const canSee = (v: string | null) => isAdmin || v === null || allowedSections.includes(v as AppView);
   const fmtK = (n: number) => {
     const parts = n.toFixed(2).split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -119,7 +123,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
 
       {/* Nav */}
       <nav style={{ padding: "12px 8px", flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.filter(item => canSee(item.view)).map((item) => {
           const Icon     = item.icon;
           const isActive = activeView === item.view;
           const clickable = item.view !== null;
@@ -286,17 +290,19 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
           ))}
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={() => { onSettings(); if (isMobile) onClose?.(); }} style={{
-              flex: 1, padding: "8px", borderRadius: 8,
-              background: "transparent",
-              border: `1px solid ${C.border}`,
-              color: C.mutedLight, fontSize: 11, fontWeight: 600,
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-              transition: "all .15s",
-              cursor: "pointer",
-            }}>
-              <Settings size={13} /> Ajustes
-            </button>
+          {canSee("admin") && (
+            <button onClick={() => { onSettings(); if (isMobile) onClose?.(); }} style={{
+                flex: 1, padding: "8px", borderRadius: 8,
+                background: "transparent",
+                border: `1px solid ${C.border}`,
+                color: C.mutedLight, fontSize: 11, fontWeight: 600,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                transition: "all .15s",
+                cursor: "pointer",
+              }}>
+                <Settings size={13} /> Ajustes
+              </button>
+          )}
           {onSignOut && (
             <button onClick={onSignOut} title="Cerrar sesión" style={{
               padding: "8px 10px", borderRadius: 8,

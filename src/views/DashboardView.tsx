@@ -15,6 +15,7 @@ import { DashFooter }          from "../components/dashboard/DashFooter";
 import { C }                   from "../tokens";
 import { syncToday, syncUtmify } from "../services/dashboard";
 import type { ProductFilter }  from "../services/dashboard";
+import type { AppView }        from "../types";
 
 interface DashboardViewProps {
   onSettings:       () => void;
@@ -24,9 +25,10 @@ interface DashboardViewProps {
   onAnalytics?:     () => void;
   activeView?:      string;
   isAdmin?:         boolean;
+  allowedSections?: AppView[];
 }
 
-export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, onAnalytics, activeView = "dashboard", isAdmin = false }: DashboardViewProps) {
+export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, onAnalytics, activeView = "dashboard", isAdmin = false, allowedSections = [] }: DashboardViewProps) {
   const time                  = useClock();
   const [adsOn, setAdsOn]     = useState(false);
   const [date]                = useState(() => new Date());
@@ -87,6 +89,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
         onClose={() => setSidebarOpen(false)}
         isMobile={isMobile || isTablet}
         isAdmin={isAdmin}
+        allowedSections={allowedSections}
         width={sidebarWidth || undefined}
       />
 
@@ -248,6 +251,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
           onAnalytics={onAnalytics}
           onSettings={onSettings}
           isAdmin={isAdmin}
+          allowedSections={allowedSections}
           filter={filter}
           onFilter={setFilter}
         />

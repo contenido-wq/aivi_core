@@ -34,11 +34,13 @@ export function LoginView() {
     const normalizedEmail = email.trim().toLowerCase();
     setLoginStep("checking");
 
-    // El super admin entra directamente sin verificar access_requests
+    // El super admin entra directamente sin verificar access_requests, con acceso total
+    let allowedSections: string[] = ["dashboard", "admin", "usuarios", "transacciones", "analytics"];
+
     if (normalizedEmail !== ADMIN_EMAIL) {
       const { data: rows, error: selectErr } = await supabase
         .from("access_requests")
-        .select("email")
+        .select("email, allowed_sections")
         .eq("email", normalizedEmail)
         .eq("status", "approved")
         .limit(1);
@@ -49,10 +51,12 @@ export function LoginView() {
         setLoginStep("idle");
         return;
       }
+
+      allowedSections = rows[0].allowed_sections ?? [];
     }
 
     // Escribir localStorage ANTES de signIn para que onAuthStateChange lea el email real
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ email: normalizedEmail }));
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ email: normalizedEmail, allowedSections }));
     setLoginStep("signing-in");
     const { error: authErr } = await supabase.auth.signInWithPassword({
       email:    PORTAL_EMAIL,

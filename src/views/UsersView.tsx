@@ -5,6 +5,7 @@ import { getUsersTraceability, getProductFamily } from "../services/dashboard";
 import type { UserProfile, ProductFilter } from "../services/dashboard";
 import { useResponsive }                  from "../hooks/useResponsive";
 import { MobileBottomNav }               from "../components/layout/MobileBottomNav";
+import type { AppView }                  from "../types";
 
 interface UsersViewProps {
   onBack:          () => void;
@@ -13,6 +14,7 @@ interface UsersViewProps {
   onAnalytics?:    () => void;
   onSettings?:     () => void;
   isAdmin?:        boolean;
+  allowedSections?: AppView[];
 }
 
 const FLAGS: Record<string, string> = {
@@ -204,7 +206,7 @@ function cleanPhone(raw: string): string {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function UsersView({ onBack, onDashboard, onTransactions, onAnalytics, onSettings, isAdmin = false }: UsersViewProps) {
+export function UsersView({ onBack, onDashboard, onTransactions, onAnalytics, onSettings, isAdmin = false, allowedSections = [] }: UsersViewProps) {
   const [users,         setUsers]         = useState<UserProfile[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [selected,      setSelected]      = useState<UserProfile | null>(null);
@@ -900,6 +902,7 @@ export function UsersView({ onBack, onDashboard, onTransactions, onAnalytics, on
           onAnalytics={onAnalytics}
           onSettings={onSettings}
           isAdmin={isAdmin}
+          allowedSections={allowedSections}
           filter={programFilter}
           onFilter={setProgramFilter}
         />

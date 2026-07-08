@@ -29,9 +29,10 @@ interface Props {
   onSignOut:      () => void;
   activeView:     AppView;
   isAdmin:        boolean;
+  allowedSections?: AppView[];
 }
 
-export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings, onSignOut, activeView, isAdmin }: Props) {
+export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings, onSignOut, activeView, isAdmin, allowedSections = [] }: Props) {
   const {
     summary, funnel, vsls, adRanking, heatmap, ltv, alerts, mappings, productRevenue,
     loading, error, period, setPeriod, refresh, aiResult, aiLoading, runAIAnalysis,
@@ -117,6 +118,7 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
         activeView={activeView}
         mrr={0} arr={0}
         isAdmin={isAdmin}
+        allowedSections={allowedSections}
         width={sidebarWidth || undefined}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -280,6 +282,7 @@ export function AnalyticsView({ onDashboard, onUsers, onTransactions, onSettings
           onTransactions={onTransactions}
           onSettings={onSettings}
           isAdmin={isAdmin}
+          allowedSections={allowedSections}
           filter="todos"
           onFilter={() => {}}
         />

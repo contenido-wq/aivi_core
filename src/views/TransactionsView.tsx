@@ -11,6 +11,7 @@ import {
   type TxCategory,
   type ProductFilter,
 } from "../services/dashboard";
+import type { AppView } from "../types";
 
 const CATEGORIES: { key: TxCategory; label: string; shortLabel: string; color: string }[] = [
   { key: "compras",               label: "Compras Aprobadas",        shortLabel: "Compras",     color: C.green   },
@@ -29,10 +30,11 @@ interface TransactionsViewProps {
   onAnalytics?:  () => void;
   activeView?:   string;
   isAdmin?:      boolean;
+  allowedSections?: AppView[];
 }
 
 export function TransactionsView({
-  onSettings, onSignOut, onDashboard, onUsers, onAnalytics, activeView = "transacciones", isAdmin = false,
+  onSettings, onSignOut, onDashboard, onUsers, onAnalytics, activeView = "transacciones", isAdmin = false, allowedSections = [],
 }: TransactionsViewProps) {
   const { isMobile, isTablet, isLarge, isXLarge } = useResponsive();
   const thisYearStart = `${new Date().getFullYear()}-01-01`;
@@ -132,6 +134,7 @@ export function TransactionsView({
         onClose={() => setSidebarOpen(false)}
         isMobile={isMobileLayout}
         isAdmin={isAdmin}
+        allowedSections={allowedSections}
         width={sidebarWidth || undefined}
       />
 
@@ -398,6 +401,7 @@ export function TransactionsView({
           onAnalytics={onAnalytics}
           onSettings={onSettings}
           isAdmin={isAdmin}
+          allowedSections={allowedSections}
           filter={filter}
           onFilter={setFilter}
         />

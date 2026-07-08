@@ -8,16 +8,26 @@ import { useResponsive } from "../../hooks/useResponsive";
 import { AUDIO_SETTINGS } from "../../data/mock";
 import { supabase }     from "../../services/supabase";
 import { C }            from "../../tokens";
+import type { AppView } from "../../types";
 
 interface AdminPanelProps { onBack: () => void; }
 
 interface AccessRequest {
-  id:           string;
-  email:        string;
-  status:       "pending" | "approved" | "rejected";
-  requested_at: string;
-  reviewed_at:  string | null;
+  id:               string;
+  email:            string;
+  status:           "pending" | "approved" | "rejected";
+  requested_at:     string;
+  reviewed_at:      string | null;
+  allowed_sections: AppView[];
 }
+
+const SECTIONS: { key: AppView; label: string }[] = [
+  { key: "dashboard",     label: "Dashboard" },
+  { key: "usuarios",      label: "Usuarios" },
+  { key: "transacciones", label: "Transacciones" },
+  { key: "analytics",     label: "Analytics" },
+  { key: "admin",         label: "Ajustes" },
+];
 
 export function AdminPanel({ onBack }: AdminPanelProps) {
   const { isMobile } = useResponsive();
@@ -43,7 +53,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     setReqError(null);
     const { data, error } = await supabase
       .from("access_requests")
-      .select("id, email, status, requested_at, reviewed_at")
+      .select("id, email, status, requested_at, reviewed_at, allowed_sections")
       .order("requested_at", { ascending: false });
 
     if (error) {
@@ -74,6 +84,27 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
     }
 
     setActionId(null);
+  };
+
+  // ── Alternar sección otorgada ─────────────────────────
+  const handleToggleSection = async (req: AccessRequest, section: AppView) => {
+    const has = req.allowed_sections.includes(section);
+    const next = has
+      ? req.allowed_sections.filter(s => s !== section)
+      : [...req.allowed_sections, section];
+
+    setRequests(rs => rs.map(r => r.id === req.id ? { ...r, allowed_sections: next } : r));
+
+    const { error } = await supabase
+      .from("access_requests")
+      .update({ allowed_sections: next })
+      .eq("id", req.id);
+
+    if (error) {
+      // revertir si falló
+      setRequests(rs => rs.map(r => r.id === req.id ? { ...r, allowed_sections: req.allowed_sections } : r));
+      setActionMsg({ id: req.id, msg: error.message, ok: false });
+    }
   };
 
   // ── Quitar usuario aprobado ───────────────────────────
@@ -221,6 +252,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                       message={actionMsg?.id === r.id ? actionMsg : null}
                       onApprove={() => handleApprove(r)}
                       onReject={() => handleReject(r)}
+                      onToggleSection={section => handleToggleSection(r, section)}
                       fmtDate={fmtDate}
                     />
                   ))}
@@ -240,6 +272,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                       message={actionMsg?.id === r.id ? actionMsg : null}
                       onApprove={() => {}} onReject={() => {}}
                       onRemove={() => handleRemove(r)}
+                      onToggleSection={section => handleToggleSection(r, section)}
                       fmtDate={fmtDate}
                     />
                   ))}
@@ -257,6 +290,7 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
                       key={r.id} req={r}
                       loading={false} message={null}
                       onApprove={() => {}} onReject={() => {}}
+                      onToggleSection={() => {}}
                       fmtDate={fmtDate}
                     />
                   ))}
@@ -315,16 +349,17 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
 
 // ── Componente fila de solicitud ───────────────────────────────────────────────
 interface RequestRowProps {
-  req:       AccessRequest;
-  loading:   boolean;
-  message:   { msg: string; ok: boolean } | null;
-  onApprove: () => void;
-  onReject:  () => void;
-  onRemove?: () => void;
-  fmtDate:   (iso: string) => string;
+  req:             AccessRequest;
+  loading:         boolean;
+  message:         { msg: string; ok: boolean } | null;
+  onApprove:       () => void;
+  onReject:        () => void;
+  onRemove?:       () => void;
+  onToggleSection: (section: AppView) => void;
+  fmtDate:         (iso: string) => string;
 }
 
-function RequestRow({ req, loading, message, onApprove, onReject, onRemove, fmtDate }: RequestRowProps) {
+function RequestRow({ req, loading, message, onApprove, onReject, onRemove, onToggleSection, fmtDate }: RequestRowProps) {
   const isPending  = req.status === "pending";
   const isApproved = req.status === "approved";
   const isRejected = req.status === "rejected";
@@ -349,6 +384,28 @@ function RequestRow({ req, loading, message, onApprove, onReject, onRemove, fmtD
             Solicitó: {fmtDate(req.requested_at)}
             {req.reviewed_at && <span style={{ marginLeft: 8 }}>· Revisado: {fmtDate(req.reviewed_at)}</span>}
           </div>
+          {(isPending || isApproved) && (
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
+              {SECTIONS.map(s => {
+                const active = req.allowed_sections.includes(s.key);
+                return (
+                  <button
+                    key={s.key}
+                    onClick={() => onToggleSection(s.key)}
+                    style={{
+                      padding: "2px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700,
+                      border: `1px solid ${active ? "#FE803F" : "#ddd"}`,
+                      background: active ? "rgba(254,128,63,0.12)" : "transparent",
+                      color: active ? "#FE803F" : "#999",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {isPending && (
