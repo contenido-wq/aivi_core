@@ -47,6 +47,26 @@ export interface ModuleUsageRow {
   totalUses:      number;
 }
 
+export type UserStatus = "no_activado" | "sin_tokens" | "con_tokens";
+
+export interface StatusBreakdownRow {
+  status: UserStatus;
+  label:  string;
+  count:  number;
+  pct:    number;
+}
+
+export function userStatus(u: EventUserRow): UserStatus {
+  if (!u.usuario_activo) return "no_activado";
+  return u.tokens_plan_consumidos_total > 0 ? "con_tokens" : "sin_tokens";
+}
+
+export const STATUS_LABELS: Record<UserStatus, string> = {
+  no_activado: "No activado",
+  sin_tokens:  "Activado, sin gastar tokens",
+  con_tokens:  "Activado y gastó tokens",
+};
+
 export const MODULES: { key: string; label: string }[] = [
   { key: "adn_creator",         label: "ADN Creator"      },
   { key: "adn_view",            label: "ADN View"         },
@@ -171,7 +191,11 @@ export async function getEventsSummary(): Promise<EventSummary[]> {
     .sort((a, b) => b.total - a.total);
 }
 
-export async function getEventDetail(code: string): Promise<{ users: EventUserRow[]; moduleUsage: ModuleUsageRow[] }> {
+export async function getEventDetail(code: string): Promise<{
+  users: EventUserRow[];
+  moduleUsage: ModuleUsageRow[];
+  statusBreakdown: StatusBreakdownRow[];
+}> {
   const rows = await fetchAllEventUsers();
   const users = rows.filter(u => u.enrollment_code === code);
 
@@ -188,5 +212,16 @@ export async function getEventDetail(code: string): Promise<{ users: EventUserRo
     };
   }).sort((a, b) => b.usersWithUsage - a.usersWithUsage);
 
-  return { users, moduleUsage };
+  const order: UserStatus[] = ["no_activado", "sin_tokens", "con_tokens"];
+  const statusBreakdown: StatusBreakdownRow[] = order.map(status => {
+    const count = users.filter(u => userStatus(u) === status).length;
+    return {
+      status,
+      label: STATUS_LABELS[status],
+      count,
+      pct: users.length > 0 ? Math.round((count / users.length) * 100) : 0,
+    };
+  });
+
+  return { users, moduleUsage, statusBreakdown };
 }

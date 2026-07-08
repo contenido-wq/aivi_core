@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Calendar, Upload, Search, Loader2, RefreshCw, Menu } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList,
+} from "recharts";
 import { C, FONT } from "../tokens";
 import { useResponsive } from "../hooks/useResponsive";
 import { Sidebar } from "../components/layout/Sidebar";
 import { MobileBottomNav } from "../components/layout/MobileBottomNav";
+import { Card } from "../components/ui/Card";
 import {
-  parseEventCSV, uploadEventUsers, getEventsSummary, getEventDetail,
-  type EventSummary, type EventUserRow, type ModuleUsageRow,
+  parseEventCSV, uploadEventUsers, getEventsSummary, getEventDetail, userStatus,
+  type EventSummary, type EventUserRow, type ModuleUsageRow, type StatusBreakdownRow, type UserStatus,
 } from "../services/events";
 import type { AppView } from "../types";
 
@@ -21,6 +25,12 @@ interface EventosViewProps {
   isAdmin?:         boolean;
   allowedSections?: AppView[];
 }
+
+const STATUS_COLOR: Record<UserStatus, string> = {
+  no_activado: C.red,
+  sin_tokens:  C.yellow,
+  con_tokens:  C.green,
+};
 
 function fmtDate(iso: string | null) {
   if (!iso) return "—";
@@ -41,6 +51,76 @@ function KPITile({ label, value, color }: { label: string; value: string; color:
   );
 }
 
+function StatusTip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload as StatusBreakdownRow;
+  return (
+    <div style={{
+      background: "#18181B", border: `1px solid ${C.border}`, borderRadius: 10,
+      padding: "10px 14px", fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+    }}>
+      <div style={{ color: C.white, marginBottom: 4, fontWeight: 600 }}>{p.label}</div>
+      <div style={{ color: STATUS_COLOR[p.status], fontWeight: 700 }}>{p.count} usuarios · {p.pct}%</div>
+    </div>
+  );
+}
+
+function ModuleTip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload as ModuleUsageRow;
+  return (
+    <div style={{
+      background: "#18181B", border: `1px solid ${C.border}`, borderRadius: 10,
+      padding: "10px 14px", fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+    }}>
+      <div style={{ color: C.white, marginBottom: 4, fontWeight: 600 }}>{p.label}</div>
+      <div style={{ color: C.orange, fontWeight: 700 }}>{p.usersWithUsage} usuarios · {p.pct}%</div>
+      <div style={{ color: C.mutedMid, marginTop: 2 }}>{p.totalUses} usos totales</div>
+    </div>
+  );
+}
+
+function StatusBarChart({ data }: { data: StatusBreakdownRow[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={160}>
+      <BarChart data={data} layout="vertical" margin={{ top: 4, right: 36, left: 4, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+        <XAxis type="number" hide />
+        <YAxis
+          type="category" dataKey="label" width={190}
+          tick={{ fill: C.mutedLight, fontSize: 11, fontFamily: FONT }}
+          tickLine={false} axisLine={false}
+        />
+        <Tooltip content={<StatusTip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
+        <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={24} isAnimationActive animationDuration={600}>
+          {data.map(d => <Cell key={d.status} fill={STATUS_COLOR[d.status]} />)}
+          <LabelList dataKey="count" position="right" fill={C.mutedLight} fontSize={11} fontFamily={FONT} />
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function ModuleUsageChart({ data }: { data: ModuleUsageRow[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={Math.max(220, data.length * 28)}>
+      <BarChart data={data} layout="vertical" margin={{ top: 4, right: 36, left: 4, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+        <XAxis type="number" hide />
+        <YAxis
+          type="category" dataKey="label" width={150}
+          tick={{ fill: C.mutedLight, fontSize: 11, fontFamily: FONT }}
+          tickLine={false} axisLine={false}
+        />
+        <Tooltip content={<ModuleTip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
+        <Bar dataKey="usersWithUsage" fill={C.orange} radius={[0, 4, 4, 0]} maxBarSize={18} isAnimationActive animationDuration={600}>
+          <LabelList dataKey="usersWithUsage" position="right" fill={C.mutedLight} fontSize={11} fontFamily={FONT} />
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
 export function EventosView({
   onSettings, onSignOut, onDashboard, onUsers, onTransactions, onAnalytics,
   activeView = "eventos", isAdmin = false, allowedSections = [],
@@ -54,6 +134,7 @@ export function EventosView({
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [users,       setUsers]       = useState<EventUserRow[]>([]);
   const [moduleUsage, setModuleUsage] = useState<ModuleUsageRow[]>([]);
+  const [statusBreakdown, setStatusBreakdown] = useState<StatusBreakdownRow[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [search,      setSearch]      = useState("");
@@ -75,11 +156,12 @@ export function EventosView({
   useEffect(() => { loadEvents(); }, []); // eslint-disable-line
 
   useEffect(() => {
-    if (!selectedCode) { setUsers([]); setModuleUsage([]); return; }
+    if (!selectedCode) { setUsers([]); setModuleUsage([]); setStatusBreakdown([]); return; }
     setLoadingDetail(true);
-    getEventDetail(selectedCode).then(({ users, moduleUsage }) => {
+    getEventDetail(selectedCode).then(({ users, moduleUsage, statusBreakdown }) => {
       setUsers(users);
       setModuleUsage(moduleUsage);
+      setStatusBreakdown(statusBreakdown);
       setLoadingDetail(false);
     });
   }, [selectedCode]);
@@ -227,35 +309,31 @@ export function EventosView({
           ) : selectedEvent ? (
             <>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <KPITile label="Total registrados" value={String(selectedEvent.total)} color={C.white} />
-                <KPITile
-                  label="Activos"
-                  value={`${selectedEvent.activos} (${selectedEvent.total > 0 ? Math.round(selectedEvent.activos / selectedEvent.total * 100) : 0}%)`}
-                  color={C.green}
-                />
-                <KPITile
-                  label="Verificados"
-                  value={`${selectedEvent.verificados} (${selectedEvent.total > 0 ? Math.round(selectedEvent.verificados / selectedEvent.total * 100) : 0}%)`}
-                  color={C.orange}
-                />
+                <KPITile label="Total asistentes" value={String(selectedEvent.total)} color={C.white} />
+                {statusBreakdown.map(s => (
+                  <KPITile
+                    key={s.status}
+                    label={s.status === "no_activado" ? "No activados" : s.status === "sin_tokens" ? "Activados, sin tokens" : "Gastaron tokens"}
+                    value={`${s.count} (${s.pct}%)`}
+                    color={STATUS_COLOR[s.status]}
+                  />
+                ))}
+              </div>
+
+              {/* Estado de usuarios */}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.white, marginBottom: 10 }}>Estado de usuarios</div>
+                <Card style={{ padding: "12px 14px" }}>
+                  <StatusBarChart data={statusBreakdown} />
+                </Card>
               </div>
 
               {/* Uso por módulo */}
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.white, marginBottom: 10 }}>Uso por módulo</div>
-                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 100px 70px 100px", padding: "8px 14px", fontSize: 10, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${C.border}` }}>
-                    <span>Módulo</span><span>Usuarios</span><span>%</span><span>Usos totales</span>
-                  </div>
-                  {moduleUsage.map(m => (
-                    <div key={m.key} style={{ display: "grid", gridTemplateColumns: "1fr 100px 70px 100px", padding: "8px 14px", fontSize: 12, borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
-                      <span style={{ color: C.white }}>{m.label}</span>
-                      <span style={{ color: C.mutedLight }}>{m.usersWithUsage}</span>
-                      <span style={{ color: m.pct > 0 ? C.orange : C.muted, fontWeight: 700 }}>{m.pct}%</span>
-                      <span style={{ color: C.mutedLight }}>{m.totalUses}</span>
-                    </div>
-                  ))}
-                </div>
+                <Card style={{ padding: "12px 14px" }}>
+                  <ModuleUsageChart data={moduleUsage} />
+                </Card>
               </div>
 
               {/* Tabla de usuarios */}
@@ -277,20 +355,30 @@ export function EventosView({
                 </div>
                 <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", overflowX: "auto" }}>
                   <div style={{ minWidth: 560 }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 90px 120px", padding: "8px 14px", fontSize: 10, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${C.border}` }}>
-                      <span>Nombre</span><span>Email</span><span>Activo</span><span>Verificado</span><span>Registrado</span>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 200px 120px", padding: "8px 14px", fontSize: 10, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${C.border}` }}>
+                      <span>Nombre</span><span>Email</span><span>Estado</span><span>Registrado</span>
                     </div>
                     {filteredUsers.length === 0 ? (
                       <div style={{ padding: "20px 14px", fontSize: 12, color: C.muted, textAlign: "center" }}>Sin resultados</div>
-                    ) : filteredUsers.map(u => (
-                      <div key={u.email} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 90px 120px", padding: "8px 14px", fontSize: 12, borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
+                    ) : filteredUsers.map(u => {
+                      const status = userStatus(u);
+                      return (
+                      <div key={u.email} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 200px 120px", padding: "8px 14px", fontSize: 12, borderBottom: `1px solid rgba(255,255,255,0.04)`, alignItems: "center" }}>
                         <span style={{ color: C.white, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.nombre || u.email.split("@")[0]}</span>
                         <span style={{ color: C.mutedMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</span>
-                        <span style={{ color: u.usuario_activo ? C.green : C.muted }}>{u.usuario_activo ? "Sí" : "No"}</span>
-                        <span style={{ color: u.verificado ? C.green : C.muted }}>{u.verificado ? "Sí" : "No"}</span>
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", gap: 5, width: "fit-content",
+                          fontSize: 10, fontWeight: 700, color: STATUS_COLOR[status],
+                          background: `${STATUS_COLOR[status]}1F`, border: `1px solid ${STATUS_COLOR[status]}40`,
+                          borderRadius: 5, padding: "3px 8px",
+                        }}>
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: STATUS_COLOR[status], flexShrink: 0 }} />
+                          {status === "no_activado" ? "No activado" : status === "sin_tokens" ? "Sin tokens" : "Gastó tokens"}
+                        </span>
                         <span style={{ color: C.mutedLight }}>{fmtDate(u.registrado_el)}</span>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
