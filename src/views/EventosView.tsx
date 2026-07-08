@@ -436,20 +436,21 @@ export function EventosView({
                 ))}
               </div>
 
-              {/* Estado de usuarios */}
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.white, marginBottom: 10 }}>Estado de usuarios</div>
-                <Card style={{ padding: "12px 14px" }}>
-                  <StatusDonutChart data={statusBreakdown} />
-                </Card>
-              </div>
+              {/* Estado de usuarios + Uso por módulo */}
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
+                <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.white, marginBottom: 10 }}>Estado de usuarios</div>
+                  <Card style={{ padding: "12px 14px" }}>
+                    <StatusDonutChart data={statusBreakdown} />
+                  </Card>
+                </div>
 
-              {/* Uso por módulo */}
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.white, marginBottom: 10 }}>Uso por módulo</div>
-                <Card style={{ padding: "12px 14px" }}>
-                  <ModuleUsageChart data={moduleUsage} />
-                </Card>
+                <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.white, marginBottom: 10 }}>Uso por módulo</div>
+                  <Card style={{ padding: "12px 14px" }}>
+                    <ModuleUsageChart data={moduleUsage} />
+                  </Card>
+                </div>
               </div>
 
               {/* Tabla de usuarios */}
