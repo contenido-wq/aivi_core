@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Calendar, Upload, Search, Loader2, RefreshCw, Menu } from "lucide-react";
+import { Calendar, Upload, Search, Loader2, RefreshCw, Menu, ArrowLeft, X } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList,
 } from "recharts";
@@ -9,7 +9,7 @@ import { Sidebar } from "../components/layout/Sidebar";
 import { MobileBottomNav } from "../components/layout/MobileBottomNav";
 import { Card } from "../components/ui/Card";
 import {
-  parseEventCSV, uploadEventUsers, getEventsSummary, getEventDetail, userStatus,
+  parseEventCSV, uploadEventUsers, getEventsSummary, getEventDetail, userStatus, MODULES,
   type EventSummary, type EventUserRow, type ModuleUsageRow, type StatusBreakdownRow, type UserStatus,
 } from "../services/events";
 import type { AppView } from "../types";
@@ -30,6 +30,12 @@ const STATUS_COLOR: Record<UserStatus, string> = {
   no_activado: C.red,
   sin_tokens:  C.yellow,
   con_tokens:  C.green,
+};
+
+const STATUS_SHORT_LABEL: Record<UserStatus, string> = {
+  no_activado: "No activado",
+  sin_tokens:  "Sin tokens",
+  con_tokens:  "Gastó tokens",
 };
 
 function fmtDate(iso: string | null) {
@@ -121,6 +127,92 @@ function ModuleUsageChart({ data }: { data: ModuleUsageRow[] }) {
   );
 }
 
+interface UserModuleRow {
+  key:   string;
+  label: string;
+  count: number;
+  last:  string | null;
+}
+
+function UserDetailPanel({ user, onClose, isMobile }: { user: EventUserRow; onClose: () => void; isMobile: boolean }) {
+  const status = userStatus(user);
+
+  const moduleRows: UserModuleRow[] = MODULES
+    .map(m => ({
+      key:   m.key,
+      label: m.label,
+      count: (user[`${m.key}_exitosas` as keyof EventUserRow] as number) ?? 0,
+      last:  (user[`${m.key}_ultima` as keyof EventUserRow] as string | null) ?? null,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {/* Header */}
+      <div style={{ padding: "16px 18px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", color: C.mutedLight, cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 5, fontSize: 12, padding: 0,
+          }}>
+            {isMobile ? <><ArrowLeft size={14} /> Volver</> : <X size={16} />}
+          </button>
+        </div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: C.white, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {user.nombre || user.email.split("@")[0]}
+        </div>
+        <div style={{ fontSize: 12, color: C.mutedMid, marginBottom: 8, wordBreak: "break-all" }}>{user.email}</div>
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 5,
+          fontSize: 10, fontWeight: 700, color: STATUS_COLOR[status],
+          background: `${STATUS_COLOR[status]}1F`, border: `1px solid ${STATUS_COLOR[status]}40`,
+          borderRadius: 5, padding: "3px 8px",
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: STATUS_COLOR[status], flexShrink: 0 }} />
+          {STATUS_SHORT_LABEL[status]}
+        </span>
+      </div>
+
+      {/* Datos generales */}
+      <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {[
+            { label: "Plan",              value: user.plan ?? "—" },
+            { label: "Estado del plan",   value: user.estado_plan ?? "—" },
+            { label: "Registrado",        value: fmtDate(user.registrado_el) },
+            { label: "Tokens (total)",    value: String(user.tokens_plan_consumidos_total) },
+          ].map(f => (
+            <div key={f.label}>
+              <div style={{ fontSize: 9, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>{f.label}</div>
+              <div style={{ fontSize: 12, color: C.white, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Uso por módulo */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "14px 18px" }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: C.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+          Uso por módulo
+        </div>
+        {moduleRows.map(m => (
+          <div key={m.key} style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+            padding: "8px 0", borderBottom: `1px solid rgba(255,255,255,0.04)`,
+            opacity: m.count > 0 ? 1 : 0.4,
+          }}>
+            <span style={{ fontSize: 12, color: C.white }}>{m.label}</span>
+            <div style={{ textAlign: "right", flexShrink: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: m.count > 0 ? C.orange : C.muted }}>{m.count}×</div>
+              <div style={{ fontSize: 10, color: C.mutedMid }}>{fmtDate(m.last)}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function EventosView({
   onSettings, onSignOut, onDashboard, onUsers, onTransactions, onAnalytics,
   activeView = "eventos", isAdmin = false, allowedSections = [],
@@ -140,6 +232,8 @@ export function EventosView({
   const [search,      setSearch]      = useState("");
   const [uploading,   setUploading]   = useState(false);
   const [uploadMsg,   setUploadMsg]   = useState<{ msg: string; ok: boolean } | null>(null);
+  const [selectedUser, setSelectedUser] = useState<EventUserRow | null>(null);
+  const [mobileView,  setMobileView]  = useState<"list" | "detail">("list");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -156,6 +250,8 @@ export function EventosView({
   useEffect(() => { loadEvents(); }, []); // eslint-disable-line
 
   useEffect(() => {
+    setSelectedUser(null);
+    setMobileView("list");
     if (!selectedCode) { setUsers([]); setModuleUsage([]); setStatusBreakdown([]); return; }
     setLoadingDetail(true);
     getEventDetail(selectedCode).then(({ users, moduleUsage, statusBreakdown }) => {
@@ -300,8 +396,10 @@ export function EventosView({
           ))}
         </div>
 
-        {/* Contenido */}
-        <div style={{ flex: 1, overflowY: "auto", padding: `16px 24px ${isMobile ? 64 : 16}px`, display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Contenido + panel de detalle */}
+        <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+        {(!isMobile || mobileView === "list") && (
+        <div style={{ flex: 1, minWidth: 0, overflowY: "auto", padding: `16px 24px ${isMobile ? 64 : 16}px`, display: "flex", flexDirection: "column", gap: 16 }}>
           {loadingDetail ? (
             <div style={{ textAlign: "center", padding: "40px 0", color: C.muted }}>
               <Loader2 size={20} style={{ animation: "spin 0.8s linear infinite" }} />
@@ -362,8 +460,18 @@ export function EventosView({
                       <div style={{ padding: "20px 14px", fontSize: 12, color: C.muted, textAlign: "center" }}>Sin resultados</div>
                     ) : filteredUsers.map(u => {
                       const status = userStatus(u);
+                      const isSel = selectedUser?.email === u.email;
                       return (
-                      <div key={u.email} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 200px 120px", padding: "8px 14px", fontSize: 12, borderBottom: `1px solid rgba(255,255,255,0.04)`, alignItems: "center" }}>
+                      <div
+                        key={u.email}
+                        onClick={() => { setSelectedUser(u); if (isMobile) setMobileView("detail"); }}
+                        style={{
+                          display: "grid", gridTemplateColumns: "1fr 1fr 200px 120px", padding: "8px 14px", fontSize: 12,
+                          borderBottom: `1px solid rgba(255,255,255,0.04)`, alignItems: "center", cursor: "pointer",
+                          borderLeft: isSel ? `2px solid ${C.orange}` : "2px solid transparent",
+                          background: isSel ? "rgba(254,128,63,0.07)" : "transparent",
+                        }}
+                      >
                         <span style={{ color: C.white, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.nombre || u.email.split("@")[0]}</span>
                         <span style={{ color: C.mutedMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</span>
                         <span style={{
@@ -373,7 +481,7 @@ export function EventosView({
                           borderRadius: 5, padding: "3px 8px",
                         }}>
                           <span style={{ width: 6, height: 6, borderRadius: "50%", background: STATUS_COLOR[status], flexShrink: 0 }} />
-                          {status === "no_activado" ? "No activado" : status === "sin_tokens" ? "Sin tokens" : "Gastó tokens"}
+                          {STATUS_SHORT_LABEL[status]}
                         </span>
                         <span style={{ color: C.mutedLight }}>{fmtDate(u.registrado_el)}</span>
                       </div>
@@ -388,6 +496,22 @@ export function EventosView({
               Sube un CSV de un evento para ver su dashboard.
             </div>
           )}
+        </div>
+        )}
+
+        {selectedUser && (!isMobile || mobileView === "detail") && (
+          <div style={{
+            width: isMobile ? "100%" : 340, flexShrink: 0,
+            borderLeft: isMobile ? "none" : `1px solid ${C.border}`,
+            background: C.sidebar, overflowY: "auto",
+          }}>
+            <UserDetailPanel
+              user={selectedUser}
+              isMobile={isMobile}
+              onClose={() => { setSelectedUser(null); setMobileView("list"); }}
+            />
+          </div>
+        )}
         </div>
       </div>
 
