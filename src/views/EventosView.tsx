@@ -89,7 +89,7 @@ function ModuleTip({ active, payload }: any) {
 function StatusDonutChart({ data }: { data: StatusBreakdownRow[] }) {
   const total = data.reduce((s, d) => s + d.count, 0);
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap", justifyContent: "center", padding: "8px 0" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap", justifyContent: "center", padding: "8px 0", width: "100%" }}>
       <div style={{ position: "relative", width: 160, height: 160, flexShrink: 0 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -437,17 +437,17 @@ export function EventosView({
               </div>
 
               {/* Estado de usuarios + Uso por módulo */}
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
-                <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "stretch" }}>
+                <div style={{ flex: "1 1 320px", minWidth: 0, display: "flex", flexDirection: "column" }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.white, marginBottom: 10 }}>Estado de usuarios</div>
-                  <Card style={{ padding: "12px 14px" }}>
+                  <Card style={{ padding: "12px 14px", flex: 1, display: "flex", alignItems: "center" }}>
                     <StatusDonutChart data={statusBreakdown} />
                   </Card>
                 </div>
 
-                <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+                <div style={{ flex: "1 1 320px", minWidth: 0, display: "flex", flexDirection: "column" }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.white, marginBottom: 10 }}>Uso por módulo</div>
-                  <Card style={{ padding: "12px 14px" }}>
+                  <Card style={{ padding: "12px 14px", flex: 1 }}>
                     <ModuleUsageChart data={moduleUsage} />
                   </Card>
                 </div>
