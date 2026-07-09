@@ -155,10 +155,25 @@ export async function uploadEventUsers(rows: EventUserRow[]): Promise<{ count: n
   return { count: rows.length };
 }
 
-async function fetchAllEventUsers(): Promise<EventUserRow[]> {
+/**
+ * `codes` acota la consulta a esos enrollment_code (usado para admins de
+ * evento restringidos, ver allowed_events) — `undefined` trae todo (super-admin).
+ * Un array vacío significa "sin eventos permitidos" y no debe golpear la red.
+ */
+async function fetchAllEventUsers(codes?: string[]): Promise<EventUserRow[]> {
+  if (codes && codes.length === 0) return [];
+  let query = supabase.from("event_users").select("*").limit(50000);
+  if (codes) query = query.in("enrollment_code", codes);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data as EventUserRow[]) ?? [];
+}
+
+async function fetchEventUsersByCode(code: string): Promise<EventUserRow[]> {
   const { data, error } = await supabase
     .from("event_users")
     .select("*")
+    .eq("enrollment_code", code)
     .limit(50000);
   if (error) throw error;
   return (data as EventUserRow[]) ?? [];
@@ -218,8 +233,11 @@ export async function setEventDisplayName(code: string, name: string): Promise<v
   if (error) throw error;
 }
 
-async function fetchDisplayNames(): Promise<Record<string, string>> {
-  const { data, error } = await supabase.from("events").select("enrollment_code, display_name");
+async function fetchDisplayNames(codes?: string[]): Promise<Record<string, string>> {
+  if (codes && codes.length === 0) return {};
+  let query = supabase.from("events").select("enrollment_code, display_name");
+  if (codes) query = query.in("enrollment_code", codes);
+  const { data, error } = await query;
   if (error) throw error;
   const map: Record<string, string> = {};
   for (const r of data ?? []) {
@@ -228,8 +246,13 @@ async function fetchDisplayNames(): Promise<Record<string, string>> {
   return map;
 }
 
-export async function getEventsSummary(): Promise<EventSummary[]> {
-  const [rows, displayNames] = await Promise.all([fetchAllEventUsers(), fetchDisplayNames()]);
+/**
+ * `allowedCodes` restringe la consulta a esos enrollment_code — pásalo para
+ * cualquier caller que no sea el super-admin (ver allowed_events). `undefined`
+ * trae todos los eventos.
+ */
+export async function getEventsSummary(allowedCodes?: string[]): Promise<EventSummary[]> {
+  const [rows, displayNames] = await Promise.all([fetchAllEventUsers(allowedCodes), fetchDisplayNames(allowedCodes)]);
 
   const byCode: Record<string, EventUserRow[]> = {};
   for (const r of rows) {
@@ -290,8 +313,7 @@ export async function getEventDetail(code: string): Promise<{
   moduleUsage: ModuleUsageRow[];
   statusBreakdown: StatusBreakdownRow[];
 }> {
-  const rows = await fetchAllEventUsers();
-  const users = rows.filter(u => u.enrollment_code === code);
+  const users = await fetchEventUsersByCode(code);
   return { users, moduleUsage: computeModuleUsage(users), statusBreakdown: computeStatusBreakdown(users) };
 }
 

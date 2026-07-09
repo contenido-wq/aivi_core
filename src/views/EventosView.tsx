@@ -80,13 +80,17 @@ export function EventosView({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Evita que una respuesta de red fuera de orden (de un evento previamente
+  // seleccionado) pise el estado del evento actualmente seleccionado.
+  const selectedCodeRef = useRef<string | null>(null);
+  useEffect(() => { selectedCodeRef.current = selectedCode; }, [selectedCode]);
+
   const loadEvents = async () => {
     setLoadingList(true);
-    const summary = await getEventsSummary();
+    const summary = await getEventsSummary(isAdmin ? undefined : allowedEvents);
     setEvents(summary);
-    const visible = isAdmin ? summary : summary.filter(e => allowedEvents.includes(e.code));
-    if (visible.length > 0 && !visible.some(e => e.code === selectedCode)) {
-      setSelectedCode(visible[0].code);
+    if (summary.length > 0 && !summary.some(e => e.code === selectedCode)) {
+      setSelectedCode(summary[0].code);
     }
     setLoadingList(false);
   };
@@ -96,6 +100,7 @@ export function EventosView({
   const loadGuests = async (code: string) => {
     setLoadingGuests(true);
     const list = await listEventGuests(code);
+    if (selectedCodeRef.current !== code) return; // respuesta obsoleta, ignorar
     setGuests(list);
     setLoadingGuests(false);
   };
@@ -103,6 +108,7 @@ export function EventosView({
   const loadAdmins = async (code: string) => {
     setLoadingAdmins(true);
     const list = await listEventAdmins(code);
+    if (selectedCodeRef.current !== code) return; // respuesta obsoleta, ignorar
     setAdmins(list);
     setLoadingAdmins(false);
   };
@@ -118,7 +124,9 @@ export function EventosView({
     setAdminMsg(null);
     if (!selectedCode) { setUsers([]); setModuleUsage([]); setStatusBreakdown([]); setGuests([]); setAdmins([]); return; }
     setLoadingDetail(true);
-    getEventDetail(selectedCode).then(({ users, moduleUsage, statusBreakdown }) => {
+    const codeForThisLoad = selectedCode;
+    getEventDetail(codeForThisLoad).then(({ users, moduleUsage, statusBreakdown }) => {
+      if (selectedCodeRef.current !== codeForThisLoad) return; // respuesta obsoleta, ignorar
       setUsers(users);
       setModuleUsage(moduleUsage);
       setStatusBreakdown(statusBreakdown);
@@ -130,7 +138,7 @@ export function EventosView({
       const emailsSinTelefono = users.filter(u => !u.phone).map(u => u.email);
       if (emailsSinTelefono.length > 0) {
         getPhonesByEmail(emailsSinTelefono).then(phones => {
-          if (Object.keys(phones).length === 0) return;
+          if (Object.keys(phones).length === 0 || selectedCodeRef.current !== codeForThisLoad) return;
           setUsers(prev => prev.map(u => (!u.phone && phones[u.email]) ? { ...u, phone: phones[u.email] } : u));
         });
       }
@@ -212,9 +220,10 @@ export function EventosView({
   };
 
   const handleShowAddAdmin = async () => {
-    setShowAddAdmin(v => !v);
+    const opening = !showAddAdmin;
+    setShowAddAdmin(opening);
     setAdminMsg(null);
-    if (!showAddAdmin && eligibleMembers.length === 0) {
+    if (opening) {
       const list = await listEligibleTeamMembers();
       setEligibleMembers(list);
     }
@@ -241,8 +250,12 @@ export function EventosView({
 
   const handleRemoveAdmin = async (email: string) => {
     if (!selectedCode) return;
-    await removeEventAdmin(selectedCode, email);
-    await loadAdmins(selectedCode);
+    try {
+      await removeEventAdmin(selectedCode, email);
+      await loadAdmins(selectedCode);
+    } catch (e) {
+      setAdminMsg({ msg: e instanceof Error ? e.message : "No se pudo quitar el administrador.", ok: false });
+    }
   };
 
   const handleUpdateUser = async (email: string, fields: { nombre?: string; phone?: string }) => {
@@ -528,6 +541,10 @@ export function EventosView({
                     </button>
                   </div>
 
+                  {adminMsg && !adminMsg.ok && (
+                    <div style={{ marginBottom: 10, fontSize: 11, color: "#FF8A87" }}>{adminMsg.msg}</div>
+                  )}
+
                   {showAddAdmin && (
                     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14, marginBottom: 10, display: "flex", flexDirection: "column", gap: 8, maxWidth: 420 }}>
                       <select
@@ -544,9 +561,6 @@ export function EventosView({
                         <div style={{ fontSize: 11, color: C.muted }}>
                           No hay más miembros del equipo con la sección "Eventos" habilitada para agregar.
                         </div>
-                      )}
-                      {adminMsg && !adminMsg.ok && (
-                        <div style={{ fontSize: 11, color: "#FF8A87" }}>{adminMsg.msg}</div>
                       )}
                       <button
                         onClick={handleAddAdmin}

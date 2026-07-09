@@ -96,9 +96,15 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
 
     setRequests(rs => rs.map(r => r.id === req.id ? { ...r, allowed_sections: next } : r));
 
+    const patch: { allowed_sections: AppView[]; allowed_events?: string[] } = { allowed_sections: next };
+    // Al revocar "eventos" también se limpian los eventos asignados — si no,
+    // reaparecerían solos si alguien vuelve a otorgar la sección más adelante
+    // sin pasar de nuevo por "Administradores" en EventosView.
+    if (section === "eventos" && has) patch.allowed_events = [];
+
     const { error } = await supabase
       .from("access_requests")
-      .update({ allowed_sections: next })
+      .update(patch)
       .eq("id", req.id);
 
     if (error) {
