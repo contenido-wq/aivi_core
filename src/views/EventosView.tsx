@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Calendar, Upload, Loader2, RefreshCw, Menu, Pencil, Check, X as XIcon, UserPlus, Trash2, KeyRound } from "lucide-react";
+import { Calendar, Upload, Loader2, RefreshCw, Menu, Pencil, Check, X as XIcon, UserPlus, Trash2, KeyRound, ShieldCheck } from "lucide-react";
 import { C, FONT } from "../tokens";
 import { useResponsive } from "../hooks/useResponsive";
 import { Sidebar } from "../components/layout/Sidebar";
@@ -10,6 +10,7 @@ import {
   type EventSummary, type EventUserRow, type ModuleUsageRow, type StatusBreakdownRow,
 } from "../services/events";
 import { createEventGuest, listEventGuests, deleteEventGuest, type EventGuest } from "../services/eventGuests";
+import { listEventAdmins, listEligibleTeamMembers, addEventAdmin, removeEventAdmin, type EventAdmin, type EligibleTeamMember } from "../services/eventAdmins";
 import type { AppView } from "../types";
 
 interface EventosViewProps {
@@ -68,6 +69,15 @@ export function EventosView({
   const [guestMsg,      setGuestMsg]      = useState<{ msg: string; ok: boolean } | null>(null);
   const [justCreated,   setJustCreated]   = useState<{ username: string; password: string } | null>(null);
 
+  // Administradores (solo super-admin)
+  const [admins,          setAdmins]          = useState<EventAdmin[]>([]);
+  const [loadingAdmins,   setLoadingAdmins]    = useState(false);
+  const [eligibleMembers, setEligibleMembers]  = useState<EligibleTeamMember[]>([]);
+  const [showAddAdmin,    setShowAddAdmin]     = useState(false);
+  const [newAdminEmail,   setNewAdminEmail]    = useState("");
+  const [addingAdmin,     setAddingAdmin]      = useState(false);
+  const [adminMsg,        setAdminMsg]         = useState<{ msg: string; ok: boolean } | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadEvents = async () => {
@@ -90,6 +100,13 @@ export function EventosView({
     setLoadingGuests(false);
   };
 
+  const loadAdmins = async (code: string) => {
+    setLoadingAdmins(true);
+    const list = await listEventAdmins(code);
+    setAdmins(list);
+    setLoadingAdmins(false);
+  };
+
   useEffect(() => {
     setSelectedUser(null);
     setMobileView("list");
@@ -97,7 +114,9 @@ export function EventosView({
     setShowAddGuest(false);
     setJustCreated(null);
     setGuestMsg(null);
-    if (!selectedCode) { setUsers([]); setModuleUsage([]); setStatusBreakdown([]); setGuests([]); return; }
+    setShowAddAdmin(false);
+    setAdminMsg(null);
+    if (!selectedCode) { setUsers([]); setModuleUsage([]); setStatusBreakdown([]); setGuests([]); setAdmins([]); return; }
     setLoadingDetail(true);
     getEventDetail(selectedCode).then(({ users, moduleUsage, statusBreakdown }) => {
       setUsers(users);
@@ -117,6 +136,7 @@ export function EventosView({
       }
     });
     loadGuests(selectedCode);
+    if (isAdmin) loadAdmins(selectedCode);
   }, [selectedCode]);
 
   const handleFile = async (file: File) => {
@@ -145,6 +165,7 @@ export function EventosView({
     ? "Todavía no hay eventos cargados. Sube un CSV para empezar."
     : "No tienes eventos asignados todavía. Pídele acceso al administrador.";
   const selectedEvent = visibleEvents.find(e => e.code === selectedCode) ?? null;
+  const availableMembers = eligibleMembers.filter(m => !admins.some(a => a.email === m.email));
 
   const startEditName = () => {
     if (!selectedEvent) return;
@@ -188,6 +209,40 @@ export function EventosView({
     if (!selectedCode) return;
     await deleteEventGuest(id);
     await loadGuests(selectedCode);
+  };
+
+  const handleShowAddAdmin = async () => {
+    setShowAddAdmin(v => !v);
+    setAdminMsg(null);
+    if (!showAddAdmin && eligibleMembers.length === 0) {
+      const list = await listEligibleTeamMembers();
+      setEligibleMembers(list);
+    }
+  };
+
+  const handleAddAdmin = async () => {
+    if (!selectedCode || !newAdminEmail) {
+      setAdminMsg({ msg: "Selecciona un correo.", ok: false });
+      return;
+    }
+    setAddingAdmin(true);
+    setAdminMsg(null);
+    try {
+      await addEventAdmin(selectedCode, newAdminEmail);
+      setNewAdminEmail("");
+      setShowAddAdmin(false);
+      await loadAdmins(selectedCode);
+    } catch (e) {
+      setAdminMsg({ msg: e instanceof Error ? e.message : "No se pudo agregar el administrador.", ok: false });
+    } finally {
+      setAddingAdmin(false);
+    }
+  };
+
+  const handleRemoveAdmin = async (email: string) => {
+    if (!selectedCode) return;
+    await removeEventAdmin(selectedCode, email);
+    await loadAdmins(selectedCode);
   };
 
   const handleUpdateUser = async (email: string, fields: { nombre?: string; phone?: string }) => {
@@ -455,6 +510,76 @@ export function EventosView({
                   ))}
                 </div>
               </div>
+
+              {/* Administradores (solo super-admin) */}
+              {isAdmin && (
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, gap: 10, flexWrap: "wrap" }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.white }}>Administradores</div>
+                    <button
+                      onClick={handleShowAddAdmin}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
+                        fontSize: 11, fontWeight: 700, background: "rgba(254,128,63,0.12)",
+                        border: "1px solid rgba(254,128,63,0.3)", color: C.orange, cursor: "pointer",
+                      }}
+                    >
+                      <ShieldCheck size={13} /> Agregar administrador
+                    </button>
+                  </div>
+
+                  {showAddAdmin && (
+                    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14, marginBottom: 10, display: "flex", flexDirection: "column", gap: 8, maxWidth: 420 }}>
+                      <select
+                        value={newAdminEmail}
+                        onChange={e => setNewAdminEmail(e.target.value)}
+                        style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 7, padding: "8px 10px", fontSize: 12, color: C.white, outline: "none", fontFamily: FONT }}
+                      >
+                        <option value="">Selecciona un correo del equipo</option>
+                        {availableMembers.map(m => (
+                          <option key={m.id} value={m.email}>{m.email}</option>
+                        ))}
+                      </select>
+                      {availableMembers.length === 0 && (
+                        <div style={{ fontSize: 11, color: C.muted }}>
+                          No hay más miembros del equipo con la sección "Eventos" habilitada para agregar.
+                        </div>
+                      )}
+                      {adminMsg && !adminMsg.ok && (
+                        <div style={{ fontSize: 11, color: "#FF8A87" }}>{adminMsg.msg}</div>
+                      )}
+                      <button
+                        onClick={handleAddAdmin}
+                        disabled={addingAdmin || !newAdminEmail}
+                        style={{
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                          padding: "8px 0", borderRadius: 8, fontSize: 12, fontWeight: 700,
+                          background: (addingAdmin || !newAdminEmail) ? "rgba(254,128,63,0.4)" : C.gradBtn,
+                          border: "none", cursor: (addingAdmin || !newAdminEmail) ? "not-allowed" : "pointer", color: "#fff",
+                        }}
+                      >
+                        {addingAdmin ? <Loader2 size={13} style={{ animation: "spin 0.8s linear infinite" }} /> : <ShieldCheck size={13} />}
+                        Agregar
+                      </button>
+                    </div>
+                  )}
+
+                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
+                    {loadingAdmins ? (
+                      <div style={{ padding: "16px 14px", textAlign: "center" }}><Loader2 size={16} style={{ animation: "spin 0.8s linear infinite", color: C.muted }} /></div>
+                    ) : admins.length === 0 ? (
+                      <div style={{ padding: "16px 14px", fontSize: 12, color: C.muted, textAlign: "center" }}>Nadie más administra este evento todavía.</div>
+                    ) : admins.map(a => (
+                      <div key={a.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderBottom: `1px solid rgba(255,255,255,0.04)`, gap: 10 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.white, minWidth: 0 }}>{a.email}</div>
+                        <button onClick={() => handleRemoveAdmin(a.email)} title="Quitar acceso" style={{ background: "none", border: `1px solid rgba(255,65,59,0.3)`, borderRadius: 6, color: "#FF8A87", padding: 6, cursor: "pointer", display: "flex", flexShrink: 0 }}>
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontSize: 13 }}>
