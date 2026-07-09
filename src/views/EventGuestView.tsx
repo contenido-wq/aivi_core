@@ -3,33 +3,40 @@ import { Calendar, LogOut, Loader2 } from "lucide-react";
 import { C, FONT } from "../tokens";
 import { useResponsive } from "../hooks/useResponsive";
 import { EventDashboardBody, UserDetailPanel } from "../components/eventos/shared";
-import { getEventDetail, type EventUserRow, type ModuleUsageRow, type StatusBreakdownRow } from "../services/events";
+import { getEventDetailAsGuest, type EventUserRow, type ModuleUsageRow, type StatusBreakdownRow } from "../services/events";
 
 interface EventGuestViewProps {
+  guestId:        string;
   enrollmentCode: string;
   label:          string | null;
   onSignOut:      () => void;
 }
 
-export function EventGuestView({ enrollmentCode, label, onSignOut }: EventGuestViewProps) {
+export function EventGuestView({ guestId, enrollmentCode, label, onSignOut }: EventGuestViewProps) {
   const { isMobile } = useResponsive();
 
   const [users,       setUsers]       = useState<EventUserRow[]>([]);
   const [moduleUsage, setModuleUsage] = useState<ModuleUsageRow[]>([]);
   const [statusBreakdown, setStatusBreakdown] = useState<StatusBreakdownRow[]>([]);
   const [loading,     setLoading]     = useState(true);
+  const [loadError,   setLoadError]   = useState<string | null>(null);
   const [search,      setSearch]      = useState("");
   const [selectedUser, setSelectedUser] = useState<EventUserRow | null>(null);
   const [mobileView,  setMobileView]  = useState<"list" | "detail">("list");
 
   useEffect(() => {
-    getEventDetail(enrollmentCode).then(({ users, moduleUsage, statusBreakdown }) => {
-      setUsers(users);
-      setModuleUsage(moduleUsage);
-      setStatusBreakdown(statusBreakdown);
+    getEventDetailAsGuest(guestId).then(result => {
+      if (!result.ok) {
+        setLoadError(result.error);
+        setLoading(false);
+        return;
+      }
+      setUsers(result.users);
+      setModuleUsage(result.moduleUsage);
+      setStatusBreakdown(result.statusBreakdown);
       setLoading(false);
     });
-  }, [enrollmentCode]);
+  }, [guestId]);
 
   const filteredUsers = useMemo(() => {
     const q = search.toLowerCase();
@@ -81,6 +88,8 @@ export function EventGuestView({ enrollmentCode, label, onSignOut }: EventGuestV
                 <div style={{ textAlign: "center", padding: "40px 0", color: C.muted }}>
                   <Loader2 size={20} style={{ animation: "spin 0.8s linear infinite" }} />
                 </div>
+              ) : loadError ? (
+                <div style={{ textAlign: "center", padding: "40px 0", color: C.mutedLight, fontSize: 13 }}>{loadError}</div>
               ) : (
                 <EventDashboardBody
                   event={event}

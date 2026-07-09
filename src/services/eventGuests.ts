@@ -4,6 +4,7 @@ import { supabase } from "./supabase";
 export const GUEST_SESSION_KEY = "aivi_event_guest_session";
 
 export interface GuestSession {
+  guestId:         string;
   enrollment_code: string;
   label:           string | null;
 }
@@ -46,5 +47,5 @@ export async function loginEventGuest(username: string, password: string): Promi
   });
   if (error) throw new Error("No se pudo verificar el acceso. Intenta de nuevo.");
   if (!data?.ok) throw new Error(data?.error ?? "Usuario o contraseña incorrectos.");
-  return { enrollment_code: data.enrollment_code, label: data.label ?? null };
+  return { guestId: data.guestId, enrollment_code: data.enrollment_code, label: data.label ?? null };
 }

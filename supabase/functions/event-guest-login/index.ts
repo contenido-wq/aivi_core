@@ -55,7 +55,7 @@ Deno.serve(async (req: Request) => {
       .update({ last_login_at: new Date().toISOString() })
       .eq("id", guest.id);
 
-    return respond({ ok: true, enrollment_code: guest.enrollment_code, label: guest.label });
+    return respond({ ok: true, enrollment_code: guest.enrollment_code, label: guest.label, guestId: guest.id });
   } catch (_e) {
     return respond({ ok: false, error: "Error interno" }, 500);
   }

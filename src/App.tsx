@@ -30,6 +30,7 @@ export default function App() {
   if (guestSession) {
     return (
       <EventGuestView
+        guestId={guestSession.guestId}
         enrollmentCode={guestSession.enrollment_code}
         label={guestSession.label}
         onSignOut={() => {

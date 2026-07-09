@@ -208,15 +208,8 @@ export async function getEventsSummary(): Promise<EventSummary[]> {
     .sort((a, b) => b.total - a.total);
 }
 
-export async function getEventDetail(code: string): Promise<{
-  users: EventUserRow[];
-  moduleUsage: ModuleUsageRow[];
-  statusBreakdown: StatusBreakdownRow[];
-}> {
-  const rows = await fetchAllEventUsers();
-  const users = rows.filter(u => u.enrollment_code === code);
-
-  const moduleUsage: ModuleUsageRow[] = MODULES.map(m => {
+export function computeModuleUsage(users: EventUserRow[]): ModuleUsageRow[] {
+  return MODULES.map(m => {
     const exitosasKey = `${m.key}_exitosas` as keyof EventUserRow;
     const usersWithUsage = users.filter(u => (u[exitosasKey] as number) > 0).length;
     const totalUses = users.reduce((s, u) => s + (u[exitosasKey] as number), 0);
@@ -228,9 +221,11 @@ export async function getEventDetail(code: string): Promise<{
       totalUses,
     };
   }).sort((a, b) => b.usersWithUsage - a.usersWithUsage);
+}
 
+export function computeStatusBreakdown(users: EventUserRow[]): StatusBreakdownRow[] {
   const order: UserStatus[] = ["no_activado", "sin_tokens", "con_tokens"];
-  const statusBreakdown: StatusBreakdownRow[] = order.map(status => {
+  return order.map(status => {
     const count = users.filter(u => userStatus(u) === status).length;
     return {
       status,
@@ -239,6 +234,38 @@ export async function getEventDetail(code: string): Promise<{
       pct: users.length > 0 ? Math.round((count / users.length) * 100) : 0,
     };
   });
+}
 
-  return { users, moduleUsage, statusBreakdown };
+export async function getEventDetail(code: string): Promise<{
+  users: EventUserRow[];
+  moduleUsage: ModuleUsageRow[];
+  statusBreakdown: StatusBreakdownRow[];
+}> {
+  const rows = await fetchAllEventUsers();
+  const users = rows.filter(u => u.enrollment_code === code);
+  return { users, moduleUsage: computeModuleUsage(users), statusBreakdown: computeStatusBreakdown(users) };
+}
+
+/**
+ * Igual que getEventDetail, pero para una sesión de invitado (sin sesión de
+ * Supabase Auth — RLS le bloquea event_users). Pasa por la Edge Function
+ * event-guest-data, que usa service_role y solo devuelve el evento asignado
+ * a ese guestId (revocable borrando la fila en event_guests).
+ */
+export async function getEventDetailAsGuest(guestId: string): Promise<
+  | { ok: true; enrollment_code: string; label: string | null; users: EventUserRow[]; moduleUsage: ModuleUsageRow[]; statusBreakdown: StatusBreakdownRow[] }
+  | { ok: false; error: string }
+> {
+  const { data, error } = await supabase.functions.invoke("event-guest-data", { body: { guestId } });
+  if (error) return { ok: false, error: "No se pudo cargar el evento." };
+  if (!data?.ok) return { ok: false, error: data?.error ?? "Acceso revocado." };
+  const users = (data.users as EventUserRow[]) ?? [];
+  return {
+    ok: true,
+    enrollment_code: data.enrollment_code,
+    label: data.label ?? null,
+    users,
+    moduleUsage: computeModuleUsage(users),
+    statusBreakdown: computeStatusBreakdown(users),
+  };
 }
