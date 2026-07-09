@@ -6,7 +6,7 @@ import { Sidebar } from "../components/layout/Sidebar";
 import { MobileBottomNav } from "../components/layout/MobileBottomNav";
 import { EventDashboardBody, UserDetailPanel } from "../components/eventos/shared";
 import {
-  parseEventCSV, uploadEventUsers, getEventsSummary, getEventDetail, setEventDisplayName, getPhonesByEmail,
+  parseEventCSV, uploadEventUsers, getEventsSummary, getEventDetail, setEventDisplayName, getPhonesByEmail, updateEventUserField,
   type EventSummary, type EventUserRow, type ModuleUsageRow, type StatusBreakdownRow,
 } from "../services/events";
 import { createEventGuest, listEventGuests, deleteEventGuest, type EventGuest } from "../services/eventGuests";
@@ -104,10 +104,15 @@ export function EventosView({
       setLoadingDetail(false);
 
       // Teléfono no viene en el CSV — se cruza aparte y se agrega cuando llega
-      getPhonesByEmail(users.map(u => u.email)).then(phones => {
-        if (Object.keys(phones).length === 0) return;
-        setUsers(prev => prev.map(u => phones[u.email] ? { ...u, phone: phones[u.email] } : u));
-      });
+      // Solo rellena desde transactions cuando no hay un teléfono ya guardado
+      // en event_users (agregado/corregido manualmente) — nunca lo pisa.
+      const emailsSinTelefono = users.filter(u => !u.phone).map(u => u.email);
+      if (emailsSinTelefono.length > 0) {
+        getPhonesByEmail(emailsSinTelefono).then(phones => {
+          if (Object.keys(phones).length === 0) return;
+          setUsers(prev => prev.map(u => (!u.phone && phones[u.email]) ? { ...u, phone: phones[u.email] } : u));
+        });
+      }
     });
     loadGuests(selectedCode);
   }, [selectedCode]);
@@ -177,6 +182,13 @@ export function EventosView({
     if (!selectedCode) return;
     await deleteEventGuest(id);
     await loadGuests(selectedCode);
+  };
+
+  const handleUpdateUser = async (email: string, fields: { nombre?: string; phone?: string }) => {
+    if (!selectedCode) return;
+    await updateEventUserField(selectedCode, email, fields);
+    setUsers(prev => prev.map(u => u.email === email ? { ...u, ...fields } : u));
+    setSelectedUser(prev => (prev && prev.email === email) ? { ...prev, ...fields } : prev);
   };
 
   const filteredUsers = useMemo(() => {
@@ -452,6 +464,7 @@ export function EventosView({
               user={selectedUser}
               isMobile={isMobile}
               onClose={() => { setSelectedUser(null); setMobileView("list"); }}
+              onUpdateUser={handleUpdateUser}
             />
           </div>
         )}

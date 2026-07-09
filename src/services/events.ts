@@ -193,6 +193,24 @@ export async function getPhonesByEmail(emails: string[]): Promise<Record<string,
   return map;
 }
 
+export async function updateEventUserField(
+  code: string,
+  email: string,
+  fields: { nombre?: string; phone?: string }
+): Promise<void> {
+  const patch: Record<string, string> = {};
+  if (fields.nombre !== undefined) patch.nombre = fields.nombre.trim();
+  if (fields.phone  !== undefined) patch.phone  = fields.phone.trim();
+  if (Object.keys(patch).length === 0) return;
+
+  const { error } = await supabase
+    .from("event_users")
+    .update(patch)
+    .eq("enrollment_code", code)
+    .eq("email", email);
+  if (error) throw error;
+}
+
 export async function setEventDisplayName(code: string, name: string): Promise<void> {
   const { error } = await supabase
     .from("events")

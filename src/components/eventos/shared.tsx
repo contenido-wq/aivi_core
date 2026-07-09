@@ -1,4 +1,5 @@
-import { Search, ArrowLeft, X } from "lucide-react";
+import { useState } from "react";
+import { Search, ArrowLeft, X, Check, Pencil } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList, PieChart, Pie,
 } from "recharts";
@@ -133,7 +134,72 @@ interface UserModuleRow {
   last:  string | null;
 }
 
-export function UserDetailPanel({ user, onClose, isMobile }: { user: EventUserRow; onClose: () => void; isMobile: boolean }) {
+interface EditableFieldProps {
+  value:       string;
+  placeholder: string;
+  onSave:      (v: string) => Promise<void>;
+  fontSize?:   number;
+  fontWeight?: number;
+}
+
+function EditableField({ value, placeholder, onSave, fontSize = 12, fontWeight = 600 }: EditableFieldProps) {
+  const [editing, setEditing] = useState(false);
+  const [input,   setInput]   = useState(value);
+  const [saving,  setSaving]  = useState(false);
+
+  const start = () => { setInput(value); setEditing(true); };
+  const cancel = () => setEditing(false);
+  const save = async () => {
+    setSaving(true);
+    try { await onSave(input); setEditing(false); } finally { setSaving(false); }
+  };
+
+  if (editing) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <input
+          autoFocus
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") save(); if (e.key === "Escape") cancel(); }}
+          style={{
+            background: "rgba(255,255,255,0.06)", border: `1px solid rgba(254,128,63,0.4)`,
+            borderRadius: 5, color: C.white, fontSize, fontWeight, padding: "2px 6px",
+            outline: "none", fontFamily: FONT, minWidth: 0, flex: 1,
+          }}
+        />
+        <button onClick={save} disabled={saving} title="Guardar" style={{ background: "none", border: "none", color: "#4ADE80", cursor: "pointer", padding: 2, display: "flex", flexShrink: 0 }}>
+          <Check size={12} />
+        </button>
+        <button onClick={cancel} title="Cancelar" style={{ background: "none", border: "none", color: C.mutedLight, cursor: "pointer", padding: 2, display: "flex", flexShrink: 0 }}>
+          <X size={12} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <span
+      onClick={start}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer",
+        fontSize, fontWeight, color: value ? C.white : C.muted,
+        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+      }}
+    >
+      {value || placeholder}
+      <Pencil size={9} style={{ color: C.mutedLight, opacity: 0.6, flexShrink: 0 }} />
+    </span>
+  );
+}
+
+export function UserDetailPanel({ user, onClose, isMobile, onUpdateUser }: {
+  user: EventUserRow;
+  onClose: () => void;
+  isMobile: boolean;
+  /** Si se pasa, el nombre y el teléfono quedan editables (equipo). Sin ella, solo lectura (invitados). */
+  onUpdateUser?: (email: string, fields: { nombre?: string; phone?: string }) => Promise<void>;
+}) {
   const status = userStatus(user);
 
   const moduleRows: UserModuleRow[] = MODULES
@@ -157,8 +223,19 @@ export function UserDetailPanel({ user, onClose, isMobile }: { user: EventUserRo
             {isMobile ? <><ArrowLeft size={14} /> Volver</> : <X size={16} />}
           </button>
         </div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: C.white, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {user.nombre || user.email.split("@")[0]}
+        <div style={{ marginBottom: 3 }}>
+          {onUpdateUser ? (
+            <EditableField
+              value={user.nombre ?? ""}
+              placeholder={user.email.split("@")[0]}
+              onSave={v => onUpdateUser(user.email, { nombre: v })}
+              fontSize={15} fontWeight={700}
+            />
+          ) : (
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.white, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {user.nombre || user.email.split("@")[0]}
+            </div>
+          )}
         </div>
         <div style={{ fontSize: 12, color: C.mutedMid, marginBottom: 8, wordBreak: "break-all" }}>{user.email}</div>
         <span style={{
@@ -175,8 +252,19 @@ export function UserDetailPanel({ user, onClose, isMobile }: { user: EventUserRo
       {/* Datos generales */}
       <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Teléfono</div>
+            {onUpdateUser ? (
+              <EditableField
+                value={user.phone ?? ""}
+                placeholder="Agregar teléfono"
+                onSave={v => onUpdateUser(user.email, { phone: v })}
+              />
+            ) : (
+              <div style={{ fontSize: 12, color: C.white, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.phone ?? "—"}</div>
+            )}
+          </div>
           {[
-            { label: "Teléfono",          value: user.phone ?? "—" },
             { label: "Plan",              value: user.plan ?? "—" },
             { label: "Estado del plan",   value: user.estado_plan ?? "—" },
             { label: "Registrado",        value: fmtDate(user.registrado_el) },

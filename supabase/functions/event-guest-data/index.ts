@@ -54,15 +54,21 @@ Deno.serve(async (req: Request) => {
       return respond({ ok: false, error: "Error al cargar los datos del evento." }, 500);
     }
 
-    // Teléfono no viene en el CSV — se cruza con transactions (mismo criterio
-    // que getUsersTraceability: columna buyer_phone, luego raw_payload).
-    const emails = (users ?? []).map((u: { email: string }) => u.email).filter(Boolean);
+    // Teléfono: si ya está guardado en event_users (agregado/corregido
+    // manualmente por el admin) se respeta tal cual. Solo se cruza con
+    // transactions como respaldo para los que llegan sin teléfono (mismo
+    // criterio que getUsersTraceability: columna buyer_phone, luego raw_payload).
+    const emailsSinTelefono = (users ?? [])
+      .filter((u: { phone?: string | null }) => !u.phone)
+      .map((u: { email: string }) => u.email)
+      .filter(Boolean);
+
     let usersWithPhone = users ?? [];
-    if (emails.length > 0) {
+    if (emailsSinTelefono.length > 0) {
       const { data: txs } = await supabaseAdmin
         .from("transactions")
         .select("buyer_email, buyer_phone, raw_payload")
-        .in("buyer_email", emails);
+        .in("buyer_email", emailsSinTelefono);
 
       const phoneByEmail: Record<string, string> = {};
       for (const tx of txs ?? []) {
@@ -78,7 +84,9 @@ Deno.serve(async (req: Request) => {
         if (phone) phoneByEmail[tx.buyer_email] = phone;
       }
 
-      usersWithPhone = (users ?? []).map((u: { email: string }) => ({ ...u, phone: phoneByEmail[u.email] ?? null }));
+      usersWithPhone = (users ?? []).map((u: { email: string; phone?: string | null }) =>
+        (!u.phone && phoneByEmail[u.email]) ? { ...u, phone: phoneByEmail[u.email] } : u
+      );
     }
 
     return respond({
