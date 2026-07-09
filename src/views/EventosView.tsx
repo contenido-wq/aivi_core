@@ -22,6 +22,7 @@ interface EventosViewProps {
   activeView?:      string;
   isAdmin?:         boolean;
   allowedSections?: AppView[];
+  allowedEvents?:   string[];
 }
 
 function fmtDateTime(iso: string | null) {
@@ -31,7 +32,7 @@ function fmtDateTime(iso: string | null) {
 
 export function EventosView({
   onSettings, onSignOut, onDashboard, onUsers, onTransactions, onAnalytics,
-  activeView = "eventos", isAdmin = false, allowedSections = [],
+  activeView = "eventos", isAdmin = false, allowedSections = [], allowedEvents = [],
 }: EventosViewProps) {
   const { isMobile, isTablet, isLarge, isXLarge } = useResponsive();
   const isMobileLayout = isMobile || isTablet;
@@ -73,8 +74,9 @@ export function EventosView({
     setLoadingList(true);
     const summary = await getEventsSummary();
     setEvents(summary);
-    if (summary.length > 0 && !summary.some(e => e.code === selectedCode)) {
-      setSelectedCode(summary[0].code);
+    const visible = isAdmin ? summary : summary.filter(e => allowedEvents.includes(e.code));
+    if (visible.length > 0 && !visible.some(e => e.code === selectedCode)) {
+      setSelectedCode(visible[0].code);
     }
     setLoadingList(false);
   };
@@ -138,7 +140,11 @@ export function EventosView({
     }
   };
 
-  const selectedEvent = events.find(e => e.code === selectedCode) ?? null;
+  const visibleEvents = isAdmin ? events : events.filter(e => allowedEvents.includes(e.code));
+  const noEventsMessage = events.length === 0
+    ? "Todavía no hay eventos cargados. Sube un CSV para empezar."
+    : "No tienes eventos asignados todavía. Pídele acceso al administrador.";
+  const selectedEvent = visibleEvents.find(e => e.code === selectedCode) ?? null;
 
   const startEditName = () => {
     if (!selectedEvent) return;
@@ -248,23 +254,27 @@ export function EventosView({
             }}>
               <RefreshCw size={13} style={{ animation: loadingList ? "spin 0.8s linear infinite" : "none" }} />
             </button>
-            <input
-              ref={fileInputRef} type="file" accept=".csv" style={{ display: "none" }}
-              onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700,
-                background: uploading ? "rgba(254,128,63,0.4)" : C.gradBtn,
-                border: "none", cursor: uploading ? "not-allowed" : "pointer", color: "#fff",
-              }}
-            >
-              {uploading ? <Loader2 size={14} style={{ animation: "spin 0.8s linear infinite" }} /> : <Upload size={14} />}
-              {uploading ? "Subiendo..." : "Subir CSV"}
-            </button>
+            {isAdmin && (
+              <>
+                <input
+                  ref={fileInputRef} type="file" accept=".csv" style={{ display: "none" }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700,
+                    background: uploading ? "rgba(254,128,63,0.4)" : C.gradBtn,
+                    border: "none", cursor: uploading ? "not-allowed" : "pointer", color: "#fff",
+                  }}
+                >
+                  {uploading ? <Loader2 size={14} style={{ animation: "spin 0.8s linear infinite" }} /> : <Upload size={14} />}
+                  {uploading ? "Subiendo..." : "Subir CSV"}
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -283,9 +293,9 @@ export function EventosView({
         <div style={{ padding: "12px 24px 0", display: "flex", gap: 6, flexWrap: "wrap", flexShrink: 0 }}>
           {loadingList ? (
             <Loader2 size={16} style={{ animation: "spin 0.8s linear infinite", color: C.muted }} />
-          ) : events.length === 0 ? (
-            <div style={{ fontSize: 12, color: C.muted }}>Todavía no hay eventos cargados. Sube un CSV para empezar.</div>
-          ) : events.map(ev => (
+          ) : visibleEvents.length === 0 ? (
+            <div style={{ fontSize: 12, color: C.muted }}>{noEventsMessage}</div>
+          ) : visibleEvents.map(ev => (
             <button
               key={ev.code}
               onClick={() => setSelectedCode(ev.code)}
@@ -448,7 +458,7 @@ export function EventosView({
             </>
           ) : (
             <div style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontSize: 13 }}>
-              Sube un CSV de un evento para ver su dashboard.
+              {noEventsMessage}
             </div>
           )}
         </div>
