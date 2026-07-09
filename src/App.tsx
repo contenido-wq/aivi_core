@@ -45,7 +45,7 @@ export default function App() {
 }
 
 function TeamApp({ onGuestLogin }: { onGuestLogin: (s: GuestSession) => void }) {
-  const { user, loading, signOut, teamEmail, allowedSections } = useAuth();
+  const { user, loading, signOut, teamEmail, allowedSections, allowedEvents } = useAuth();
   const [view, setView]                       = useState<AppView>("dashboard");
   const isAdmin = teamEmail === ADMIN_EMAIL;
   const canAccess = (v: AppView) => isAdmin || allowedSections.includes(v);
@@ -159,6 +159,7 @@ function TeamApp({ onGuestLogin }: { onGuestLogin: (s: GuestSession) => void }) 
       activeView={effectiveView}
       isAdmin={isAdmin}
       allowedSections={allowedSections}
+      allowedEvents={allowedEvents}
     />
   );
 
