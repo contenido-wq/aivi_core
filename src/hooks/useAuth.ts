@@ -8,6 +8,7 @@ const SESSION_KEY = "aivi_team_session";
 interface StoredSession {
   email:           string;
   allowedSections?: AppView[];
+  allowedEvents?:   string[];
 }
 
 function readStoredSession(): StoredSession | null {
@@ -25,6 +26,7 @@ export function useAuth() {
   const [loading, setLoading]     = useState(true);
   const [teamEmail, setTeamEmail] = useState<string | null>(() => readStoredSession()?.email ?? null);
   const [allowedSections, setAllowedSections] = useState<AppView[]>(() => readStoredSession()?.allowedSections ?? []);
+  const [allowedEvents, setAllowedEvents]     = useState<string[]>(() => readStoredSession()?.allowedEvents ?? []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -43,11 +45,13 @@ export function useAuth() {
           localStorage.removeItem(SESSION_KEY);
           setTeamEmail(null);
           setAllowedSections([]);
+          setAllowedEvents([]);
         } else {
           // Re-leer localStorage cuando se inicia sesión (el login lo escribe antes de este evento)
           const stored = readStoredSession();
           setTeamEmail(stored?.email ?? null);
           setAllowedSections(stored?.allowedSections ?? []);
+          setAllowedEvents(stored?.allowedEvents ?? []);
         }
       }
     );
@@ -63,7 +67,8 @@ export function useAuth() {
     localStorage.removeItem(SESSION_KEY);
     setTeamEmail(null);
     setAllowedSections([]);
+    setAllowedEvents([]);
   };
 
-  return { user, session, loading, teamEmail, allowedSections, signIn, signOut };
+  return { user, session, loading, teamEmail, allowedSections, allowedEvents, signIn, signOut };
 }
