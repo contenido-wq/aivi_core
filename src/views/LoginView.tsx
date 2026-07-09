@@ -43,11 +43,12 @@ export function LoginView({ onGuestLogin }: LoginViewProps) {
 
     // El super admin entra directamente sin verificar access_requests, con acceso total
     let allowedSections: string[] = ["dashboard", "admin", "usuarios", "transacciones", "analytics"];
+    let allowedEvents: string[] = [];
 
     if (normalizedEmail !== ADMIN_EMAIL) {
       const { data: rows, error: selectErr } = await supabase
         .from("access_requests")
-        .select("email, allowed_sections")
+        .select("email, allowed_sections, allowed_events")
         .eq("email", normalizedEmail)
         .eq("status", "approved")
         .limit(1);
@@ -60,10 +61,11 @@ export function LoginView({ onGuestLogin }: LoginViewProps) {
       }
 
       allowedSections = rows[0].allowed_sections ?? [];
+      allowedEvents = rows[0].allowed_events ?? [];
     }
 
     // Escribir localStorage ANTES de signIn para que onAuthStateChange lea el email real
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ email: normalizedEmail, allowedSections }));
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ email: normalizedEmail, allowedSections, allowedEvents }));
     setLoginStep("signing-in");
     const { error: authErr } = await supabase.auth.signInWithPassword({
       email:    PORTAL_EMAIL,
