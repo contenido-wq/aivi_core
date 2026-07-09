@@ -176,6 +176,7 @@ export function UserDetailPanel({ user, onClose, isMobile }: { user: EventUserRo
       <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           {[
+            { label: "Teléfono",          value: user.phone ?? "—" },
             { label: "Plan",              value: user.plan ?? "—" },
             { label: "Estado del plan",   value: user.estado_plan ?? "—" },
             { label: "Registrado",        value: fmtDate(user.registrado_el) },
@@ -276,9 +277,9 @@ export function EventDashboardBody({
           </div>
         </div>
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", overflowX: "auto" }}>
-          <div style={{ minWidth: 560 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 200px 120px", padding: "8px 14px", fontSize: 10, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${C.border}` }}>
-              <span>Nombre</span><span>Email</span><span>Estado</span><span>Registrado</span>
+          <div style={{ minWidth: 680 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 130px 200px 120px", padding: "8px 14px", fontSize: 10, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${C.border}` }}>
+              <span>Nombre</span><span>Email</span><span>Teléfono</span><span>Estado</span><span>Registrado</span>
             </div>
             {filteredUsers.length === 0 ? (
               <div style={{ padding: "20px 14px", fontSize: 12, color: C.muted, textAlign: "center" }}>Sin resultados</div>
@@ -290,7 +291,7 @@ export function EventDashboardBody({
                 key={u.email}
                 onClick={() => onSelectUser(u)}
                 style={{
-                  display: "grid", gridTemplateColumns: "1fr 1fr 200px 120px", padding: "8px 14px", fontSize: 12,
+                  display: "grid", gridTemplateColumns: "1fr 1fr 130px 200px 120px", padding: "8px 14px", fontSize: 12,
                   borderBottom: `1px solid rgba(255,255,255,0.04)`, alignItems: "center", cursor: "pointer",
                   borderLeft: isSel ? `2px solid ${C.orange}` : "2px solid transparent",
                   background: isSel ? "rgba(254,128,63,0.07)" : "transparent",
@@ -298,6 +299,7 @@ export function EventDashboardBody({
               >
                 <span style={{ color: C.white, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.nombre || u.email.split("@")[0]}</span>
                 <span style={{ color: C.mutedMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</span>
+                <span style={{ color: u.phone ? C.mutedLight : C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.phone ?? "—"}</span>
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 5, width: "fit-content",
                   fontSize: 10, fontWeight: 700, color: STATUS_COLOR[status],

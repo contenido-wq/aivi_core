@@ -54,11 +54,38 @@ Deno.serve(async (req: Request) => {
       return respond({ ok: false, error: "Error al cargar los datos del evento." }, 500);
     }
 
+    // Teléfono no viene en el CSV — se cruza con transactions (mismo criterio
+    // que getUsersTraceability: columna buyer_phone, luego raw_payload).
+    const emails = (users ?? []).map((u: { email: string }) => u.email).filter(Boolean);
+    let usersWithPhone = users ?? [];
+    if (emails.length > 0) {
+      const { data: txs } = await supabaseAdmin
+        .from("transactions")
+        .select("buyer_email, buyer_phone, raw_payload")
+        .in("buyer_email", emails);
+
+      const phoneByEmail: Record<string, string> = {};
+      for (const tx of txs ?? []) {
+        if (phoneByEmail[tx.buyer_email]) continue;
+        let phone: string | null = tx.buyer_phone && String(tx.buyer_phone).trim() !== "" ? String(tx.buyer_phone).trim() : null;
+        if (!phone) {
+          try {
+            const rp = typeof tx.raw_payload === "string" ? JSON.parse(tx.raw_payload) : tx.raw_payload;
+            const p = rp?.data?.buyer?.checkout_phone ?? rp?.data?.buyer?.phone ?? rp?.buyer?.checkout_phone ?? rp?.buyer?.phone ?? null;
+            if (p && String(p).trim() !== "") phone = String(p).trim();
+          } catch { /* ignore */ }
+        }
+        if (phone) phoneByEmail[tx.buyer_email] = phone;
+      }
+
+      usersWithPhone = (users ?? []).map((u: { email: string }) => ({ ...u, phone: phoneByEmail[u.email] ?? null }));
+    }
+
     return respond({
       ok: true,
       enrollment_code: guest.enrollment_code,
       label: guest.label,
-      users: users ?? [],
+      users: usersWithPhone,
     });
   } catch (_e) {
     return respond({ ok: false, error: "Error interno" }, 500);

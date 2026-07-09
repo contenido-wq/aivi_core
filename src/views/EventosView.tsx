@@ -6,7 +6,7 @@ import { Sidebar } from "../components/layout/Sidebar";
 import { MobileBottomNav } from "../components/layout/MobileBottomNav";
 import { EventDashboardBody, UserDetailPanel } from "../components/eventos/shared";
 import {
-  parseEventCSV, uploadEventUsers, getEventsSummary, getEventDetail, setEventDisplayName,
+  parseEventCSV, uploadEventUsers, getEventsSummary, getEventDetail, setEventDisplayName, getPhonesByEmail,
   type EventSummary, type EventUserRow, type ModuleUsageRow, type StatusBreakdownRow,
 } from "../services/events";
 import { createEventGuest, listEventGuests, deleteEventGuest, type EventGuest } from "../services/eventGuests";
@@ -102,6 +102,12 @@ export function EventosView({
       setModuleUsage(moduleUsage);
       setStatusBreakdown(statusBreakdown);
       setLoadingDetail(false);
+
+      // Teléfono no viene en el CSV — se cruza aparte y se agrega cuando llega
+      getPhonesByEmail(users.map(u => u.email)).then(phones => {
+        if (Object.keys(phones).length === 0) return;
+        setUsers(prev => prev.map(u => phones[u.email] ? { ...u, phone: phones[u.email] } : u));
+      });
     });
     loadGuests(selectedCode);
   }, [selectedCode]);

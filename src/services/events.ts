@@ -29,6 +29,8 @@ export interface EventUserRow {
   script_generator_exitosas:    number; script_generator_ultima:    string | null;
   transcriptor_exitosas:        number; transcriptor_ultima:        string | null;
   viral_ideas_exitosas:         number; viral_ideas_ultima:         string | null;
+  /** No viene en el CSV — se cruza con transactions.buyer_phone después de cargar */
+  phone?:                       string | null;
 }
 
 export interface EventSummary {
@@ -160,6 +162,35 @@ async function fetchAllEventUsers(): Promise<EventUserRow[]> {
     .limit(50000);
   if (error) throw error;
   return (data as EventUserRow[]) ?? [];
+}
+
+/** Mismo criterio que getUsersTraceability en dashboard.ts: columna buyer_phone primero, luego raw_payload. */
+function extractPhone(tx: { buyer_phone?: string | null; raw_payload?: unknown }): string | null {
+  if (tx.buyer_phone && String(tx.buyer_phone).trim() !== "") return String(tx.buyer_phone).trim();
+  try {
+    const rp = typeof tx.raw_payload === "string" ? JSON.parse(tx.raw_payload) : (tx.raw_payload as any);
+    const p = rp?.data?.buyer?.checkout_phone ?? rp?.data?.buyer?.phone ?? rp?.buyer?.checkout_phone ?? rp?.buyer?.phone ?? null;
+    if (p && String(p).trim() !== "") return String(p).trim();
+  } catch { /* ignore */ }
+  return null;
+}
+
+/** Cruza emails de un evento con transactions para traer el teléfono, cuando exista. */
+export async function getPhonesByEmail(emails: string[]): Promise<Record<string, string>> {
+  if (emails.length === 0) return {};
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("buyer_email, buyer_phone, raw_payload")
+    .in("buyer_email", emails);
+  if (error || !data) return {};
+
+  const map: Record<string, string> = {};
+  for (const tx of data as { buyer_email: string; buyer_phone: string | null; raw_payload: unknown }[]) {
+    if (map[tx.buyer_email]) continue;
+    const phone = extractPhone(tx);
+    if (phone) map[tx.buyer_email] = phone;
+  }
+  return map;
 }
 
 export async function setEventDisplayName(code: string, name: string): Promise<void> {
