@@ -63,8 +63,8 @@ export function userStatus(u: EventUserRow): UserStatus {
 
 export const STATUS_LABELS: Record<UserStatus, string> = {
   no_activado: "No activado",
-  sin_tokens:  "Activado, sin gastar tokens",
-  con_tokens:  "Activado y gastó tokens",
+  sin_tokens:  "Por empezar",
+  con_tokens:  "Generó contenido con IA",
 };
 
 export const MODULES: { key: string; label: string }[] = [

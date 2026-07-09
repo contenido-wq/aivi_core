@@ -34,8 +34,8 @@ const STATUS_COLOR: Record<UserStatus, string> = {
 
 const STATUS_SHORT_LABEL: Record<UserStatus, string> = {
   no_activado: "No activado",
-  sin_tokens:  "Sin tokens",
-  con_tokens:  "Gastó tokens",
+  sin_tokens:  "Por empezar",
+  con_tokens:  "Ejecutado",
 };
 
 function fmtDate(iso: string | null) {
@@ -429,7 +429,7 @@ export function EventosView({
                 {statusBreakdown.map(s => (
                   <KPITile
                     key={s.status}
-                    label={s.status === "no_activado" ? "No activados" : s.status === "sin_tokens" ? "Activados, sin tokens" : "Gastaron tokens"}
+                    label={s.status === "no_activado" ? "No activados" : s.status === "sin_tokens" ? "Por empezar" : "Generaron contenido"}
                     value={`${s.count} (${s.pct}%)`}
                     color={STATUS_COLOR[s.status]}
                   />
