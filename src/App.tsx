@@ -7,11 +7,43 @@ import { AdminPanel }          from "./components/admin/AdminPanel";
 import { UsersView }           from "./views/UsersView";
 import { TransactionsView }    from "./views/TransactionsView";
 import { EventosView }         from "./views/EventosView";
+import { EventGuestView }      from "./views/EventGuestView";
 import { useAuth }             from "./hooks/useAuth";
 import { ADMIN_EMAIL }         from "./lib/authConfig";
+import { GUEST_SESSION_KEY, type GuestSession } from "./services/eventGuests";
 import { C, FONT }             from "./tokens";
 
+function readGuestSession(): GuestSession | null {
+  try {
+    const raw = localStorage.getItem(GUEST_SESSION_KEY);
+    return raw ? (JSON.parse(raw) as GuestSession) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function App() {
+  const [guestSession, setGuestSession] = useState<GuestSession | null>(() => readGuestSession());
+
+  // Sesión de invitado: completamente aparte del login de equipo — nunca pasa
+  // por Supabase Auth ni por allowedSections, solo ve el evento asignado.
+  if (guestSession) {
+    return (
+      <EventGuestView
+        enrollmentCode={guestSession.enrollment_code}
+        label={guestSession.label}
+        onSignOut={() => {
+          localStorage.removeItem(GUEST_SESSION_KEY);
+          setGuestSession(null);
+        }}
+      />
+    );
+  }
+
+  return <TeamApp onGuestLogin={setGuestSession} />;
+}
+
+function TeamApp({ onGuestLogin }: { onGuestLogin: (s: GuestSession) => void }) {
   const { user, loading, signOut, teamEmail, allowedSections } = useAuth();
   const [view, setView]                       = useState<AppView>("dashboard");
   const isAdmin = teamEmail === ADMIN_EMAIL;
@@ -44,7 +76,7 @@ export default function App() {
   }
 
   // Sin sesión → pantalla de login con verificación de acceso
-  if (!user) return <LoginView />;
+  if (!user) return <LoginView onGuestLogin={onGuestLogin} />;
 
   // Vista efectiva: si no hay acceso a la vista actual, caer a la primera sección permitida
   const effectiveView: AppView | null = canAccess(view) ? view : (allowedSections[0] ?? null);

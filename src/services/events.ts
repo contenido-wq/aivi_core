@@ -162,8 +162,25 @@ async function fetchAllEventUsers(): Promise<EventUserRow[]> {
   return (data as EventUserRow[]) ?? [];
 }
 
+export async function setEventDisplayName(code: string, name: string): Promise<void> {
+  const { error } = await supabase
+    .from("events")
+    .upsert({ enrollment_code: code, display_name: name.trim() }, { onConflict: "enrollment_code" });
+  if (error) throw error;
+}
+
+async function fetchDisplayNames(): Promise<Record<string, string>> {
+  const { data, error } = await supabase.from("events").select("enrollment_code, display_name");
+  if (error) throw error;
+  const map: Record<string, string> = {};
+  for (const r of data ?? []) {
+    if (r.display_name && r.display_name.trim() !== "") map[r.enrollment_code] = r.display_name;
+  }
+  return map;
+}
+
 export async function getEventsSummary(): Promise<EventSummary[]> {
-  const rows = await fetchAllEventUsers();
+  const [rows, displayNames] = await Promise.all([fetchAllEventUsers(), fetchDisplayNames()]);
 
   const byCode: Record<string, EventUserRow[]> = {};
   for (const r of rows) {
@@ -178,11 +195,11 @@ export async function getEventsSummary(): Promise<EventSummary[]> {
         const l = u.variacion ?? code;
         labelCounts[l] = (labelCounts[l] ?? 0) + 1;
       }
-      const label = Object.entries(labelCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? code;
+      const autoLabel = Object.entries(labelCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? code;
 
       return {
         code,
-        label,
+        label:       displayNames[code] ?? autoLabel,
         total:       users.length,
         activos:     users.filter(u => u.usuario_activo).length,
         verificados: users.filter(u => u.verificado).length,

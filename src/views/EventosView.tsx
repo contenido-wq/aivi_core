@@ -1,17 +1,15 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Calendar, Upload, Search, Loader2, RefreshCw, Menu, ArrowLeft, X } from "lucide-react";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList, PieChart, Pie,
-} from "recharts";
+import { Calendar, Upload, Loader2, RefreshCw, Menu, Pencil, Check, X as XIcon, UserPlus, Trash2, KeyRound } from "lucide-react";
 import { C, FONT } from "../tokens";
 import { useResponsive } from "../hooks/useResponsive";
 import { Sidebar } from "../components/layout/Sidebar";
 import { MobileBottomNav } from "../components/layout/MobileBottomNav";
-import { Card } from "../components/ui/Card";
+import { EventDashboardBody, UserDetailPanel } from "../components/eventos/shared";
 import {
-  parseEventCSV, uploadEventUsers, getEventsSummary, getEventDetail, userStatus, MODULES,
-  type EventSummary, type EventUserRow, type ModuleUsageRow, type StatusBreakdownRow, type UserStatus,
+  parseEventCSV, uploadEventUsers, getEventsSummary, getEventDetail, setEventDisplayName,
+  type EventSummary, type EventUserRow, type ModuleUsageRow, type StatusBreakdownRow,
 } from "../services/events";
+import { createEventGuest, listEventGuests, deleteEventGuest, type EventGuest } from "../services/eventGuests";
 import type { AppView } from "../types";
 
 interface EventosViewProps {
@@ -26,209 +24,9 @@ interface EventosViewProps {
   allowedSections?: AppView[];
 }
 
-const STATUS_COLOR: Record<UserStatus, string> = {
-  no_activado: C.red,
-  sin_tokens:  C.yellow,
-  con_tokens:  C.green,
-};
-
-const STATUS_SHORT_LABEL: Record<UserStatus, string> = {
-  no_activado: "No activado",
-  sin_tokens:  "Por empezar",
-  con_tokens:  "Ejecutado",
-};
-
-function fmtDate(iso: string | null) {
+function fmtDateTime(iso: string | null) {
   if (!iso) return "—";
-  return new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(iso));
-}
-
-function KPITile({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <div style={{
-      background: C.card, border: `1px solid ${C.border}`, borderRadius: 14,
-      padding: "14px 16px", flex: 1, minWidth: 0,
-    }}>
-      <div style={{ fontSize: 10, fontWeight: 800, color: C.mutedLight, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
-        {label}
-      </div>
-      <div style={{ fontSize: 28, fontWeight: 900, color, letterSpacing: "-0.03em" }}>{value}</div>
-    </div>
-  );
-}
-
-function StatusTip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const p = payload[0].payload as StatusBreakdownRow;
-  return (
-    <div style={{
-      background: "#18181B", border: `1px solid ${C.border}`, borderRadius: 10,
-      padding: "10px 14px", fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-    }}>
-      <div style={{ color: C.white, marginBottom: 4, fontWeight: 600 }}>{p.label}</div>
-      <div style={{ color: STATUS_COLOR[p.status], fontWeight: 700 }}>{p.count} usuarios · {p.pct}%</div>
-    </div>
-  );
-}
-
-function ModuleTip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const p = payload[0].payload as ModuleUsageRow;
-  return (
-    <div style={{
-      background: "#18181B", border: `1px solid ${C.border}`, borderRadius: 10,
-      padding: "10px 14px", fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-    }}>
-      <div style={{ color: C.white, marginBottom: 4, fontWeight: 600 }}>{p.label}</div>
-      <div style={{ color: C.orange, fontWeight: 700 }}>{p.usersWithUsage} usuarios · {p.pct}%</div>
-      <div style={{ color: C.mutedMid, marginTop: 2 }}>{p.totalUses} usos totales</div>
-    </div>
-  );
-}
-
-function StatusDonutChart({ data }: { data: StatusBreakdownRow[] }) {
-  const total = data.reduce((s, d) => s + d.count, 0);
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap", justifyContent: "center", padding: "8px 0", width: "100%" }}>
-      <div style={{ position: "relative", width: 160, height: 160, flexShrink: 0 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data} dataKey="count" nameKey="label"
-              innerRadius={52} outerRadius={78} paddingAngle={2} stroke="none"
-              isAnimationActive animationDuration={600}
-            >
-              {data.map(d => <Cell key={d.status} fill={STATUS_COLOR[d.status]} />)}
-            </Pie>
-            <Tooltip content={<StatusTip />} />
-          </PieChart>
-        </ResponsiveContainer>
-        <div style={{
-          position: "absolute", inset: 0, display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center", pointerEvents: "none",
-        }}>
-          <div style={{ fontFamily: FONT, fontSize: 24, fontWeight: 900, color: C.white, letterSpacing: "-0.02em" }}>{total}</div>
-          <div style={{ fontSize: 9, fontWeight: 800, color: C.mutedLight, textTransform: "uppercase", letterSpacing: "0.08em" }}>Total</div>
-        </div>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {data.map(d => (
-          <div key={d.status} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_COLOR[d.status], flexShrink: 0 }} />
-            <span style={{ color: C.mutedLight, minWidth: 160 }}>{d.label}</span>
-            <span style={{ fontWeight: 700, color: C.white, fontFamily: FONT }}>{d.count}</span>
-            <span style={{ color: C.mutedMid, fontSize: 11 }}>({d.pct}%)</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ModuleUsageChart({ data }: { data: ModuleUsageRow[] }) {
-  return (
-    <ResponsiveContainer width="100%" height={Math.max(220, data.length * 28)}>
-      <BarChart data={data} layout="vertical" margin={{ top: 4, right: 36, left: 4, bottom: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-        <XAxis type="number" hide />
-        <YAxis
-          type="category" dataKey="label" width={150}
-          tick={{ fill: C.mutedLight, fontSize: 11, fontFamily: FONT }}
-          tickLine={false} axisLine={false}
-        />
-        <Tooltip content={<ModuleTip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-        <Bar dataKey="usersWithUsage" fill={C.orange} radius={[0, 4, 4, 0]} maxBarSize={18} isAnimationActive animationDuration={600}>
-          <LabelList dataKey="usersWithUsage" position="right" fill={C.mutedLight} fontSize={11} fontFamily={FONT} />
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-interface UserModuleRow {
-  key:   string;
-  label: string;
-  count: number;
-  last:  string | null;
-}
-
-function UserDetailPanel({ user, onClose, isMobile }: { user: EventUserRow; onClose: () => void; isMobile: boolean }) {
-  const status = userStatus(user);
-
-  const moduleRows: UserModuleRow[] = MODULES
-    .map(m => ({
-      key:   m.key,
-      label: m.label,
-      count: (user[`${m.key}_exitosas` as keyof EventUserRow] as number) ?? 0,
-      last:  (user[`${m.key}_ultima` as keyof EventUserRow] as string | null) ?? null,
-    }))
-    .sort((a, b) => b.count - a.count);
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* Header */}
-      <div style={{ padding: "16px 18px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <button onClick={onClose} style={{
-            background: "none", border: "none", color: C.mutedLight, cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 5, fontSize: 12, padding: 0,
-          }}>
-            {isMobile ? <><ArrowLeft size={14} /> Volver</> : <X size={16} />}
-          </button>
-        </div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: C.white, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {user.nombre || user.email.split("@")[0]}
-        </div>
-        <div style={{ fontSize: 12, color: C.mutedMid, marginBottom: 8, wordBreak: "break-all" }}>{user.email}</div>
-        <span style={{
-          display: "inline-flex", alignItems: "center", gap: 5,
-          fontSize: 10, fontWeight: 700, color: STATUS_COLOR[status],
-          background: `${STATUS_COLOR[status]}1F`, border: `1px solid ${STATUS_COLOR[status]}40`,
-          borderRadius: 5, padding: "3px 8px",
-        }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: STATUS_COLOR[status], flexShrink: 0 }} />
-          {STATUS_SHORT_LABEL[status]}
-        </span>
-      </div>
-
-      {/* Datos generales */}
-      <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          {[
-            { label: "Plan",              value: user.plan ?? "—" },
-            { label: "Estado del plan",   value: user.estado_plan ?? "—" },
-            { label: "Registrado",        value: fmtDate(user.registrado_el) },
-            { label: "Tokens (total)",    value: String(user.tokens_plan_consumidos_total) },
-          ].map(f => (
-            <div key={f.label}>
-              <div style={{ fontSize: 9, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>{f.label}</div>
-              <div style={{ fontSize: 12, color: C.white, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.value}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Uso por módulo */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "14px 18px" }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: C.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
-          Uso por módulo
-        </div>
-        {moduleRows.map(m => (
-          <div key={m.key} style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
-            padding: "8px 0", borderBottom: `1px solid rgba(255,255,255,0.04)`,
-            opacity: m.count > 0 ? 1 : 0.4,
-          }}>
-            <span style={{ fontSize: 12, color: C.white }}>{m.label}</span>
-            <div style={{ textAlign: "right", flexShrink: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: m.count > 0 ? C.orange : C.muted }}>{m.count}×</div>
-              <div style={{ fontSize: 10, color: C.mutedMid }}>{fmtDate(m.last)}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 }
 
 export function EventosView({
@@ -253,6 +51,22 @@ export function EventosView({
   const [selectedUser, setSelectedUser] = useState<EventUserRow | null>(null);
   const [mobileView,  setMobileView]  = useState<"list" | "detail">("list");
 
+  // Renombrar evento
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput,   setNameInput]   = useState("");
+  const [savingName,  setSavingName]  = useState(false);
+
+  // Invitados
+  const [guests,        setGuests]        = useState<EventGuest[]>([]);
+  const [loadingGuests,  setLoadingGuests] = useState(false);
+  const [showAddGuest,  setShowAddGuest]  = useState(false);
+  const [newUsername,   setNewUsername]   = useState("");
+  const [newPassword,   setNewPassword]   = useState("");
+  const [newLabel,      setNewLabel]      = useState("");
+  const [creatingGuest, setCreatingGuest] = useState(false);
+  const [guestMsg,      setGuestMsg]      = useState<{ msg: string; ok: boolean } | null>(null);
+  const [justCreated,   setJustCreated]   = useState<{ username: string; password: string } | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadEvents = async () => {
@@ -267,10 +81,21 @@ export function EventosView({
 
   useEffect(() => { loadEvents(); }, []); // eslint-disable-line
 
+  const loadGuests = async (code: string) => {
+    setLoadingGuests(true);
+    const list = await listEventGuests(code);
+    setGuests(list);
+    setLoadingGuests(false);
+  };
+
   useEffect(() => {
     setSelectedUser(null);
     setMobileView("list");
-    if (!selectedCode) { setUsers([]); setModuleUsage([]); setStatusBreakdown([]); return; }
+    setEditingName(false);
+    setShowAddGuest(false);
+    setJustCreated(null);
+    setGuestMsg(null);
+    if (!selectedCode) { setUsers([]); setModuleUsage([]); setStatusBreakdown([]); setGuests([]); return; }
     setLoadingDetail(true);
     getEventDetail(selectedCode).then(({ users, moduleUsage, statusBreakdown }) => {
       setUsers(users);
@@ -278,6 +103,7 @@ export function EventosView({
       setStatusBreakdown(statusBreakdown);
       setLoadingDetail(false);
     });
+    loadGuests(selectedCode);
   }, [selectedCode]);
 
   const handleFile = async (file: File) => {
@@ -302,6 +128,50 @@ export function EventosView({
   };
 
   const selectedEvent = events.find(e => e.code === selectedCode) ?? null;
+
+  const startEditName = () => {
+    if (!selectedEvent) return;
+    setNameInput(selectedEvent.label);
+    setEditingName(true);
+  };
+
+  const saveEditName = async () => {
+    if (!selectedCode || !nameInput.trim()) return;
+    setSavingName(true);
+    try {
+      await setEventDisplayName(selectedCode, nameInput.trim());
+      await loadEvents();
+      setEditingName(false);
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const handleAddGuest = async () => {
+    if (!selectedCode || !newUsername.trim() || newPassword.length < 4) {
+      setGuestMsg({ msg: "Usuario requerido y contraseña de al menos 4 caracteres.", ok: false });
+      return;
+    }
+    setCreatingGuest(true);
+    setGuestMsg(null);
+    try {
+      await createEventGuest(selectedCode, newUsername, newPassword, newLabel || undefined);
+      setJustCreated({ username: newUsername.trim(), password: newPassword });
+      setNewUsername(""); setNewPassword(""); setNewLabel("");
+      setShowAddGuest(false);
+      await loadGuests(selectedCode);
+    } catch (e) {
+      setGuestMsg({ msg: e instanceof Error ? e.message : "No se pudo crear el invitado (¿el usuario ya existe?).", ok: false });
+    } finally {
+      setCreatingGuest(false);
+    }
+  };
+
+  const handleRemoveGuest = async (id: string) => {
+    if (!selectedCode) return;
+    await deleteEventGuest(id);
+    await loadGuests(selectedCode);
+  };
 
   const filteredUsers = useMemo(() => {
     const q = search.toLowerCase();
@@ -424,89 +294,137 @@ export function EventosView({
             </div>
           ) : selectedEvent ? (
             <>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <KPITile label="Total asistentes" value={String(selectedEvent.total)} color={C.white} />
-                {statusBreakdown.map(s => (
-                  <KPITile
-                    key={s.status}
-                    label={s.status === "no_activado" ? "No activados" : s.status === "sin_tokens" ? "Por empezar" : "Generaron contenido"}
-                    value={`${s.count} (${s.pct}%)`}
-                    color={STATUS_COLOR[s.status]}
-                  />
-                ))}
-              </div>
-
-              {/* Estado de usuarios + Uso por módulo */}
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "stretch" }}>
-                <div style={{ flex: "1 1 320px", minWidth: 0, display: "flex", flexDirection: "column" }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.white, marginBottom: 10 }}>Estado de usuarios</div>
-                  <Card style={{ padding: "12px 14px", flex: 1, display: "flex", alignItems: "center" }}>
-                    <StatusDonutChart data={statusBreakdown} />
-                  </Card>
-                </div>
-
-                <div style={{ flex: "1 1 320px", minWidth: 0, display: "flex", flexDirection: "column" }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.white, marginBottom: 10 }}>Uso por módulo</div>
-                  <Card style={{ padding: "12px 14px", flex: 1 }}>
-                    <ModuleUsageChart data={moduleUsage} />
-                  </Card>
-                </div>
-              </div>
-
-              {/* Tabla de usuarios */}
-              <div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, gap: 10, flexWrap: "wrap" }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.white }}>Usuarios ({filteredUsers.length})</div>
-                  <div style={{ position: "relative", flex: "0 1 260px" }}>
-                    <Search size={12} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: C.muted }} />
+              {/* Nombre del evento (editable) */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                {editingName ? (
+                  <>
                     <input
-                      value={search} onChange={e => setSearch(e.target.value)}
-                      placeholder="Buscar nombre o email…"
+                      autoFocus
+                      value={nameInput}
+                      onChange={e => setNameInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") saveEditName(); if (e.key === "Escape") setEditingName(false); }}
                       style={{
-                        width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`,
-                        borderRadius: 7, padding: "6px 8px 6px 28px", fontSize: 12, color: C.white,
-                        outline: "none", fontFamily: FONT, boxSizing: "border-box",
+                        background: "rgba(255,255,255,0.06)", border: `1px solid rgba(254,128,63,0.4)`,
+                        borderRadius: 7, color: C.white, fontSize: 15, fontWeight: 700,
+                        padding: "5px 10px", outline: "none", fontFamily: FONT, minWidth: 200,
                       }}
                     />
-                  </div>
+                    <button onClick={saveEditName} disabled={savingName} title="Guardar" style={{ background: "rgba(74,222,128,0.12)", border: "1px solid rgba(74,222,128,0.3)", borderRadius: 6, color: "#4ADE80", padding: 5, cursor: "pointer", display: "flex" }}>
+                      <Check size={14} />
+                    </button>
+                    <button onClick={() => setEditingName(false)} title="Cancelar" style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, color: C.mutedLight, padding: 5, cursor: "pointer", display: "flex" }}>
+                      <XIcon size={14} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: C.white }}>{selectedEvent.label}</div>
+                    <button onClick={startEditName} title="Renombrar evento" style={{ background: "none", border: "none", color: C.mutedLight, cursor: "pointer", display: "flex", padding: 4 }}>
+                      <Pencil size={13} />
+                    </button>
+                    <span style={{ fontSize: 11, color: C.muted }}>{selectedEvent.code}</span>
+                  </>
+                )}
+              </div>
+
+              <EventDashboardBody
+                event={selectedEvent}
+                statusBreakdown={statusBreakdown}
+                moduleUsage={moduleUsage}
+                filteredUsers={filteredUsers}
+                search={search}
+                onSearchChange={setSearch}
+                selectedUser={selectedUser}
+                onSelectUser={u => { setSelectedUser(u); if (isMobile) setMobileView("detail"); }}
+              />
+
+              {/* Invitados */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.white }}>Invitados</div>
+                  <button
+                    onClick={() => { setShowAddGuest(v => !v); setGuestMsg(null); }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
+                      fontSize: 11, fontWeight: 700, background: "rgba(254,128,63,0.12)",
+                      border: "1px solid rgba(254,128,63,0.3)", color: C.orange, cursor: "pointer",
+                    }}
+                  >
+                    <UserPlus size={13} /> Agregar persona
+                  </button>
                 </div>
-                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", overflowX: "auto" }}>
-                  <div style={{ minWidth: 560 }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 200px 120px", padding: "8px 14px", fontSize: 10, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${C.border}` }}>
-                      <span>Nombre</span><span>Email</span><span>Estado</span><span>Registrado</span>
+
+                {justCreated && (
+                  <div style={{
+                    marginBottom: 10, padding: "10px 14px", borderRadius: 10, fontSize: 12,
+                    background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.25)",
+                  }}>
+                    <div style={{ color: "#4ADE80", fontWeight: 700, marginBottom: 4 }}>
+                      Invitado creado. Guarda esta contraseña — no se puede volver a ver.
                     </div>
-                    {filteredUsers.length === 0 ? (
-                      <div style={{ padding: "20px 14px", fontSize: 12, color: C.muted, textAlign: "center" }}>Sin resultados</div>
-                    ) : filteredUsers.map(u => {
-                      const status = userStatus(u);
-                      const isSel = selectedUser?.email === u.email;
-                      return (
-                      <div
-                        key={u.email}
-                        onClick={() => { setSelectedUser(u); if (isMobile) setMobileView("detail"); }}
-                        style={{
-                          display: "grid", gridTemplateColumns: "1fr 1fr 200px 120px", padding: "8px 14px", fontSize: 12,
-                          borderBottom: `1px solid rgba(255,255,255,0.04)`, alignItems: "center", cursor: "pointer",
-                          borderLeft: isSel ? `2px solid ${C.orange}` : "2px solid transparent",
-                          background: isSel ? "rgba(254,128,63,0.07)" : "transparent",
-                        }}
-                      >
-                        <span style={{ color: C.white, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.nombre || u.email.split("@")[0]}</span>
-                        <span style={{ color: C.mutedMid, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</span>
-                        <span style={{
-                          display: "inline-flex", alignItems: "center", gap: 5, width: "fit-content",
-                          fontSize: 10, fontWeight: 700, color: STATUS_COLOR[status],
-                          background: `${STATUS_COLOR[status]}1F`, border: `1px solid ${STATUS_COLOR[status]}40`,
-                          borderRadius: 5, padding: "3px 8px",
-                        }}>
-                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: STATUS_COLOR[status], flexShrink: 0 }} />
-                          {STATUS_SHORT_LABEL[status]}
-                        </span>
-                        <span style={{ color: C.mutedLight }}>{fmtDate(u.registrado_el)}</span>
-                      </div>
-                      );
-                    })}
+                    <div style={{ color: C.white, fontFamily: "ui-monospace, monospace" }}>
+                      Usuario: <b>{justCreated.username}</b> · Contraseña: <b>{justCreated.password}</b>
+                    </div>
+                    <button onClick={() => setJustCreated(null)} style={{ marginTop: 6, background: "none", border: "none", color: C.mutedLight, fontSize: 11, cursor: "pointer", padding: 0 }}>
+                      Cerrar
+                    </button>
                   </div>
+                )}
+
+                {showAddGuest && (
+                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14, marginBottom: 10, display: "flex", flexDirection: "column", gap: 8, maxWidth: 420 }}>
+                    <input
+                      value={newUsername} onChange={e => setNewUsername(e.target.value)}
+                      placeholder="Usuario"
+                      style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 7, padding: "8px 10px", fontSize: 12, color: C.white, outline: "none", fontFamily: FONT }}
+                    />
+                    <input
+                      value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Contraseña (mínimo 4 caracteres)" type="text"
+                      style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 7, padding: "8px 10px", fontSize: 12, color: C.white, outline: "none", fontFamily: FONT }}
+                    />
+                    <input
+                      value={newLabel} onChange={e => setNewLabel(e.target.value)}
+                      placeholder="Nota (opcional, ej. nombre de la persona)"
+                      style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 7, padding: "8px 10px", fontSize: 12, color: C.white, outline: "none", fontFamily: FONT }}
+                    />
+                    {guestMsg && !guestMsg.ok && (
+                      <div style={{ fontSize: 11, color: "#FF8A87" }}>{guestMsg.msg}</div>
+                    )}
+                    <button
+                      onClick={handleAddGuest}
+                      disabled={creatingGuest}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                        padding: "8px 0", borderRadius: 8, fontSize: 12, fontWeight: 700,
+                        background: creatingGuest ? "rgba(254,128,63,0.4)" : C.gradBtn,
+                        border: "none", cursor: creatingGuest ? "not-allowed" : "pointer", color: "#fff",
+                      }}
+                    >
+                      {creatingGuest ? <Loader2 size={13} style={{ animation: "spin 0.8s linear infinite" }} /> : <KeyRound size={13} />}
+                      Crear acceso
+                    </button>
+                  </div>
+                )}
+
+                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
+                  {loadingGuests ? (
+                    <div style={{ padding: "16px 14px", textAlign: "center" }}><Loader2 size={16} style={{ animation: "spin 0.8s linear infinite", color: C.muted }} /></div>
+                  ) : guests.length === 0 ? (
+                    <div style={{ padding: "16px 14px", fontSize: 12, color: C.muted, textAlign: "center" }}>Nadie tiene acceso a este evento todavía.</div>
+                  ) : guests.map(g => (
+                    <div key={g.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderBottom: `1px solid rgba(255,255,255,0.04)`, gap: 10 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.white }}>{g.username}{g.label ? <span style={{ color: C.mutedMid, fontWeight: 400 }}> · {g.label}</span> : null}</div>
+                        <div style={{ fontSize: 10, color: C.mutedMid }}>
+                          Creado {fmtDateTime(g.created_at)}{g.last_login_at ? ` · Último ingreso ${fmtDateTime(g.last_login_at)}` : " · Sin ingresar todavía"}
+                        </div>
+                      </div>
+                      <button onClick={() => handleRemoveGuest(g.id)} title="Quitar acceso" style={{ background: "none", border: `1px solid rgba(255,65,59,0.3)`, borderRadius: 6, color: "#FF8A87", padding: 6, cursor: "pointer", display: "flex", flexShrink: 0 }}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             </>
