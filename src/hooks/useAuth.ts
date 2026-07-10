@@ -1,21 +1,32 @@
 import { useState, useEffect } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "../services/supabase";
+import type { AppView } from "../types";
 
 const SESSION_KEY = "aivi_team_session";
+
+interface StoredSession {
+  email:           string;
+  allowedSections?: AppView[];
+  allowedEvents?:   string[];
+}
+
+function readStoredSession(): StoredSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as StoredSession) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function useAuth() {
   const [user, setUser]           = useState<User | null>(null);
   const [session, setSession]     = useState<Session | null>(null);
   const [loading, setLoading]     = useState(true);
-  const [teamEmail, setTeamEmail] = useState<string | null>(() => {
-    try {
-      const raw = localStorage.getItem(SESSION_KEY);
-      return raw ? (JSON.parse(raw) as { email: string }).email : null;
-    } catch {
-      return null;
-    }
-  });
+  const [teamEmail, setTeamEmail] = useState<string | null>(() => readStoredSession()?.email ?? null);
+  const [allowedSections, setAllowedSections] = useState<AppView[]>(() => readStoredSession()?.allowedSections ?? []);
+  const [allowedEvents, setAllowedEvents]     = useState<string[]>(() => readStoredSession()?.allowedEvents ?? []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -33,14 +44,14 @@ export function useAuth() {
         if (!session) {
           localStorage.removeItem(SESSION_KEY);
           setTeamEmail(null);
+          setAllowedSections([]);
+          setAllowedEvents([]);
         } else {
           // Re-leer localStorage cuando se inicia sesión (el login lo escribe antes de este evento)
-          try {
-            const raw = localStorage.getItem(SESSION_KEY);
-            setTeamEmail(raw ? (JSON.parse(raw) as { email: string }).email : null);
-          } catch {
-            setTeamEmail(null);
-          }
+          const stored = readStoredSession();
+          setTeamEmail(stored?.email ?? null);
+          setAllowedSections(stored?.allowedSections ?? []);
+          setAllowedEvents(stored?.allowedEvents ?? []);
         }
       }
     );
@@ -55,7 +66,9 @@ export function useAuth() {
     await supabase.auth.signOut();
     localStorage.removeItem(SESSION_KEY);
     setTeamEmail(null);
+    setAllowedSections([]);
+    setAllowedEvents([]);
   };
 
-  return { user, session, loading, teamEmail, signIn, signOut };
+  return { user, session, loading, teamEmail, allowedSections, allowedEvents, signIn, signOut };
 }

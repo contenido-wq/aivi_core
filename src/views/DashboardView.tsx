@@ -15,6 +15,7 @@ import { DashFooter }          from "../components/dashboard/DashFooter";
 import { C }                   from "../tokens";
 import { syncToday, syncUtmify } from "../services/dashboard";
 import type { ProductFilter }  from "../services/dashboard";
+import type { AppView }        from "../types";
 
 interface DashboardViewProps {
   onSettings:       () => void;
@@ -22,11 +23,13 @@ interface DashboardViewProps {
   onUsers?:         () => void;
   onTransactions?:  () => void;
   onAnalytics?:     () => void;
+  onEventos?:       () => void;
   activeView?:      string;
   isAdmin?:         boolean;
+  allowedSections?: AppView[];
 }
 
-export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, onAnalytics, activeView = "dashboard", isAdmin = false }: DashboardViewProps) {
+export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, onAnalytics, onEventos, activeView = "dashboard", isAdmin = false, allowedSections = [] }: DashboardViewProps) {
   const time                  = useClock();
   const [adsOn, setAdsOn]     = useState(false);
   const [date]                = useState(() => new Date());
@@ -35,7 +38,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
 
   const { isMobile, isTablet, isDesktop, isShortScreen, isLarge, isXLarge } = useResponsive();
 
-  const { kpis, plans, daily, transactions, comparison, chartData, atRiskUsers, delayedUsers, cancelledUsers, cancelledByDay, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
+  const { kpis, plans, daily, transactions, comparison, chartData, atRiskUsers, delayedUsers, cancelledUsers, cancelledByDay, renewalSummary, loading, error, lastRefresh, refresh, loadChart, chartRange, loadTransactionsByRange } =
     useDashboardData(date, filter);
 
   const handleSync = useCallback(async () => {
@@ -63,6 +66,16 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
     );
   }
 
+  // Primera carga aún sin resolver: evitar el flash de "$0.00" y el layout
+  // moviéndose al reemplazar los paneles vacíos por los datos reales.
+  if (lastRefresh === null) {
+    return (
+      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}>
+        <div style={{ width: 28, height: 28, borderRadius: "50%", border: `2px solid ${C.border}`, borderTopColor: C.orange, animation: "spin 0.8s linear infinite" }} />
+      </div>
+    );
+  }
+
   // Sidebar width for desktop
   const sidebarWidth = (isMobile || isTablet) ? 0 : (isLarge ? 240 : 220);
 
@@ -79,6 +92,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
         onUsers={onUsers}
         onTransactions={onTransactions}
         onAnalytics={onAnalytics}
+        onEventos={onEventos}
         activeView={activeView}
         mrr={kpis?.mrr ?? 0}
         arr={kpis?.arr ?? 0}
@@ -87,6 +101,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
         onClose={() => setSidebarOpen(false)}
         isMobile={isMobile || isTablet}
         isAdmin={isAdmin}
+        allowedSections={allowedSections}
         width={sidebarWidth || undefined}
       />
 
@@ -129,6 +144,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
                 weekRevenue={comparison?.weekRevenue ?? 0}
                 monthRevenue={comparison?.monthRevenue ?? 0}
                 filter={filter}
+                renewalSummary={renewalSummary}
               />
 
               {/* Sección principal: Usuarios + Seguimiento */}
@@ -164,6 +180,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
               daily={daily}
               weekRevenue={comparison?.weekRevenue ?? 0}
               monthRevenue={comparison?.monthRevenue ?? 0}
+              renewalSummary={renewalSummary}
             />
 
             {/* Sección principal: Usuarios + Seguimiento */}
@@ -206,6 +223,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
               daily={daily}
               weekRevenue={comparison?.weekRevenue ?? 0}
               monthRevenue={comparison?.monthRevenue ?? 0}
+              renewalSummary={renewalSummary}
             />
 
             {/* Sección principal */}
@@ -242,6 +260,10 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
           activeView={activeView}
           onUsers={onUsers}
           onTransactions={onTransactions}
+          onAnalytics={onAnalytics}
+          onSettings={onSettings}
+          isAdmin={isAdmin}
+          allowedSections={allowedSections}
           filter={filter}
           onFilter={setFilter}
         />

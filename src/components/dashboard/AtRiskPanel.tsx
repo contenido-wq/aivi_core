@@ -20,7 +20,7 @@ function RiskBadge({ level }: { level: "alto" | "medio" | "bajo" }) {
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 3,
       padding: "2px 8px", borderRadius: 12,
-      fontSize: 9, fontWeight: 700,
+      fontSize: 10, fontWeight: 700,
       background: config.bg,
       border: `1px solid ${config.border}`,
       color: config.color,
@@ -48,7 +48,7 @@ function DaysBar({ daysActive }: { daysActive: number }) {
           transition: "width 0.5s ease",
         }} />
       </div>
-      <span style={{ fontSize: 9, color: C.muted, fontWeight: 600, whiteSpace: "nowrap" }}>
+      <span style={{ fontSize: 10, color: C.muted, fontWeight: 600, whiteSpace: "nowrap" }}>
         {daysActive}d / 7d
       </span>
     </div>
@@ -96,7 +96,7 @@ export function AtRiskPanel({ users, mobile }: AtRiskPanelProps) {
               border: `1px solid ${r.count > 0 ? `${r.color}30` : C.border}`,
             }}>
               <div style={{ fontSize: mobile ? 18 : 15, fontWeight: 900, color: r.count > 0 ? r.color : C.muted, lineHeight: 1 }}>{r.count}</div>
-              <div style={{ fontSize: 8, color: r.count > 0 ? r.color : C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2, opacity: r.count > 0 ? 0.8 : 0.5 }}>{r.label}</div>
+              <div style={{ fontSize: 10, color: r.count > 0 ? r.color : C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2, opacity: r.count > 0 ? 0.8 : 0.5 }}>{r.label}</div>
             </div>
           ))}
         </div>
@@ -104,7 +104,7 @@ export function AtRiskPanel({ users, mobile }: AtRiskPanelProps) {
 
       {/* Descripción */}
       <div style={{
-        fontSize: 9, color: C.mutedMid, marginBottom: 8, flexShrink: 0,
+        fontSize: 10, color: C.mutedMid, marginBottom: 8, flexShrink: 0,
         padding: "6px 0", borderBottom: `1px solid ${C.border}`,
       }}>
         Compradores nuevos en sus primeros 7 días — riesgo de cancelación
@@ -132,7 +132,7 @@ export function AtRiskPanel({ users, mobile }: AtRiskPanelProps) {
                 {u.name}
               </div>
               <div style={{
-                fontSize: 9, color: C.mutedMid, marginBottom: 5,
+                fontSize: 10, color: C.mutedMid, marginBottom: 5,
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>
                 {u.email}
@@ -142,7 +142,7 @@ export function AtRiskPanel({ users, mobile }: AtRiskPanelProps) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: 2 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
                   <RiskBadge level={u.riskLevel} />
-                  <span style={{ fontSize: 9, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: 10, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {u.planName.replace("AIVI — ", "").replace("Método V3 — ", "MV3 ")}
                   </span>
                 </div>
@@ -151,7 +151,7 @@ export function AtRiskPanel({ users, mobile }: AtRiskPanelProps) {
 
               <DaysBar daysActive={u.daysActive} />
 
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 8, color: C.mutedMid }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10, color: C.mutedMid }}>
                 <span>Compró: {new Date(u.purchaseDate).toLocaleDateString("es-CO", { day: "2-digit", month: "short" })}</span>
                 <span style={{ color: u.daysLeft <= 2 ? C.red : C.yellow, fontWeight: 700 }}>
                   {u.daysLeft === 0 ? "Último día" : `${u.daysLeft} día${u.daysLeft !== 1 ? "s" : ""} restante${u.daysLeft !== 1 ? "s" : ""}`}

@@ -21,6 +21,55 @@ function colombiaDayRange(date: string): { start: string; end: string } {
   };
 }
 
+// Meta/Utmify concatena {prefijo}|campaña|adset|ad|placement en
+// purchase.tracking.external_code, separados por este token fijo (confirmado
+// contra transacciones reales — ver docs/superpowers/specs/2026-07-06-ad-level-attribution-metrics-design.md).
+// Cada segmento de campaña/adset/ad termina en "|<id numérico>" que hay que
+// separar del nombre; placement no tiene id.
+const EXTERNAL_CODE_DELIMITER = "hQwK21wXxR";
+
+interface TrackingSegments {
+  campaignName: string | null;
+  campaignId:   string | null;
+  adsetName:    string | null;
+  adsetId:      string | null;
+  adName:       string | null;
+  adId:         string | null;
+  placement:    string | null;
+}
+
+function splitNameAndId(segment: string | undefined): { name: string | null; id: string | null } {
+  if (!segment) return { name: null, id: null };
+  const match = segment.match(/^(.*)\|(\d+)$/);
+  if (match) {
+    const name = match[1].trim();
+    return { name: name || null, id: match[2] };
+  }
+  const trimmed = segment.trim();
+  return { name: trimmed || null, id: null };
+}
+
+function extractTrackingSegments(externalCode: string | undefined | null): TrackingSegments {
+  const empty: TrackingSegments = {
+    campaignName: null, campaignId: null,
+    adsetName: null, adsetId: null,
+    adName: null, adId: null,
+    placement: null,
+  };
+  if (!externalCode || !externalCode.includes(EXTERNAL_CODE_DELIMITER)) return empty;
+  const parts = externalCode.split(EXTERNAL_CODE_DELIMITER);
+  const campaign  = splitNameAndId(parts[1]);
+  const adset     = splitNameAndId(parts[2]);
+  const ad        = splitNameAndId(parts[3]);
+  const placement = (parts[4] ?? "").trim() || null;
+  return {
+    campaignName: campaign.name, campaignId: campaign.id,
+    adsetName:    adset.name,    adsetId:    adset.id,
+    adName:       ad.name,       adId:       ad.id,
+    placement,
+  };
+}
+
 const SALE_EVENTS           = ["PURCHASE_COMPLETE", "PURCHASE_APPROVED"];
 const REFUND_REQUEST_EVENTS = ["PURCHASE_REFUND_REQUEST"];
 const REFUND_EVENTS         = ["PURCHASE_REFUNDED"];
@@ -87,7 +136,13 @@ serve(async (req) => {
   const plan_name       = product?.name         ?? "Desconocido";
   const buyer_email     = buyer?.email           ?? "";
   const buyer_name      = buyer?.name            ?? "";
-  const subscriber_code    = sub?.subscriber?.code              ?? hotmart_id;
+  // Hotmart no siempre envía subscription.subscriber.code en cobros recurrentes
+  // (solo en el pago inicial). Si cae a hotmart_id, cada renovación mensual genera
+  // un hotmart_id distinto y el upsert onConflict:"subscriber_code" nunca matchea
+  // la fila anterior, duplicando la suscripción cada mes. Usamos email+plan como
+  // llave estable para que las renovaciones actualicen la misma fila.
+  const subscriber_code    = sub?.subscriber?.code
+    ?? (buyer_email ? `EMAIL:${buyer_email.toLowerCase().trim()}::${plan_name}` : hotmart_id);
   const cancellation_type  = sub?.subscriber?.cancellation_type ?? null;
   const amount             = Number(purchase.price?.value ?? 0);
   const currency           = (purchase.price?.currency_value ?? "USD") as string;
@@ -96,11 +151,10 @@ serve(async (req) => {
   const buyer_phone     = buyer?.checkout_phone                         ?? buyer?.phone ?? "";
   const buyer_country   = buyer?.address?.country                       ?? "";
   const offer_code      = purchase?.offer?.code                         ?? "";
-  const rawOrigin       = purchase?.origin;
-  const sale_origin     = typeof rawOrigin === "object" && rawOrigin !== null
-    ? (rawOrigin.sck ?? rawOrigin.src ?? JSON.stringify(rawOrigin))
-    : (rawOrigin ?? "");
-  const traffic_source  = payload.data?.trackingParameters?.source_sck ?? payload.data?.trackingParameters?.src ?? "";
+  const tracking        = purchase?.tracking;
+  const sale_origin     = tracking?.source_sck ?? tracking?.source ?? "";
+  const segments        = extractTrackingSegments(tracking?.external_code);
+  const traffic_source  = segments.campaignName ?? tracking?.source_sck ?? "";
 
   // Para cancelaciones, chargebacks y pagos atrasados, evitar duplicados del mismo día
   // (Hotmart reintenta webhooks con distinto hotmart_id para el mismo evento)
@@ -138,6 +192,11 @@ serve(async (req) => {
     offer_code,
     sale_origin,
     traffic_source,
+    ad_id:              segments.adId,
+    ad_name:            segments.adName,
+    adset_id:           segments.adsetId,
+    adset_name:         segments.adsetName,
+    placement:          segments.placement,
     plan_name,
     amount,
     currency,
@@ -147,7 +206,7 @@ serve(async (req) => {
     created_at:        new Date().toISOString(),
   }, { onConflict: "hotmart_id" });
 
-  await supabase.from("subscriptions").upsert({
+  const { error: subError } = await supabase.from("subscriptions").upsert({
     subscriber_code,
     buyer_email,
     buyer_name,
@@ -157,6 +216,7 @@ serve(async (req) => {
     currency,
     updated_at: new Date().toISOString(),
   }, { onConflict: "subscriber_code" });
+  if (subError) console.error("Error upsert subscriptions:", subError);
 
   await recalcDailyMetrics(supabase, today);
 

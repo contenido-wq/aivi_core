@@ -1,15 +1,20 @@
 import { useState, useEffect, useMemo }  from "react";
-import { ArrowLeft, Search, RefreshCw, Loader2, TrendingUp, Calendar, MapPin, Radio, CheckCircle2, XCircle, Clock, AlertTriangle, Mail, Phone } from "lucide-react";
+import { ArrowLeft, Search, RefreshCw, Loader2, TrendingUp, Calendar, MapPin, Radio, CheckCircle2, XCircle, Clock, AlertTriangle, Mail, Phone, Repeat } from "lucide-react";
 import { C, FONT }                       from "../tokens";
 import { getUsersTraceability, getProductFamily } from "../services/dashboard";
 import type { UserProfile, ProductFilter } from "../services/dashboard";
 import { useResponsive }                  from "../hooks/useResponsive";
 import { MobileBottomNav }               from "../components/layout/MobileBottomNav";
+import type { AppView }                  from "../types";
 
 interface UsersViewProps {
   onBack:          () => void;
   onDashboard?:    () => void;
   onTransactions?: () => void;
+  onAnalytics?:    () => void;
+  onSettings?:     () => void;
+  isAdmin?:        boolean;
+  allowedSections?: AppView[];
 }
 
 const FLAGS: Record<string, string> = {
@@ -201,13 +206,15 @@ function cleanPhone(raw: string): string {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProps) {
+export function UsersView({ onBack, onDashboard, onTransactions, onAnalytics, onSettings, isAdmin = false, allowedSections = [] }: UsersViewProps) {
   const [users,         setUsers]         = useState<UserProfile[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [selected,      setSelected]      = useState<UserProfile | null>(null);
   const [query,         setQuery]         = useState("");
   const [programFilter, setProgramFilter] = useState<ProductFilter>("todos");
   const [statusFilter,  setStatusFilter]  = useState<"todos" | UserProfile["status"]>("todos");
+  const [renewalFilter, setRenewalFilter] = useState<"todos" | "0" | "1+" | "3+">("todos");
+  const [sortBy,        setSortBy]        = useState<"ltv" | "renewals">("ltv");
   const [mobileView,    setMobileView]    = useState<"list" | "detail">("list");
 
   const { isMobile, isLarge, isXLarge } = useResponsive();
@@ -228,6 +235,17 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
     [users]
   );
 
+  const renewalStats = useMemo(() => {
+    const buckets: Record<"0" | "1" | "2" | "3+", number> = { "0": 0, "1": 0, "2": 0, "3+": 0 };
+    for (const u of users) {
+      const k = u.renewalsCount >= 3 ? "3+" : (String(u.renewalsCount) as "0" | "1" | "2");
+      buckets[k]++;
+    }
+    const total   = users.length;
+    const renewed = total - buckets["0"];
+    return { buckets, renewed, total };
+  }, [users]);
+
   const filtered = useMemo(() => {
     let list = users;
 
@@ -238,14 +256,24 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
     }
 
     if (statusFilter !== "todos") list = list.filter(u => u.status === statusFilter);
+
+    if (renewalFilter === "0")  list = list.filter(u => u.renewalsCount === 0);
+    if (renewalFilter === "1+") list = list.filter(u => u.renewalsCount >= 1);
+    if (renewalFilter === "3+") list = list.filter(u => u.renewalsCount >= 3);
+
     const q = query.toLowerCase();
-    if (!q) return list;
-    return list.filter(u =>
-      u.email.toLowerCase().includes(q) ||
-      u.name.toLowerCase().includes(q) ||
-      u.planName.toLowerCase().includes(q)
-    );
-  }, [users, query, statusFilter, programFilter, familyCounts]);
+    if (q) {
+      list = list.filter(u =>
+        u.email.toLowerCase().includes(q) ||
+        u.name.toLowerCase().includes(q) ||
+        u.planName.toLowerCase().includes(q)
+      );
+    }
+
+    if (sortBy === "renewals") list = [...list].sort((a, b) => b.renewalsCount - a.renewalsCount);
+
+    return list;
+  }, [users, query, statusFilter, renewalFilter, programFilter, familyCounts, sortBy]);
 
   const score = selected ? retentionScore(selected) : 0;
   const risk  = riskLabel(score);
@@ -362,6 +390,23 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
         })}
       </div>
 
+      {/* Renewal filter */}
+      <div style={{ padding: "6px 10px", borderBottom: `1px solid rgba(255,255,255,0.04)`, display: "flex", gap: 3, overflowX: "auto" }}>
+        {(["todos","0","1+","3+"] as const).map(r => {
+          const labels = { todos: "Renovaciones: todas", "0": "Sin renovar", "1+": "1+", "3+": "3+" };
+          const active = renewalFilter === r;
+          return (
+            <button key={r} onClick={() => setRenewalFilter(r)} style={{
+              padding: "3px 8px", borderRadius: 4, fontSize: 9, fontWeight: 700,
+              border: `1px solid ${active ? C.orange+"55" : "transparent"}`,
+              background: active ? "rgba(254,128,63,0.12)" : "transparent",
+              color: active ? C.orange : C.muted,
+              cursor: "pointer", whiteSpace: "nowrap", fontFamily: FONT, letterSpacing: "0.04em",
+            }}>{labels[r]}</button>
+          );
+        })}
+      </div>
+
       {/* Search */}
       <div style={{ padding: "8px 10px", borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
         <div style={{ position: "relative" }}>
@@ -381,8 +426,22 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
       </div>
 
       {/* Column headers */}
-      <div style={{ padding: "5px 14px", borderBottom: `1px solid rgba(255,255,255,0.04)`, display: "flex", justifyContent: "space-between", fontSize: 9, letterSpacing: "0.1em", color: C.muted, textTransform: "uppercase" }}>
-        <span>Usuario</span><span>LTV</span>
+      <div style={{ padding: "5px 14px", borderBottom: `1px solid rgba(255,255,255,0.04)`, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 9, letterSpacing: "0.1em", color: C.muted, textTransform: "uppercase" }}>
+        <span>Usuario</span>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => setSortBy("ltv")} style={{
+            background: "none", border: "none", cursor: "pointer", padding: 0,
+            fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: FONT,
+            fontWeight: sortBy === "ltv" ? 800 : 400,
+            color: sortBy === "ltv" ? C.orange : C.muted,
+          }}>LTV</button>
+          <button onClick={() => setSortBy("renewals")} style={{
+            background: "none", border: "none", cursor: "pointer", padding: 0,
+            fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: FONT,
+            fontWeight: sortBy === "renewals" ? 800 : 400,
+            color: sortBy === "renewals" ? C.orange : C.muted,
+          }}>Renovaciones</button>
+        </div>
       </div>
 
       {/* List */}
@@ -416,6 +475,18 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
                 <span style={{ fontSize: 9, color: C.label }}>
                   {flag(u.country)} {u.country !== "—" ? u.country : ""}
                 </span>
+                {u.renewalsCount > 0 && (
+                  <span style={{
+                    display: "flex", alignItems: "center", gap: 2,
+                    fontSize: 9, fontWeight: 700,
+                    color: u.renewalsCount >= 3 ? C.orange : C.mutedLight,
+                    background: u.renewalsCount >= 3 ? "rgba(254,128,63,0.12)" : "rgba(255,255,255,0.05)",
+                    border: `1px solid ${u.renewalsCount >= 3 ? "rgba(254,128,63,0.25)" : C.border}`,
+                    borderRadius: 4, padding: "1px 5px",
+                  }}>
+                    <Repeat size={8} /> {u.renewalsCount}
+                  </span>
+                )}
                 {(familyCounts.get(u.email) ?? 0) >= 2 && (
                   <span style={{
                     fontSize: 9, fontWeight: 700,
@@ -773,11 +844,38 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
     ? "300px 1fr 360px"
     : "280px 1fr 330px";
 
+  const renewalSummaryBar = (
+    <div style={{
+      gridColumn: "1/-1",
+      display: "flex", alignItems: "center", flexWrap: "wrap", gap: 12,
+      padding: isMobile ? "6px 12px" : "6px 20px",
+      borderBottom: `1px solid ${C.border}`,
+      background: C.sidebar,
+      fontSize: 11, color: C.mutedMid,
+    }}>
+      <span>
+        Renovaron: <strong style={{ color: C.orange }}>{renewalStats.renewed} de {renewalStats.total}</strong>
+        {" "}({renewalStats.total > 0 ? Math.round((renewalStats.renewed / renewalStats.total) * 100) : 0}%)
+      </span>
+      <div style={{ display: "flex", gap: 5 }}>
+        {(["0", "1", "2", "3+"] as const).map(k => (
+          <span key={k} style={{
+            fontSize: 9, fontWeight: 700, color: C.mutedLight,
+            background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`,
+            borderRadius: 4, padding: "1px 7px",
+          }}>
+            {k === "0" ? "Sin renovar" : `${k} renov.`}: {renewalStats.buckets[k]}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div style={{
       display: "grid",
       gridTemplateColumns: gridCols,
-      gridTemplateRows: "52px 1fr",
+      gridTemplateRows: "52px auto 1fr",
       height: "100vh",
       background: C.bg,
       fontFamily: FONT,
@@ -785,6 +883,7 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
       ...(isXLarge && { maxWidth: 1920, margin: "0 auto" }),
     }}>
       {topbar}
+      {renewalSummaryBar}
       {isMobile ? (
         mobileView === "list" ? leftPanel : mainPanel
       ) : (
@@ -800,6 +899,10 @@ export function UsersView({ onBack, onDashboard, onTransactions }: UsersViewProp
           activeView="usuarios"
           onDashboard={onDashboard}
           onTransactions={onTransactions}
+          onAnalytics={onAnalytics}
+          onSettings={onSettings}
+          isAdmin={isAdmin}
+          allowedSections={allowedSections}
           filter={programFilter}
           onFilter={setProgramFilter}
         />

@@ -32,7 +32,7 @@ export function DashFooter({ kpis }: DashFooterProps) {
           : [["MRR", fmt(mrr), C.green], ["ARR", fmt(arr), C.green], ["Valuación", `${fmt(valLo)} – ${fmt(valHi)}`, C.yellow]]
         ).map(([lbl, val, col]) => (
           <div key={lbl}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{lbl}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{lbl}</div>
             <div style={{ fontSize: isMobile ? 13 : 16, fontWeight: 900, color: col, letterSpacing: "-0.02em", marginTop: 1 }}>{val}</div>
           </div>
         ))}

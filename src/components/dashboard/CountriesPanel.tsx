@@ -29,7 +29,7 @@ export function CountriesPanel({ countries }: CountriesPanelProps) {
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <span style={{ fontSize: 11, fontWeight: 800, color: C.green }}>${c.total.toFixed(2)}</span>
-                  <span style={{ fontSize: 8, color: C.muted, marginLeft: 2 }}>USD</span>
+                  <span style={{ fontSize: 10, color: C.muted, marginLeft: 2 }}>USD</span>
                   <span style={{ fontSize: 9, color: C.muted, marginLeft: 5 }}>{c.sales}</span>
                 </div>
               </div>

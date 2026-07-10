@@ -1,13 +1,19 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, SlidersHorizontal } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, BarChart2, SlidersHorizontal, Settings } from "lucide-react";
 import { C, FONT } from "../../tokens";
 import type { ProductFilter } from "../../services/dashboard";
+import type { AppView } from "../../types";
 
 interface MobileBottomNavProps {
   activeView?:     string;
   onDashboard?:    () => void;
   onUsers?:        () => void;
   onTransactions?: () => void;
+  onAnalytics?:    () => void;
+  onSettings?:     () => void;
+  isAdmin?:        boolean;
+  /** Secciones a las que el usuario tiene acceso — filtra la navegación */
+  allowedSections?: AppView[];
   filter:          ProductFilter;
   onFilter:        (f: ProductFilter) => void;
 }
@@ -23,17 +29,20 @@ const NAV = [
   { icon: LayoutDashboard, label: "Dashboard",     view: "dashboard"     },
   { icon: Users,           label: "Usuarios",      view: "usuarios"      },
   { icon: CreditCard,      label: "Transacciones", view: "transacciones" },
+  { icon: BarChart2,       label: "Analytics",     view: "analytics"     },
 ] as const;
 
 export function MobileBottomNav({
-  activeView, onDashboard, onUsers, onTransactions, filter, onFilter,
+  activeView, onDashboard, onUsers, onTransactions, onAnalytics, onSettings, isAdmin = false, allowedSections = [], filter, onFilter,
 }: MobileBottomNavProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const canSee = (v: AppView) => isAdmin || allowedSections.includes(v);
 
   const handleNav = (view: string) => {
     if (view === "dashboard")     onDashboard?.();
     if (view === "usuarios")      onUsers?.();
     if (view === "transacciones") onTransactions?.();
+    if (view === "analytics")     onAnalytics?.();
   };
 
   const handleFilter = (f: ProductFilter) => {
@@ -108,7 +117,7 @@ export function MobileBottomNav({
         boxShadow: "0 1px 0 rgba(255,255,255,0.08) inset, 0 8px 32px rgba(0,0,0,0.45)",
         fontFamily: FONT,
       }}>
-        {NAV.map(item => {
+        {NAV.filter(item => canSee(item.view)).map(item => {
           const Icon = item.icon;
           const isActive = activeView === item.view;
           return (
@@ -120,7 +129,7 @@ export function MobileBottomNav({
                 border: "none",
                 borderRadius: 16,
                 cursor: "pointer",
-                width: 52,
+                width: 46,
                 height: 44,
                 display: "flex",
                 alignItems: "center",
@@ -142,7 +151,7 @@ export function MobileBottomNav({
             border: "none",
             borderRadius: 16,
             cursor: "pointer",
-            width: 52,
+            width: 46,
             height: 44,
             display: "flex",
             alignItems: "center",
@@ -154,6 +163,27 @@ export function MobileBottomNav({
         >
           <SlidersHorizontal size={20} />
         </button>
+        {onSettings && canSee("admin") && (
+          <button
+            onClick={onSettings}
+            style={{
+              background: "transparent",
+              border: "none",
+              borderRadius: 16,
+              cursor: "pointer",
+              width: 46,
+              height: 44,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "rgba(255,255,255,0.45)",
+              transition: "all 0.2s",
+              flexShrink: 0,
+            }}
+          >
+            <Settings size={20} />
+          </button>
+        )}
       </nav>
     </>
   );

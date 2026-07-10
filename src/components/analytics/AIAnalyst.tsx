@@ -27,7 +27,7 @@ export function AIAnalyst({ result, loading, onAnalyze }: Props) {
           color: C.white, fontSize: 13, fontWeight: 600,
           cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1,
         }}>
-          {loading ? "Analizando..." : "Analizar período"}
+          {loading ? "Analizando..." : "Regenerar análisis"}
         </button>
       </div>
 
@@ -59,7 +59,7 @@ export function AIAnalyst({ result, loading, onAnalyze }: Props) {
 
       {!result && !loading && (
         <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "20px 0" }}>
-          Presiona "Analizar período" para obtener recomendaciones basadas en tus datos
+          El análisis se genera automáticamente al cambiar de período
         </div>
       )}
     </div>

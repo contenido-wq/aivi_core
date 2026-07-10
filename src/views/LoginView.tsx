@@ -1,22 +1,29 @@
 import { useState }  from "react";
-import { Mail, ArrowRight, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Mail, ArrowRight, CheckCircle, AlertCircle, Loader2, User, Lock } from "lucide-react";
 import { supabase }  from "../services/supabase";
 import { C, FONT }   from "../tokens";
 import { PORTAL_EMAIL, PORTAL_PASSWORD, ADMIN_EMAIL } from "../lib/authConfig";
+import { loginEventGuest, GUEST_SESSION_KEY, type GuestSession } from "../services/eventGuests";
 
 const SESSION_KEY = "aivi_team_session";
 
-type Mode = "login" | "request";
+type Mode = "login" | "request" | "guest";
 
 type LoginStep = "idle" | "checking" | "signing-in" | "done";
 
-export function LoginView() {
+interface LoginViewProps {
+  onGuestLogin?: (session: GuestSession) => void;
+}
+
+export function LoginView({ onGuestLogin }: LoginViewProps) {
   const [mode, setMode]       = useState<Mode>("login");
   const [email, setEmail]     = useState("");
   const [loading, setLoading] = useState(false);
   const [loginStep, setLoginStep] = useState<LoginStep>("idle");
   const [error, setError]     = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [guestUsername, setGuestUsername] = useState("");
+  const [guestPassword, setGuestPassword] = useState("");
 
   const reset = (nextMode: Mode) => {
     setMode(nextMode);
@@ -34,11 +41,14 @@ export function LoginView() {
     const normalizedEmail = email.trim().toLowerCase();
     setLoginStep("checking");
 
-    // El super admin entra directamente sin verificar access_requests
+    // El super admin entra directamente sin verificar access_requests, con acceso total
+    let allowedSections: string[] = ["dashboard", "admin", "usuarios", "transacciones", "analytics"];
+    let allowedEvents: string[] = [];
+
     if (normalizedEmail !== ADMIN_EMAIL) {
       const { data: rows, error: selectErr } = await supabase
         .from("access_requests")
-        .select("email")
+        .select("email, allowed_sections, allowed_events")
         .eq("email", normalizedEmail)
         .eq("status", "approved")
         .limit(1);
@@ -49,10 +59,13 @@ export function LoginView() {
         setLoginStep("idle");
         return;
       }
+
+      allowedSections = rows[0].allowed_sections ?? [];
+      allowedEvents = rows[0].allowed_events ?? [];
     }
 
     // Escribir localStorage ANTES de signIn para que onAuthStateChange lea el email real
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ email: normalizedEmail }));
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ email: normalizedEmail, allowedSections, allowedEvents }));
     setLoginStep("signing-in");
     const { error: authErr } = await supabase.auth.signInWithPassword({
       email:    PORTAL_EMAIL,
@@ -93,6 +106,22 @@ export function LoginView() {
     } else {
       setSuccess("¡Solicitud enviada! Te contactaremos cuando tu acceso sea aprobado.");
       setEmail("");
+    }
+  };
+
+  // ── ACCESO A EVENTO (invitado) ─────────────────────────
+  const handleGuestLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const session = await loginEventGuest(guestUsername, guestPassword);
+      localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(session));
+      onGuestLogin?.(session);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo verificar el acceso.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -152,7 +181,7 @@ export function LoginView() {
           </div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.white }}>AIVI Core</h1>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: C.mutedLight }}>
-            {mode === "login" ? "Ingresa tu correo para acceder" : "Solicita acceso a la plataforma"}
+            {mode === "login" ? "Ingresa tu correo para acceder" : mode === "request" ? "Solicita acceso a la plataforma" : "Entra con el usuario y contraseña que te asignaron"}
           </p>
         </div>
 
@@ -165,7 +194,7 @@ export function LoginView() {
           marginBottom: 28,
           gap: 3,
         }}>
-          {(["login", "request"] as const).map((m) => (
+          {(["login", "request", "guest"] as const).map((m) => (
             <button
               key={m}
               onClick={() => reset(m)}
@@ -175,7 +204,7 @@ export function LoginView() {
                 borderRadius: 8,
                 border: "none",
                 cursor: "pointer",
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 600,
                 fontFamily: FONT,
                 background: mode === m ? C.orange : "transparent",
@@ -183,7 +212,7 @@ export function LoginView() {
                 transition: "all 0.2s",
               }}
             >
-              {m === "login" ? "Iniciar sesión" : "Pedir acceso"}
+              {m === "login" ? "Entrar" : m === "request" ? "Pedir acceso" : "Evento"}
             </button>
           ))}
         </div>
@@ -332,6 +361,72 @@ export function LoginView() {
                 Ir a iniciar sesión
               </button>
             )}
+          </form>
+        )}
+
+        {/* ── FORM ACCESO A EVENTO ── */}
+        {mode === "guest" && (
+          <form onSubmit={handleGuestLogin} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ position: "relative" }}>
+              <User size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.mutedMid }} />
+              <input
+                type="text"
+                required
+                placeholder="Usuario"
+                value={guestUsername}
+                onChange={e => setGuestUsername(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ position: "relative" }}>
+              <Lock size={15} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.mutedMid }} />
+              <input
+                type="password"
+                required
+                placeholder="Contraseña"
+                value={guestPassword}
+                onChange={e => setGuestPassword(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+
+            {error && (
+              <div style={{
+                display: "flex", alignItems: "flex-start", gap: 8,
+                padding: "10px 12px", borderRadius: 8,
+                background: "rgba(255,65,59,0.1)", border: "1px solid rgba(255,65,59,0.25)",
+              }}>
+                <AlertCircle size={14} style={{ color: C.red, flexShrink: 0, marginTop: 1 }} />
+                <span style={{ fontSize: 12, color: "#FF8A87" }}>{error}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                padding: "13px 0",
+                borderRadius: 10,
+                border: "none",
+                cursor: loading ? "not-allowed" : "pointer",
+                background: loading ? "rgba(254,128,63,0.4)" : C.gradBtn,
+                color: "#fff",
+                fontSize: 14,
+                fontWeight: 700,
+                fontFamily: FONT,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                marginTop: 4,
+                transition: "opacity 0.2s",
+              }}
+            >
+              {loading
+                ? <><Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> Verificando...</>
+                : <><ArrowRight size={15} /> Entrar</>
+              }
+            </button>
           </form>
         )}
       </div>

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight, X, LogOut, Pencil } from "lucide-react";
+import { LayoutDashboard, BarChart2, Users, CreditCard, RefreshCw, Settings, ChevronRight, X, LogOut, Pencil, Calendar } from "lucide-react";
 import { C } from "../../tokens";
 import type { ProductFilter, DailyData } from "../../services/dashboard";
+import type { AppView } from "../../types";
 import { useDailyGoal } from "../../hooks/useDailyGoal";
 
 interface SidebarProps {
@@ -13,6 +14,7 @@ interface SidebarProps {
   onUsers?:         () => void;
   onTransactions?:  () => void;
   onAnalytics?:     () => void;
+  onEventos?:       () => void;
   activeView?:      string;
   mrr:        number;
   arr:        number;
@@ -24,6 +26,8 @@ interface SidebarProps {
   /** Whether sidebar is in mobile mode (drawer) */
   isMobile?: boolean;
   isAdmin?: boolean;
+  /** Secciones a las que el usuario tiene acceso — filtra la navegación */
+  allowedSections?: AppView[];
   /** Override the sidebar width (desktop only). Default: 220 */
   width?: number;
 }
@@ -33,6 +37,7 @@ const NAV_ITEMS = [
   { icon: Users,           label: "Usuarios",      view: "usuarios"      },
   { icon: CreditCard,      label: "Transacciones", view: "transacciones" },
   { icon: BarChart2,       label: "Analytics",     view: "analytics"     },
+  { icon: Calendar,        label: "Eventos",       view: "eventos"       },
   { icon: RefreshCw,       label: "Suscripciones", view: null            },
 ];
 
@@ -43,7 +48,8 @@ const FILTERS: { value: ProductFilter; label: string }[] = [
   { value: "Reto15D",  label: "Reto 15D" },
 ];
 
-export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, onUsers, onTransactions, onAnalytics, activeView, mrr, arr, daily, open: _open, onClose, isMobile, isAdmin = false, width }: SidebarProps) {
+export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, onUsers, onTransactions, onAnalytics, onEventos, activeView, mrr, arr, daily, open, onClose, isMobile, isAdmin = false, allowedSections = [], width }: SidebarProps) {
+  const canSee = (v: string | null) => isAdmin || v === null || allowedSections.includes(v as AppView);
   const fmtK = (n: number) => {
     const parts = n.toFixed(2).split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -63,7 +69,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
   const cancelEdit = () => setEditingGoal(false);
 
   // In mobile mode, don't render unless open
-  if (isMobile) return null;
+  if (isMobile && !open) return null;
 
   const sidebarContent = (
     <aside style={{
@@ -119,7 +125,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
 
       {/* Nav */}
       <nav style={{ padding: "12px 8px", flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.filter(item => canSee(item.view)).map((item) => {
           const Icon     = item.icon;
           const isActive = activeView === item.view;
           const clickable = item.view !== null;
@@ -129,6 +135,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
             if (item.view === "usuarios")      onUsers?.();
             if (item.view === "transacciones") onTransactions?.();
             if (item.view === "analytics")     onAnalytics?.();
+            if (item.view === "eventos")       onEventos?.();
             if (isMobile) onClose?.();
           };
           return (
@@ -157,7 +164,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
 
         {/* Filtro */}
         <div style={{ marginTop: 10, paddingLeft: 2 }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, paddingLeft: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, paddingLeft: 10 }}>
             Producto
           </div>
           {FILTERS.map(f => (
@@ -178,7 +185,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
 
         {/* Resumen del día */}
         <div style={{ marginTop: 10, paddingLeft: 2 }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, paddingLeft: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, paddingLeft: 10 }}>
             Resumen del día
           </div>
           <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, border: `1px solid ${C.border}`, padding: "8px 10px" }}>
@@ -275,7 +282,7 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
           padding: "12px 14px",
           marginBottom: 8,
         }}>
-          <div style={{ fontSize: 9, color: C.muted, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+          <div style={{ fontSize: 10, color: C.muted, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
             Métricas Recurrentes
           </div>
           {[["MRR", fmtK(mrr), C.green], ["ARR", fmtK(arr), C.green]].map(([k, v, col]) => (
@@ -286,18 +293,18 @@ export function Sidebar({ filter, onFilter, onSettings, onSignOut, onDashboard, 
           ))}
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          {isAdmin && (
+          {canSee("admin") && (
             <button onClick={() => { onSettings(); if (isMobile) onClose?.(); }} style={{
-              flex: 1, padding: "8px", borderRadius: 8,
-              background: "transparent",
-              border: `1px solid ${C.border}`,
-              color: C.mutedLight, fontSize: 11, fontWeight: 600,
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-              transition: "all .15s",
-              cursor: "pointer",
-            }}>
-              <Settings size={13} /> Ajustes
-            </button>
+                flex: 1, padding: "8px", borderRadius: 8,
+                background: "transparent",
+                border: `1px solid ${C.border}`,
+                color: C.mutedLight, fontSize: 11, fontWeight: 600,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                transition: "all .15s",
+                cursor: "pointer",
+              }}>
+                <Settings size={13} /> Ajustes
+              </button>
           )}
           {onSignOut && (
             <button onClick={onSignOut} title="Cerrar sesión" style={{

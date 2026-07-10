@@ -1,7 +1,7 @@
-import { DollarSign, BarChart2, TrendingUp, Users } from "lucide-react";
+import { DollarSign, BarChart2, TrendingUp, Users, Repeat } from "lucide-react";
 import type { ReactNode } from "react";
 import { C } from "../../tokens";
-import type { KPIData, DailyData } from "../../services/dashboard";
+import type { KPIData, DailyData, RenewalSummary } from "../../services/dashboard";
 import { useResponsive } from "../../hooks/useResponsive";
 
 interface KPICardProps {
@@ -27,7 +27,7 @@ function KPICard({ icon, label, value, valueColor, sub, hero, compact }: KPICard
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <span style={{
-          fontSize: compact ? 8 : 9, fontWeight: 800,
+          fontSize: compact ? 10 : 10, fontWeight: 800,
           color: hero ? "rgba(255,255,255,0.65)" : C.mutedLight,
           letterSpacing: "0.1em", textTransform: "uppercase",
         }}>{label}</span>
@@ -52,9 +52,10 @@ interface KPIRowProps {
   weekRevenue:  number;
   monthRevenue: number;
   filter?:      string;
+  renewalSummary?: RenewalSummary | null;
 }
 
-export function KPIRow({ kpis, daily, weekRevenue, monthRevenue, filter = "todos" }: KPIRowProps) {
+export function KPIRow({ kpis, daily, weekRevenue, monthRevenue, filter = "todos", renewalSummary }: KPIRowProps) {
   const { isMobile, isTablet } = useResponsive();
 
   const fmt  = (n: number) => {
@@ -70,12 +71,16 @@ export function KPIRow({ kpis, daily, weekRevenue, monthRevenue, filter = "todos
   const compact = isMobile;
   const iconSize = compact ? 16 : 20;
 
-  // Grid columns: mobile 2-col, tablet 3-col, desktop 5-col
+  // Grid columns: mobile 2-col, tablet 2-col, desktop 5-col
   const gridCols = isMobile
     ? "repeat(2, 1fr)"
     : isTablet
       ? "repeat(2, 1fr)"
-      : "1.4fr 1fr 1fr 1fr";
+      : "1.2fr 1fr 1fr 1fr 1fr";
+
+  const renewalPct = renewalSummary && renewalSummary.total > 0
+    ? Math.round((renewalSummary.renewed / renewalSummary.total) * 100)
+    : 0;
 
   return (
     <div style={{
@@ -110,6 +115,10 @@ export function KPIRow({ kpis, daily, weekRevenue, monthRevenue, filter = "todos
             : undefined
         }
         compact={compact}
+      />
+      <KPICard icon={<Repeat size={iconSize}/>} label="Renovaron"
+        value={renewalSummary?.renewed ?? 0} valueColor={C.orange} compact={compact}
+        sub={`${renewalPct}% de la base`}
       />
     </div>
   );
