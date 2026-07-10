@@ -38,7 +38,7 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
 
   const { isMobile, isTablet, isDesktop, isShortScreen, isLarge, isXLarge } = useResponsive();
 
-  const { kpis, plans, daily, transactions, comparison, chartData, atRiskUsers, delayedUsers, cancelledUsers, cancelledByDay, renewalSummary, loading, error, refresh, loadChart, chartRange, loadTransactionsByRange } =
+  const { kpis, plans, daily, transactions, comparison, chartData, atRiskUsers, delayedUsers, cancelledUsers, cancelledByDay, renewalSummary, loading, error, lastRefresh, refresh, loadChart, chartRange, loadTransactionsByRange } =
     useDashboardData(date, filter);
 
   const handleSync = useCallback(async () => {
@@ -62,6 +62,16 @@ export function DashboardView({ onSettings, onSignOut, onUsers, onTransactions, 
             Reintentar
           </button>
         </div>
+      </div>
+    );
+  }
+
+  // Primera carga aún sin resolver: evitar el flash de "$0.00" y el layout
+  // moviéndose al reemplazar los paneles vacíos por los datos reales.
+  if (lastRefresh === null) {
+    return (
+      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}>
+        <div style={{ width: 28, height: 28, borderRadius: "50%", border: `2px solid ${C.border}`, borderTopColor: C.orange, animation: "spin 0.8s linear infinite" }} />
       </div>
     );
   }

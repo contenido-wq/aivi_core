@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../services/supabase";
 import { ensureRatesLoaded } from "../services/currency";
 import {
@@ -32,8 +32,13 @@ const EMPTY: DashboardState = {
 export function useDashboardData(date: Date, filter: ProductFilter = "todos") {
   const [state, setState] = useState<DashboardState>(EMPTY);
   const [chartRange, setChartRange] = useState<ChartTimeRange>("hoy");
+  // Evita que una carga vieja (p. ej. disparada por un cambio de Realtime)
+  // sobrescriba con datos obsoletos el resultado de una carga más nueva que
+  // resolvió primero — los números "saltaban" al llegar fuera de orden.
+  const requestIdRef = useRef(0);
 
   const load = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setState(s => ({ ...s, loading: true, error: null }));
     try {
       // Esperar a que las tasas de cambio estén cargadas antes de convertir
@@ -52,8 +57,10 @@ export function useDashboardData(date: Date, filter: ProductFilter = "todos") {
         getCancelledByDay(filter),
         getRenewalSummary(filter),
       ]);
+      if (requestId !== requestIdRef.current) return;
       setState({ kpis, plans, daily, transactions, comparison, countries, chartData, atRiskUsers, delayedUsers, cancelledUsers, cancelledByDay, renewalSummary, loading: false, error: null, lastRefresh: new Date() });
     } catch (e) {
+      if (requestId !== requestIdRef.current) return;
       setState(s => ({ ...s, loading: false, error: String(e) }));
     }
   }, [date, filter]);
@@ -79,13 +86,21 @@ export function useDashboardData(date: Date, filter: ProductFilter = "todos") {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
+    // Varios cambios seguidos (p. ej. Hotmart reintentando webhooks) disparaban
+    // una recarga completa por cada evento; se agrupan en una sola recarga
+    // 800ms después del último evento para evitar el parpadeo del dashboard.
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleReload = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(load, 800);
+    };
     const channel = supabase
       .channel("aivi-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "transactions"  }, () => { load(); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "daily_metrics"  }, () => { load(); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "subscriptions"  }, () => { load(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "transactions"  }, scheduleReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "daily_metrics"  }, scheduleReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "subscriptions"  }, scheduleReload)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearTimeout(debounceTimer); supabase.removeChannel(channel); };
   }, [load]);
 
   return { ...state, refresh: load, loadChart, chartRange, loadTransactionsByRange };
